@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="로컬 핏 또는 지역을 기준으로 전라도 관광 일자리를 추천합니다.">
+  <title>일자리 찾기 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css?v=20260729-9">
+  <link rel="stylesheet" href="feature-pages.css?v=20260729-9">
+</head>
+<body class="feature-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <nav class="main-nav feature-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a><a href="map.html">관광지 지도</a>
+      <a href="local-fit.html">로컬 핏</a><a class="is-active" href="jobs.html">일자리 찾기</a>
+      <a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a>
+    </nav>
+    <a class="button button-small button-primary" href="auth.html" data-auth-link>로그인</a>
+  </header>
+
+  <main class="feature-page-main">
+    <section class="page-intro">
+      <div><p class="eyebrow dark">일자리 찾기</p><h1>여행 가까이에서 짧게 일해보세요</h1></div>
+      <p>지역 행사, 축제, 팝업과 같은 단기 관광 일자리를 우선 추천하고 등록 공고가 없으면 일반 알바 공고를 조회합니다.</p>
+    </section>
+    <div class="page-workspace">
+      <section class="page-panel">
+        <h2>추천 기준</h2>
+        <form class="stack-form" id="job-recommend-form">
+          <div class="segmented-control">
+            <label><input type="radio" name="source" value="local-fit" checked><span>내 로컬 핏</span></label>
+            <label><input type="radio" name="source" value="region"><span>지역 직접 선택</span></label>
+          </div>
+          <label id="job-region-field">지역
+            <select name="region" disabled>
+              <option value="">지역 선택</option><option>여수</option><option>순천</option><option>목포</option>
+              <option>전주</option><option>광주</option><option>군산</option><option>남원</option>
+              <option>담양</option><option>해남</option><option>보성</option><option>완도</option>
+            </select>
+          </label>
+          <fieldset class="job-condition-group">
+            <legend>여행 기간</legend>
+            <div class="form-row">
+              <label>출발일<input id="job-trip-start" name="tripStart" type="date" required></label>
+              <label>도착일<input id="job-trip-end" name="tripEnd" type="date" required></label>
+            </div>
+            <p class="date-range-hint" id="job-date-hint">날짜를 선택해 주세요.</p>
+          </fieldset>
+          <div class="form-row">
+            <label>일하는 방식
+              <select name="workType">
+                <option value="">전체</option><option>현장 근무</option><option>원격 근무</option><option>체험형</option>
+              </select>
+            </label>
+            <label>희망 시간
+              <select name="time">
+                <option value="">전체</option><option>오전</option><option>오후</option><option>주말</option>
+              </select>
+            </label>
+          </div>
+          <button class="button button-primary" type="submit">일자리 추천받기</button>
+          <a class="button map-back-button" href="map.html">지도에서 지역 선택</a>
+          <div class="page-status" id="job-page-status" role="status"></div>
+        </form>
+      </section>
+      <section class="page-panel">
+        <p class="result-kind" id="job-result-kind">추천 기준을 선택해 주세요.</p>
+        <div class="result-list" id="job-result-list">
+          <div class="page-status is-visible">DB에 등록된 일자리만 표시됩니다.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="shared.js?v=20260729-9"></script>
+  <script src="jobs.js?v=20260729-9"></script>
+</body>
+</html>
