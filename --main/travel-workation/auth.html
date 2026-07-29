@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="일로와전라 로그인 및 회원가입">
+  <title>로그인 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+  <header class="auth-header">
+    <a class="brand" href="index.html" aria-label="일로와전라 홈">
+      <span class="brand-mark" aria-hidden="true">일</span>
+      <span>일로와전라</span>
+    </a>
+    <a class="back-link" href="index.html">메인으로 돌아가기</a>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-intro">
+      <p class="eyebrow">여행과 일을 한 계정으로</p>
+      <h1>전라도에서 시작할<br>새로운 하루를 준비하세요</h1>
+      <p>관심 지역과 지원한 관광 일자리를 안전하게 관리할 수 있습니다.</p>
+    </section>
+
+    <section class="auth-panel" aria-labelledby="auth-title">
+      <div class="auth-tabs" role="tablist" aria-label="계정 메뉴">
+        <button class="auth-tab is-active" type="button" role="tab" aria-selected="true" data-auth-view="login">로그인</button>
+        <button class="auth-tab" type="button" role="tab" aria-selected="false" data-auth-view="register">회원가입</button>
+      </div>
+
+      <form class="auth-form" id="login-form">
+        <div>
+          <p class="auth-label">다시 만나 반가워요</p>
+          <h2 id="auth-title">로그인</h2>
+        </div>
+        <label>아이디<input name="username" autocomplete="username" required></label>
+        <label>비밀번호<input type="password" name="password" autocomplete="current-password" minlength="8" required></label>
+        <button class="button button-primary" type="submit">로그인</button>
+      </form>
+
+      <form class="auth-form" id="register-form" hidden>
+        <div>
+          <p class="auth-label">처음 오셨나요?</p>
+          <h2>회원가입</h2>
+        </div>
+        <label>아이디<input name="username" autocomplete="username" minlength="4" required></label>
+        <label>비밀번호<input type="password" name="password" autocomplete="new-password" minlength="8" required></label>
+        <label>비밀번호 확인<input type="password" name="passwordConfirm" autocomplete="new-password" minlength="8" required></label>
+        <button class="button button-primary" type="submit">계정 만들기</button>
+      </form>
+
+      <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>

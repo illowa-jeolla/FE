@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="24시간 안에 올라온 전라도 여행 사진과 이야기를 지역별로 공유합니다.">
+  <title>여행 공유 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="feature-pages.css">
+</head>
+<body class="feature-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <nav class="main-nav feature-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a><a href="map.html">관광지 지도</a>
+      <a href="local-fit.html">로컬 핏</a><a href="jobs.html">일자리 찾기</a>
+      <a class="is-active" href="community.html">여행 공유</a><a href="gatherings.html">게더링</a>
+    </nav>
+    <a class="button button-small button-primary" href="auth.html" data-auth-link>로그인</a>
+  </header>
+
+  <main class="feature-page-main">
+    <section class="page-intro">
+      <div><p class="eyebrow dark">지금의 여행</p><h1>24시간 안의 전라도를 공유해요</h1></div>
+      <p>같은 지역을 여행 중인 사용자의 사진과 이야기를 보고 댓글로 짧게 소통할 수 있습니다.</p>
+    </section>
+    <div class="page-workspace community-layout">
+      <section class="page-panel">
+        <h2>여행 올리기</h2>
+        <form class="stack-form" id="post-form">
+          <label>지역
+            <select name="region" required>
+              <option value="">지역 선택</option><option>여수</option><option>순천</option><option>목포</option>
+              <option>전주</option><option>광주</option><option>군산</option><option>남원</option>
+              <option>담양</option><option>해남</option><option>보성</option><option>완도</option>
+            </select>
+          </label>
+          <label>여행 콘셉트<input name="concept" placeholder="예: 야간 산책"></label>
+          <label>사진<input type="file" id="post-image" accept="image/png,image/jpeg,image/webp"></label>
+          <label>지금의 여행<textarea name="content" maxlength="500" placeholder="현장의 분위기와 팁을 남겨보세요." required></textarea></label>
+          <button class="button button-primary" type="submit">24시간 여행 공유</button>
+          <div class="page-status" id="post-status" role="status"></div>
+        </form>
+      </section>
+      <section class="page-panel">
+        <div class="filter-row">
+          <select id="post-region-filter" aria-label="게시글 지역 필터">
+            <option value="">전체 지역</option><option>여수</option><option>순천</option><option>목포</option>
+            <option>전주</option><option>광주</option><option>군산</option><option>남원</option>
+            <option>담양</option><option>해남</option><option>보성</option><option>완도</option>
+          </select>
+          <button class="button button-primary" id="post-filter-button" type="button">지역 적용</button>
+        </div>
+        <div class="page-status is-visible" id="feed-status">최근 게시물을 불러오는 중입니다.</div>
+        <div class="post-feed" id="post-feed"></div>
+      </section>
+    </div>
+  </main>
+  <script src="shared.js"></script>
+  <script src="community.js"></script>
+</body>
+</html>
