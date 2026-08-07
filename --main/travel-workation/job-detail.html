@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="관광 일자리의 근무 조건과 위치를 확인합니다.">
+  <title>관광 일자리 상세 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css?v=20260807-24">
+  <link rel="stylesheet" href="feature-pages.css?v=20260805-2">
+</head>
+<body class="feature-page job-detail-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <nav class="main-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a class="is-active" href="map.html">지역·일자리</a>
+      <a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a>
+    </nav>
+    <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
+  </header>
+
+  <main class="job-detail-main">
+    <section class="job-detail-intro">
+      <div><p class="eyebrow dark">일자리 찾기</p><h1 id="job-intro-title">공고 상세 정보를 불러오는 중이에요</h1></div>
+      <p>업무·위치·근무 조건을 확인하고 지원 여부를 결정해 보세요.</p>
+    </section>
+
+    <div class="job-detail-status is-visible" id="job-detail-status" role="status">공고 정보를 불러오고 있습니다.</div>
+    <div class="job-detail-workspace" id="job-detail-content" hidden>
+      <aside class="job-criteria-card">
+        <div class="job-detail-card-head"><h2>일자리 검색</h2><span>DB 공고</span></div>
+        <p class="job-detail-search-copy">원하는 조건을 선택하면 등록된 일자리 목록으로 이동해요.</p>
+        <form class="job-detail-search-form" id="job-detail-search-form">
+          <label>지역<select name="region"><option value="">전체 지역</option><option>전주</option><option>군산</option><option>남원</option><option>목포</option><option>광주</option><option>순천</option><option>여수</option><option>보성</option><option>완도</option></select></label>
+          <fieldset><legend>여행 기간</legend><div><label>출발일<input name="tripStart" type="date" value="2026-08-20"></label><label>도착일<input name="tripEnd" type="date" value="2026-08-22"></label></div><p id="job-detail-date-hint">2박 3일 일정으로 추천 결과를 좁혀 보여드려요.</p></fieldset>
+          <div class="job-detail-search-row"><label>일하는 방식<select name="workType"><option value="">전체 방식</option><option>현장 운영</option><option>원격 근무</option><option>체험형</option></select></label><label>희망 시간<select name="time"><option value="">전체 시간</option><option>오전</option><option>오후</option><option>주말</option></select></label></div>
+          <button class="button button-primary" type="submit">조건으로 검색하기</button>
+          <button class="button" type="button" id="job-back-button">목록으로 돌아가기</button>
+        </form>
+        <section class="job-apply-card">
+          <div><p>지원 안내</p><h3>이 공고가 마음에 드나요?</h3><span>담당자에게 문의하고 근무 일정을 확인해 보세요.</span></div>
+          <button class="button button-primary" id="job-apply-open" type="button">이 공고 지원하기</button>
+        </section>
+      </aside>
+
+      <section class="job-detail-results">
+        <p class="result-kind">공고 상세 정보</p>
+        <article class="job-insight-card">
+          <img class="job-insight-photo" src="assets/OZ3bs.jpeg" alt="지역 관광 일자리 현장">
+          <div><p class="eyebrow">추천 포인트</p><h2 id="job-insight-title">지역 여행 동선과 이어지는 공고예요</h2><p id="job-insight-body"></p>
+            <div class="job-insight-chips" id="job-insight-chips"></div>
+          </div>
+        </article>
+
+        <article class="job-detail-hero-card">
+          <p class="eyebrow" id="job-hero-eyebrow"></p>
+          <h2 id="job-title"></h2>
+          <p id="job-company"></p>
+          <div class="job-detail-metrics">
+            <div><span>급여</span><strong id="job-pay">-</strong></div>
+            <div><span>근무 시간</span><strong id="job-time-metric">-</strong></div>
+            <div><span>평점</span><strong id="job-rating">-</strong></div>
+          </div>
+        </article>
+
+        <section class="job-accordion-section">
+          <h2>근무 일정</h2>
+          <details><summary>운영 조건 4개 보기</summary><div class="job-accordion-body"><span id="job-detail-duration">근무 기간 협의</span><span id="job-detail-worktime">근무 시간 협의</span><span>현장 안내 후 업무 시작</span><span>상세 일정은 지원 시 확인</span></div></details>
+        </section>
+
+        <section class="job-accordion-section">
+          <h2>지원 전 체크</h2>
+          <details><summary>이 일과 잘 맞는지 보기</summary><div class="job-accordion-body"><span>관광객과 친절하게 소통할 수 있어요.</span><span>현장 상황에 유연하게 대응할 수 있어요.</span><span>근무 위치와 이동 시간을 확인했어요.</span></div></details>
+        </section>
+
+        <article class="job-location-card">
+          <div><p class="eyebrow">위치</p><h2 id="job-location-title"></h2><p id="job-location-copy"></p></div>
+          <div class="job-mini-map" aria-hidden="true"><b>네이버 지도 보기</b><span>N</span><small id="job-map-label">근무 위치</small></div>
+          <div class="job-location-meta"><div><span>집결</span><strong>현장 운영부스</strong></div><div><span>주차</span><strong>인근 공영주차장</strong></div><div><span>이동</span><strong>도보 3분</strong></div></div>
+        </article>
+
+        <article class="job-duties-card" id="job-duties">
+          <h2>무엇을 하게 되나요?</h2>
+          <div class="job-duty-row"><span>•</span><div><strong>관광객 안내</strong><p>방문객에게 주요 구역과 이동 동선을 안내합니다.</p></div></div>
+          <div class="job-duty-row"><span>•</span><div><strong>현장 동선 관리</strong><p>대기 줄과 체험 공간이 안전하게 운영되도록 돕습니다.</p></div></div>
+          <div class="job-duty-row"><span>•</span><div><strong>운영 보조</strong><p>행사·숙박·콘텐츠 현장의 기본 운영 업무를 지원합니다.</p></div></div>
+        </article>
+      </section>
+    </div>
+  </main>
+  <div class="job-apply-modal" id="job-apply-modal" hidden>
+    <button class="job-apply-backdrop" type="button" aria-label="지원 안내 닫기" data-apply-close></button>
+    <section class="job-apply-dialog" role="dialog" aria-modal="true" aria-labelledby="job-apply-title">
+      <p class="eyebrow">지원 안내</p>
+      <h2 id="job-apply-title">이 공고는 아래 번호로 문의해 주세요</h2>
+      <p class="job-apply-description">지원 가능 여부와 근무 일정을 문자로 빠르게 확인해요.</p>
+      <div class="job-contact-number"><span>문의 번호</span><a href="tel:01024581931">010-2458-1931</a><small>운영팀, 지역 관광 행사TF</small></div>
+      <div class="job-contact-meta"><div><span>문의 시간</span><strong>10:00 - 18:00</strong></div><div><span>담당자</span><strong>김서윤 매니저</strong></div></div>
+      <button class="button job-apply-close" type="button" data-apply-close>닫기</button>
+    </section>
+  </div>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="job-detail.js?v=20260807-6"></script>
+</body>
+</html>

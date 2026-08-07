@@ -50,6 +50,8 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
     const data = await request("/api/auth/login", { username, password });
     if (data.token) sessionStorage.setItem("accessToken", data.token);
     if (data.username) sessionStorage.setItem("username", data.username);
+    if (data.nickname) sessionStorage.setItem("nickname", data.nickname);
+    else if (data.username === "qwer") sessionStorage.setItem("nickname", "운영자");
     location.href = "index.html";
   } catch (error) {
     showMessage(error.message, true);
@@ -69,7 +71,8 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     showMessage("계정을 만들고 있습니다.");
     await request("/api/auth/register", {
       username: values.username,
-      password: values.password
+      password: values.password,
+      nickname: values.nickname
     });
     event.currentTarget.reset();
     showView("login");

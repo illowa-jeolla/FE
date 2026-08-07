@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20260805-2">
-  <link rel="stylesheet" href="feature-pages.css?v=20260805-2">
+  <link rel="stylesheet" href="feature-pages.css?v=20260807-9">
 </head>
 <body class="feature-page">
   <header class="site-header">
@@ -21,64 +21,71 @@
     <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
   </header>
 
-  <main class="feature-page-main">
-    <section class="page-intro">
-      <div><p class="eyebrow">AI 관광지 추천</p><h1>취향을 알려주면 전라도 여행지를 골라드려요</h1></div>
-      <p>여행 테마, 이동 방식, 함께하는 사람을 선택하면 관광데이터를 바탕으로 지금의 취향에 맞는 지역을 추천합니다.</p>
-    </section>
-    <div class="page-workspace">
-      <section class="page-panel">
-        <h2>여행 취향 입력</h2>
-        <form class="stack-form preference-form" id="recommendation-form">
-          <label>선호 지역
-            <select name="region"><option value="">전라도 전체</option><option>여수</option><option>순천</option><option>목포</option><option>전주</option><option>광주</option><option>군산</option><option>남원</option><option>담양</option><option>해남</option><option>보성</option><option>완도</option></select>
-          </label>
-          <fieldset class="preference-group">
-            <legend>여행 테마 <span>하나 이상 선택</span></legend>
-            <div class="check-options">
-              <label><input type="checkbox" name="themes" value="바다"><span>바다</span></label>
-              <label><input type="checkbox" name="themes" value="미식"><span>미식</span></label>
-              <label><input type="checkbox" name="themes" value="문화"><span>문화</span></label>
-              <label><input type="checkbox" name="themes" value="자연"><span>자연</span></label>
-              <label><input type="checkbox" name="themes" value="휴식"><span>휴식</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="preference-group">
-            <legend>이동 방식 <span>하나 이상 선택</span></legend>
-            <div class="check-options">
-              <label><input type="checkbox" name="transports" value="대중교통"><span>대중교통</span></label>
-              <label><input type="checkbox" name="transports" value="자가용"><span>자가용</span></label>
-              <label><input type="checkbox" name="transports" value="도보"><span>도보 중심</span></label>
-            </div>
-          </fieldset>
-          <fieldset class="preference-group">
-            <legend>동행 유형 <span>하나 이상 선택</span></legend>
-            <div class="check-options">
-              <label><input type="checkbox" name="companions" value="혼자"><span>혼자</span></label>
-              <label><input type="checkbox" name="companions" value="친구"><span>친구</span></label>
-              <label><input type="checkbox" name="companions" value="연인"><span>연인</span></label>
-              <label><input type="checkbox" name="companions" value="가족"><span>가족</span></label>
-            </div>
-          </fieldset>
-          <button class="button button-primary" type="submit">AI 추천 생성하기</button>
-          <div class="page-status" id="recommendation-status" role="status"></div>
-        </form>
-      </section>
+  <main class="recommend-main">
+    <section class="recommend-input" id="recommendation-input-view">
+      <aside class="recommend-intro">
+        <span class="recommend-step-badge">STEP 1 · 취향 입력</span>
+        <h1>어떤 전라도 여행을<br>꿈꾸고 있나요?</h1>
+        <p>세 가지만 고르면 AI가 여행 코스를 추천해요.</p>
+        <ol class="recommend-progress">
+          <li class="is-active"><b>01</b><strong>취향 입력</strong></li>
+          <li><b>02</b><span>여행지 추천</span></li>
+          <li><b>03</b><span>결과 확인</span></li>
+        </ol>
+      </aside>
 
-      <section class="page-panel" aria-live="polite">
-        <div class="panel-header"><div><p class="eyebrow">추천 결과</p><h2>나를 위한 전라도</h2></div><span class="tag-row"><span id="recommendation-round">1차 추천</span></span></div>
-        <p class="generated-prompt" id="recommendation-prompt">취향을 선택하면 추천 이유와 여행지가 여기에 표시됩니다.</p>
-        <div class="preference-results" id="recommendation-results">
-          <div class="page-status is-visible">왼쪽에서 여행 취향을 선택해 주세요.</div>
+      <form class="recommend-form" id="recommendation-form">
+        <input type="hidden" name="region" value="">
+        <fieldset class="recommend-choice-group recommend-choice-group--theme">
+          <legend><strong>여행 테마</strong><span>복수 선택 가능</span></legend>
+          <div class="recommend-options">
+            <label><input type="checkbox" name="themes" value="자연" checked><span>자연·힐링</span></label>
+            <label><input type="checkbox" name="themes" value="미식" checked><span>미식 여행</span></label>
+            <label><input type="checkbox" name="themes" value="사진"><span>감성 사진</span></label>
+            <label><input type="checkbox" name="themes" value="문화"><span>역사·문화</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="recommend-choice-group recommend-choice-group--transport">
+          <legend><strong>이동 수단</strong><span>하나를 선택해 주세요</span></legend>
+          <div class="recommend-options recommend-options--three">
+            <label><input type="radio" name="transports" value="자가용"><span>자차</span></label>
+            <label><input type="radio" name="transports" value="대중교통" checked><span>대중교통</span></label>
+            <label><input type="radio" name="transports" value="도보"><span>도보 중심</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="recommend-choice-group recommend-choice-group--companion">
+          <legend><strong>누구와 함께</strong><span>하나를 선택해 주세요</span></legend>
+          <div class="recommend-options">
+            <label><input type="radio" name="companions" value="혼자"><span>혼자</span></label>
+            <label><input type="radio" name="companions" value="연인"><span>연인</span></label>
+            <label><input type="radio" name="companions" value="친구" checked><span>친구</span></label>
+            <label><input type="radio" name="companions" value="가족"><span>가족</span></label>
+          </div>
+        </fieldset>
+        <div class="recommend-prompt-preview"><span>⌄</span><strong>AI 프롬프트 미리보기</strong></div>
+        <button class="recommend-submit" type="submit">내 취향으로 추천 받기&nbsp; →</button>
+        <div class="page-status" id="recommendation-status" role="status"></div>
+      </form>
+    </section>
+
+    <section class="recommend-result" id="recommendation-result-view" hidden aria-live="polite">
+      <header class="recommend-result-header">
+        <div><span class="recommend-step-badge" id="recommendation-round">추천 결과 · 1 / 3</span><h1 id="recommendation-title">초록과 미식을 따라가는<br>남도 감각 여행</h1></div>
+        <div class="recommend-match"><span>취향 일치도</span><strong id="recommendation-match-score">92%</strong></div>
+      </header>
+      <div class="recommend-selected" id="recommendation-selected"></div>
+      <p class="generated-prompt" id="recommendation-prompt"></p>
+      <div class="recommend-card-grid" id="recommendation-results"></div>
+      <footer class="recommend-result-footer">
+        <p id="recommendation-help">↻ 아직 새로운 여행지가 있어요.</p>
+        <div class="recommend-actions" id="recommendation-actions">
+          <button class="button" id="reset-recommendation" type="button">조건 수정</button>
+          <button class="button button-primary" id="retry-recommendation" type="button">다른 여행지 추천&nbsp; ↻</button>
         </div>
-        <div class="recommend-actions" hidden id="recommendation-actions">
-          <button class="button button-ghost" id="retry-recommendation" type="button">한 번 더 추천</button>
-          <button class="button" id="reset-recommendation" type="button">조건 다시 입력</button>
-        </div>
-      </section>
-    </div>
+      </footer>
+    </section>
   </main>
-  <script src="shared.js?v=20260805-1"></script>
-  <script src="recommend.js?v=20260805-1"></script>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="recommend.js?v=20260807-5"></script>
 </body>
 </html>

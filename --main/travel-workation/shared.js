@@ -51,8 +51,9 @@
     const link = document.querySelector("[data-auth-link]");
     if (!link) return;
     const username = sessionStorage.getItem("username");
+    const nickname = sessionStorage.getItem("nickname") || (username === "qwer" ? "운영자" : "");
     if (username) {
-      link.textContent = username;
+      link.textContent = nickname || username;
       link.href = "local-fit.html";
     }
   }

@@ -10,6 +10,8 @@ Node.js 24 이상에서 아래 명령을 실행하면 프론트엔드와 DB 서�
 node server.js
 ```
 
+OpenAI 연동을 사용하려면 프로젝트의 `.env.example`을 `.env`로 복사한 뒤 새로 발급한 키를 `OPENAI_API_KEY`에 설정하세요. 키는 브라우저 코드나 Git에 포함되지 않습니다.
+
 브라우저에서 `http://localhost:8080`을 엽니다.
 
 VS Code에서 Live Server 확장을 사용한다면 `index.html`을 우클릭하고 `Open with Live Server`를 선택해도 됩니다.

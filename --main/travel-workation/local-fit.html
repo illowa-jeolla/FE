@@ -6,7 +6,7 @@
   <meta name="description" content="다녀온 여행과 여행 콘셉트를 기록하고 로컬 핏 점수를 확인합니다.">
   <title>AI 전라도 라이프 매칭 | 일로와전라</title>
   <link rel="stylesheet" href="styles.css?v=20260805-2">
-  <link rel="stylesheet" href="feature-pages.css?v=20260805-2">
+  <link rel="stylesheet" href="feature-pages.css?v=20260807-7">
 </head>
 <body class="feature-page">
   <header class="site-header">
@@ -18,59 +18,89 @@
     <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
   </header>
 
-  <main class="feature-page-main">
-    <section class="page-intro">
-      <div><p class="eyebrow dark">AI 전라도 라이프 매칭</p><h1>AI가 전라도에서 살 곳·일·여행을 함께 찾아드려요</h1></div>
-      <p>여행 경험과 생활 취향을 기록하면 관광데이터를 기준으로 지역 적합도를 계산하고 다음 일자리 추천에 활용합니다.</p>
+  <main class="ai-match-main">
+    <section class="ai-match-intro">
+      <div><p class="eyebrow dark">AI 전라도 라이프 매칭</p><h1>AI가 전라도에서<br>살 곳·일·여행을 함께 찾아드려요</h1></div>
+      <p>희망 생활 조건을 입력하면 관광데이터와 지역 채용정보를 연결해 정착 패키지를 추천해요.</p>
     </section>
 
-    <div class="page-workspace">
-      <section class="page-panel">
+    <div class="ai-match-workspace">
+      <section class="ai-match-panel ai-match-form-panel">
         <h2>AI 매칭 조건</h2>
         <form class="stack-form" id="local-fit-form">
           <div class="form-row">
-            <label>기준 여행 경험<input name="destinationName" placeholder="예: 여수 밤바다 여행" required></label>
-            <label>지역
+            <label>희망 생활권<input name="destinationName" placeholder="예: 바다 가까운 중소도시" required></label>
+            <label>선호 지역
               <select name="region" required>
-                <option value="">지역 선택</option><option>여수</option><option>순천</option>
-                <option>목포</option><option>전주</option><option>광주</option><option>군산</option>
-                <option>남원</option><option>담양</option><option>해남</option><option>보성</option><option>완도</option>
+                <option value="전남·전북 전체">전남·전북 전체</option><option>여수</option><option>순천</option><option>목포</option><option>전주</option><option>광주</option><option>군산</option><option>남원</option><option>담양</option><option>해남</option><option>보성</option><option>완도</option>
               </select>
             </label>
           </div>
-          <label>생활·여행 취향<input name="concept" placeholder="예: 바다 산책과 로컬 미식" required></label>
-          <div class="form-row">
-            <label>교통
-              <select name="transport"><option>대중교통</option><option>자가용</option><option>도보 중심</option></select>
-            </label>
-            <label>동행
-              <select name="companion"><option>혼자</option><option>친구</option><option>연인</option><option>가족</option></select>
-            </label>
+          <label>관심 일자리<input name="concept" placeholder="관광 운영, 콘텐츠, 카페, 사무" required></label>
+          <input type="hidden" name="transport" value="자가용">
+          <input type="hidden" name="companion" value="혼자">
+          <div class="ai-priority-box">
+            <div class="ai-priority-head"><strong>생활 우선순위</strong><span id="priority-count">0 / 4 선택</span></div>
+            <p>AI가 정착지를 비교할 때 중요하게 볼 조건을 선택하세요.</p>
+            <div class="ai-priority-tags">
+              <label><input type="checkbox" name="priorities" value="주거비"><span>주거비</span></label>
+              <label><input type="checkbox" name="priorities" value="출퇴근"><span>출퇴근</span></label>
+              <label><input type="checkbox" name="priorities" value="자연 접근"><span>자연 접근</span></label>
+              <label><input type="checkbox" name="priorities" value="관광 생활"><span>관광 생활</span></label>
+            </div>
+            <div class="ai-hidden-metrics">
+              <input type="hidden" name="immersion" value="3"><input type="hidden" name="discovery" value="3"><input type="hidden" name="convenience" value="3"><input type="hidden" name="connection" value="3">
+            </div>
           </div>
-          <div class="metric-list">
-            <label class="metric-control">지역 몰입감<input type="range" name="immersion" min="1" max="5" value="3"><output>3</output></label>
-            <label class="metric-control">새로운 발견<input type="range" name="discovery" min="1" max="5" value="3"><output>3</output></label>
-            <label class="metric-control">이동 편의<input type="range" name="convenience" min="1" max="5" value="3"><output>3</output></label>
-            <label class="metric-control">지역 연결감<input type="range" name="connection" min="1" max="5" value="3"><output>3</output></label>
-          </div>
-          <label>한 줄 기록<textarea name="note" placeholder="기억하고 싶은 순간을 남겨보세요."></textarea></label>
-          <button class="button button-primary" type="submit">AI 라이프 매칭 분석</button>
+          <label>체류 조건<textarea name="note" placeholder="희망 급여, 체류 기간, 차량 여부 등"></textarea></label>
+          <button class="ai-match-submit" type="submit">AI 전라도 라이프 매칭 시작</button>
+          <div class="ai-match-note">관광데이터 + 지역 일자리 + 생활권 정보를 함께 분석해요.</div>
           <div class="page-status" id="local-fit-status" role="status"></div>
         </form>
       </section>
 
-      <section class="page-panel">
+      <section class="ai-match-panel ai-match-result-panel">
         <div class="score-overview">
-          <div class="score-ring" id="score-ring" style="--score:0%"><div><strong id="average-score">-</strong><span>점</span></div></div>
-          <div class="score-copy"><p class="eyebrow dark">AI 매칭 결과</p><h3 id="score-title">조건 입력을 기다리고 있어요</h3><p>네 가지 생활 지표를 100점으로 환산합니다.</p><a class="detail-link" href="jobs.html">이 점수로 일자리 추천받기 →</a></div>
+          <div class="score-ring" id="score-ring" style="--score:92%"><div><strong id="average-score">92</strong><span>%</span></div></div>
+          <div class="score-copy"><p class="eyebrow dark">관광데이터 연동 추천 예시</p><h3 id="score-title">여수시 돌산 생활권 92% 매칭</h3><p id="local-fit-ai-summary">오션뷰 관광 일자리와 바다 생활권, 주변 명소를 한 번에 연결했어요.</p></div>
         </div>
+        <div class="ai-factor-scores" id="ai-factor-scores" aria-label="AI 조건별 매칭 점수"></div>
+        <button class="ai-package-button" id="retry-match" type="button">조건 바꿔 다시 추천</button>
+        <img class="ai-match-photo" src="assets/JvLTt.jpeg" alt="전라도 바다 생활권 풍경">
         <div class="record-list" id="local-fit-list">
-          <div class="page-status is-visible">로그인 후 여행 기록을 확인할 수 있습니다.</div>
+          <article class="record-item ai-detail-card" tabindex="0" role="button" data-detail-type="residence" data-detail-name="여수시 돌산읍"><div class="record-head"><div><span>추천 거주지</span><h3>여수시 돌산읍</h3></div><strong class="record-score">92%</strong></div><p>바다와 생활 편의시설을 함께 누릴 수 있는 관광 생활권이에요.</p><small class="ai-detail-hint">정보 보기 →</small></article>
+          <article class="record-item ai-detail-card" tabindex="0" role="button" data-detail-type="job" data-detail-name="오션뷰 리조트 운영"><div class="record-head"><div><span>추천 일자리</span><h3>오션뷰 리조트 운영</h3></div><strong class="record-score">88%</strong></div><p>숙박 운영 경험과 지역 콘텐츠 관심을 활용하기 좋아요.</p><small class="ai-detail-hint">정보 보기 →</small></article>
+          <article class="record-item ai-detail-card" tabindex="0" role="button" data-detail-type="places" data-detail-name="향일암 · 오동도 · 돌산공원"><div class="record-head"><div><span>주변 관광지</span><h3>향일암 · 오동도 · 돌산공원</h3></div><strong class="record-score">3곳</strong></div><p>퇴근 후와 주말에 이동하기 좋은 관광데이터 기반 추천이에요.</p><small class="ai-detail-hint">정보 보기 →</small></article>
         </div>
       </section>
     </div>
   </main>
-  <script src="shared.js?v=20260805-1"></script>
-  <script src="local-fit.js?v=20260805-1"></script>
+  <div class="ai-processing" id="ai-processing" hidden>
+    <div class="ai-analysis-modal" role="dialog" aria-modal="true" aria-labelledby="ai-analysis-title">
+      <div class="ai-model-badge">AI · 관광데이터 × 지역 일자리</div>
+      <span class="ai-analysis-spinner" aria-hidden="true"></span>
+      <h2 id="ai-analysis-title">전라도 생활권을 매칭하고 있어요</h2>
+      <p>관광데이터와 채용정보를 결합해 살 곳·일자리·주변 관광지를 찾고 있어요.</p>
+      <div class="ai-analysis-steps">
+        <div class="ai-analysis-step"><span>1</span><strong>희망 생활 조건 구조화</strong><i>○</i></div>
+        <div class="ai-analysis-step"><span>2</span><strong>관광데이터 매칭</strong><i>○</i></div>
+        <div class="ai-analysis-step"><span>3</span><strong>일자리·생활권 결합</strong><i>○</i></div>
+        <div class="ai-analysis-step"><span>4</span><strong>최종 정착 패키지 생성</strong><i>○</i></div>
+      </div>
+      <div class="ai-analysis-progress"><span id="ai-analysis-progress"></span></div>
+      <small id="ai-analysis-time">약 10초 정도 걸려요 · 1 / 4 단계</small>
+    </div>
+  </div>
+  <div class="ai-detail-overlay" id="ai-detail-overlay" hidden>
+    <section class="ai-detail-modal" role="dialog" aria-modal="true" aria-labelledby="ai-detail-title">
+      <button class="ai-detail-close" id="ai-detail-close" type="button" aria-label="닫기">×</button>
+      <div class="ai-model-badge">AI 추천 상세 정보</div>
+      <h2 id="ai-detail-title">추천 정보를 분석하고 있어요</h2>
+      <div class="ai-detail-loading" id="ai-detail-loading"><span></span><p>관광데이터와 지역 정보를 확인하고 있어요.</p></div>
+      <div class="ai-detail-answer" id="ai-detail-answer" hidden></div>
+    </section>
+  </div>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="local-fit.js?v=20260807-11"></script>
 </body>
 </html>
