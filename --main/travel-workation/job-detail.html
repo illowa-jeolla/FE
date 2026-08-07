@@ -91,14 +91,18 @@
     <button class="job-apply-backdrop" type="button" aria-label="지원 안내 닫기" data-apply-close></button>
     <section class="job-apply-dialog" role="dialog" aria-modal="true" aria-labelledby="job-apply-title">
       <p class="eyebrow">지원 안내</p>
-      <h2 id="job-apply-title">이 공고는 아래 번호로 문의해 주세요</h2>
-      <p class="job-apply-description">지원 가능 여부와 근무 일정을 문자로 빠르게 확인해요.</p>
+      <h2 id="job-apply-title">이 공고에 지원할까요?</h2>
+      <p class="job-apply-description" id="job-apply-description">지원하면 마이페이지에서 공고와 지원일을 다시 확인할 수 있어요.</p>
       <div class="job-contact-number"><span>문의 번호</span><a href="tel:01024581931">010-2458-1931</a><small>운영팀, 지역 관광 행사TF</small></div>
       <div class="job-contact-meta"><div><span>문의 시간</span><strong>10:00 - 18:00</strong></div><div><span>담당자</span><strong>김서윤 매니저</strong></div></div>
-      <button class="button job-apply-close" type="button" data-apply-close>닫기</button>
+      <p class="page-status" id="job-apply-status" role="status"></p>
+      <div class="job-apply-actions">
+        <button class="button job-apply-close" type="button" data-apply-close>닫기</button>
+        <button class="button button-primary" id="job-apply-confirm" type="button">지원 완료하기</button>
+      </div>
     </section>
   </div>
-  <script src="shared.js?v=20260807-6"></script>
-  <script src="job-detail.js?v=20260807-6"></script>
+  <script src="shared.js?v=20260807-7"></script>
+  <script src="job-detail.js?v=20260807-7"></script>
 </body>
 </html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="내 정보와 여행 게시물, 지원한 관광 일자리를 관리합니다.">
+  <title>마이페이지 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css?v=20260807-24">
+  <link rel="stylesheet" href="mypage.css?v=20260807-1">
+</head>
+<body class="feature-page mypage-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <nav class="main-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a href="map.html">지역·일자리</a>
+      <a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a>
+    </nav>
+    <a class="button button-small button-ghost is-active" href="mypage.html" data-auth-link>마이페이지</a>
+  </header>
+
+  <main class="mypage-main">
+    <section class="mypage-intro">
+      <div><p class="eyebrow dark">MY PAGE</p><h1>내 여행과 일자리 활동</h1></div>
+      <button class="button button-small" id="logout-button" type="button">로그아웃</button>
+    </section>
+
+    <div class="mypage-status page-status is-visible" id="mypage-status" role="status">내 정보를 불러오고 있습니다.</div>
+
+    <section class="mypage-summary" id="mypage-summary" hidden>
+      <div class="mypage-avatar" id="mypage-avatar" aria-hidden="true">일</div>
+      <div class="mypage-identity"><span>반가워요</span><h2 id="mypage-nickname">사용자</h2><p id="mypage-username">@username</p></div>
+      <dl class="mypage-counts">
+        <div><dt>작성한 게시물</dt><dd id="mypage-post-count">0</dd></div>
+        <div><dt>지원한 일자리</dt><dd id="mypage-application-count">0</dd></div>
+        <div><dt>가입일</dt><dd id="mypage-created-at">-</dd></div>
+      </dl>
+    </section>
+
+    <div class="mypage-layout" id="mypage-content" hidden>
+      <aside class="mypage-profile" aria-labelledby="profile-title">
+        <div class="mypage-section-heading"><p>개인정보</p><h2 id="profile-title">프로필 수정</h2></div>
+        <form id="profile-form">
+          <label>아이디<input name="username" type="text" readonly></label>
+          <label>닉네임<input name="nickname" type="text" minlength="2" maxlength="20" required></label>
+          <div class="mypage-password-fields">
+            <p>비밀번호 변경</p>
+            <label>현재 비밀번호<input name="currentPassword" type="password" autocomplete="current-password"></label>
+            <label>새 비밀번호<input name="newPassword" type="password" minlength="8" autocomplete="new-password"></label>
+            <label>새 비밀번호 확인<input name="newPasswordConfirm" type="password" minlength="8" autocomplete="new-password"></label>
+          </div>
+          <p class="page-status" id="profile-status" role="status"></p>
+          <button class="button button-primary" type="submit">변경사항 저장</button>
+        </form>
+      </aside>
+
+      <section class="mypage-activity" aria-labelledby="activity-title">
+        <div class="mypage-section-heading"><p>내 활동</p><h2 id="activity-title">기록 모아보기</h2></div>
+        <div class="mypage-tabs" role="tablist" aria-label="내 활동 보기">
+          <button class="is-active" type="button" role="tab" aria-selected="true" data-mypage-view="posts">내가 쓴 게시물 <span id="post-tab-count">0</span></button>
+          <button type="button" role="tab" aria-selected="false" data-mypage-view="applications">지원한 일자리 <span id="application-tab-count">0</span></button>
+        </div>
+        <div class="mypage-list" id="mypage-posts" role="tabpanel"></div>
+        <div class="mypage-list" id="mypage-applications" role="tabpanel" hidden></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="shared.js?v=20260807-7"></script>
+  <script src="mypage.js?v=20260807-1"></script>
+</body>
+</html>

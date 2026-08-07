@@ -1,5 +1,7 @@
-const { request, escapeHtml } = Workation;
+const { request, escapeHtml, requireLogin, setStatus } = Workation;
 const $ = (selector) => document.querySelector(selector);
+let currentJobId = null;
+let hasApplied = false;
 
 function text(selector, value, fallback = "정보 확인 필요") {
   const element = $(selector);
@@ -124,6 +126,17 @@ $("#job-detail-search-form").elements.tripEnd.addEventListener("change", updateD
 
 const applyModal = $("#job-apply-modal");
 const applyOpenButton = $("#job-apply-open");
+const applyConfirmButton = $("#job-apply-confirm");
+const applyStatus = $("#job-apply-status");
+
+function updateApplicationUi() {
+  applyOpenButton.textContent = hasApplied ? "지원 완료 · 마이페이지에서 보기" : "이 공고 지원하기";
+  applyConfirmButton.hidden = hasApplied;
+  $("#job-apply-title").textContent = hasApplied ? "지원이 완료된 공고예요" : "이 공고에 지원할까요?";
+  $("#job-apply-description").textContent = hasApplied
+    ? "지원 내역과 공고 정보는 마이페이지에서 확인하거나 취소할 수 있어요."
+    : "지원하면 마이페이지에서 공고와 지원일을 다시 확인할 수 있어요.";
+}
 
 function openApplyModal() {
   applyModal.hidden = false;
@@ -137,7 +150,33 @@ function closeApplyModal() {
   applyOpenButton.focus();
 }
 
-applyOpenButton.addEventListener("click", openApplyModal);
+applyOpenButton.addEventListener("click", () => {
+  if (!requireLogin(applyStatus)) {
+    location.href = `auth.html?returnTo=${encodeURIComponent(location.pathname + location.search)}`;
+    return;
+  }
+  if (hasApplied) {
+    location.href = "mypage.html?view=applications";
+    return;
+  }
+  setStatus(applyStatus);
+  openApplyModal();
+});
+applyConfirmButton.addEventListener("click", async () => {
+  if (!currentJobId || !requireLogin(applyStatus)) return;
+  try {
+    applyConfirmButton.disabled = true;
+    setStatus(applyStatus, "지원 정보를 저장하고 있습니다.");
+    await request(`/api/jobs/${currentJobId}/application`, { method: "POST" });
+    hasApplied = true;
+    updateApplicationUi();
+    setStatus(applyStatus, "지원이 완료되었습니다. 마이페이지에서 확인할 수 있어요.");
+  } catch (error) {
+    setStatus(applyStatus, error.message, "error");
+  } finally {
+    applyConfirmButton.disabled = false;
+  }
+});
 applyModal.querySelectorAll("[data-apply-close]").forEach((button) => button.addEventListener("click", closeApplyModal));
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !applyModal.hidden) closeApplyModal();
@@ -150,7 +189,13 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   try {
+    currentJobId = Number(id);
     renderJob(await request(`/api/jobs/${id}`));
+    if (sessionStorage.getItem("accessToken")) {
+      const result = await request(`/api/jobs/${id}/application`);
+      hasApplied = result.applied;
+      updateApplicationUi();
+    }
   } catch (error) {
     showError(error.message || "공고 정보를 불러오지 못했습니다. 서버를 확인해 주세요.");
   }

@@ -1,0 +1,60 @@
+.mypage-page { min-height: 100vh; background: #fffafc; }
+.mypage-main { width: min(1260px, 100%); margin: 0 auto; padding: 48px 40px 80px; }
+.mypage-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.mypage-intro h1 { margin: 8px 0 0; color: var(--ink); font-size: 40px; letter-spacing: 0; }
+.mypage-status { margin-top: 24px; }
+.mypage-summary { margin-top: 28px; padding: 28px 0; display: grid; grid-template-columns: 72px minmax(180px, 1fr) minmax(460px, 1.5fr); align-items: center; gap: 20px; border-block: 1px solid var(--line); }
+.mypage-avatar { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: #4b2038; background: var(--primary); font-size: 25px; font-weight: 900; }
+.mypage-identity span, .mypage-section-heading p { color: var(--primary-strong); font-size: 11px; font-weight: 800; }
+.mypage-identity h2 { margin: 4px 0 2px; font-size: 24px; }
+.mypage-identity p { margin: 0; color: var(--muted); font-size: 12px; }
+.mypage-counts { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mypage-counts div { min-height: 56px; padding: 0 22px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid var(--line); }
+.mypage-counts dt { color: var(--muted); font-size: 11px; }
+.mypage-counts dd { margin: 5px 0 0; color: var(--ink); font-size: 18px; font-weight: 850; }
+.mypage-layout { margin-top: 36px; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 44px; }
+.mypage-profile { padding-right: 36px; border-right: 1px solid var(--line); }
+.mypage-section-heading p { margin: 0; }
+.mypage-section-heading h2 { margin: 6px 0 0; font-size: 24px; }
+.mypage-profile form { margin-top: 24px; display: grid; gap: 16px; }
+.mypage-profile label { display: grid; gap: 7px; color: var(--ink); font-size: 12px; font-weight: 750; }
+.mypage-profile input { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; }
+.mypage-profile input[readonly] { color: var(--muted); background: #f8f4f6; }
+.mypage-password-fields { margin-top: 6px; padding-top: 20px; display: grid; gap: 14px; border-top: 1px solid var(--line); }
+.mypage-password-fields > p { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; }
+.mypage-tabs { margin-top: 22px; padding: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid var(--line); border-radius: 8px; background: #f8f4f6; }
+.mypage-tabs button { min-height: 42px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.mypage-tabs button.is-active { color: var(--ink); background: #fff; box-shadow: 0 2px 8px rgba(59, 32, 48, .06); }
+.mypage-tabs span { margin-left: 5px; color: var(--primary-strong); }
+.mypage-list { margin-top: 18px; display: grid; }
+.mypage-post-item, .mypage-application-item { min-width: 0; padding: 18px 0; display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 18px; border-bottom: 1px solid var(--line); }
+.mypage-post-item img, .mypage-image-placeholder { width: 112px; height: 82px; border-radius: 8px; object-fit: cover; }
+.mypage-image-placeholder { display: grid; place-items: center; color: var(--primary-strong); background: #ffeaf3; font-size: 11px; font-weight: 800; }
+.mypage-post-item span, .mypage-application-item span { color: var(--primary-strong); font-size: 10px; font-weight: 800; }
+.mypage-post-item h3, .mypage-application-item h3 { margin: 5px 0 4px; overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.mypage-post-item p, .mypage-application-item p { margin: 0; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.mypage-post-item small, .mypage-application-item small { display: block; margin-top: 7px; color: #9d8792; font-size: 10px; }
+.mypage-job-badge { width: 62px; height: 62px; display: grid; place-items: center; border-radius: 8px; color: #2f5866; background: #dff5ff; font-size: 15px; font-weight: 900; }
+.mypage-application-item { grid-template-columns: 62px minmax(0, 1fr) auto; }
+.mypage-item-actions { display: flex; gap: 7px; }
+.mypage-empty { min-height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; color: var(--muted); border-bottom: 1px solid var(--line); }
+
+@media (max-width: 900px) {
+  .mypage-summary { grid-template-columns: 64px 1fr; }
+  .mypage-counts { grid-column: 1 / -1; }
+  .mypage-counts div:first-child { border-left: 0; }
+  .mypage-layout { grid-template-columns: 1fr; }
+  .mypage-profile { padding: 0 0 32px; border-right: 0; border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 650px) {
+  .mypage-main { padding: 30px 14px 56px; }
+  .mypage-intro { align-items: flex-start; flex-direction: column; }
+  .mypage-intro h1 { font-size: 32px; }
+  .mypage-counts { grid-template-columns: 1fr; }
+  .mypage-counts div { padding: 12px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+  .mypage-post-item, .mypage-application-item { grid-template-columns: 76px minmax(0, 1fr); }
+  .mypage-post-item img, .mypage-image-placeholder { width: 76px; height: 70px; }
+  .mypage-post-item > .button, .mypage-item-actions { grid-column: 1 / -1; }
+  .mypage-item-actions { width: 100%; }
+  .mypage-item-actions .button { flex: 1; }
+}

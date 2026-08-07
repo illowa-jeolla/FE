@@ -3,6 +3,12 @@ const apiBaseUrl = window.AUTH_API_BASE_URL
   ?? (location.protocol === "file:" ? "http://localhost:8080" : "");
 
 const message = document.querySelector("#auth-message");
+const returnTo = new URLSearchParams(location.search).get("returnTo");
+
+function loginDestination() {
+  if (!returnTo || returnTo.startsWith("//") || /^[a-z]+:/i.test(returnTo) || returnTo.includes("..")) return "index.html";
+  return returnTo;
+}
 
 function showMessage(text, error = false) {
   message.textContent = text;
@@ -52,7 +58,7 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
     if (data.username) sessionStorage.setItem("username", data.username);
     if (data.nickname) sessionStorage.setItem("nickname", data.nickname);
     else if (data.username === "qwer") sessionStorage.setItem("nickname", "운영자");
-    location.href = "index.html";
+    location.href = loginDestination();
   } catch (error) {
     showMessage(error.message, true);
   }

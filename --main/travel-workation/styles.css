@@ -618,7 +618,9 @@ html:has(body.job-detail-page)::-webkit-scrollbar { width: 0; height: 0; display
 .job-contact-number small { display: block; margin-top: 6px; color: #a28796; font-size: 9px; }
 .job-contact-meta { margin: 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .job-contact-meta strong { display: block; margin-top: 6px; color: #3f2635; font-size: 12px; }
-.job-apply-close { width: 100%; border: 0; color: #d95896; background: #fff3f8; }
+.job-apply-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.job-apply-actions .button { width: 100%; }
+.job-apply-close { border: 0; color: #d95896; background: #fff3f8; }
 body.job-detail-page.modal-open { overflow: hidden; }
 .job-criteria-list { grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .job-criteria-list > div { padding: 13px 0; background: transparent; }

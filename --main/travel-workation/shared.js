@@ -54,7 +54,7 @@
     const nickname = sessionStorage.getItem("nickname") || (username === "qwer" ? "운영자" : "");
     if (username) {
       link.textContent = nickname || username;
-      link.href = "local-fit.html";
+      link.href = "mypage.html";
     }
   }
 

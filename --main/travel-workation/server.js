@@ -127,6 +127,18 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
+  CREATE TABLE IF NOT EXISTS job_applications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    job_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'applied',
+    applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, job_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (job_id) REFERENCES jobs(id)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_jobs_active_region_created
     ON jobs(active, region, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_destinations_active_search
@@ -143,6 +155,8 @@ db.exec(`
     ON gatherings(region, event_time ASC);
   CREATE INDEX IF NOT EXISTS idx_gathering_participants_gathering
     ON gathering_participants(gathering_id);
+  CREATE INDEX IF NOT EXISTS idx_job_applications_user_applied
+    ON job_applications(user_id, applied_at DESC, id DESC);
 `);
 
 function ensureColumn(table, column, definition) {
@@ -225,7 +239,7 @@ function sendJson(response, status, data) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS"
   });
   response.end(JSON.stringify(data));
 }
@@ -319,7 +333,7 @@ function getAuthenticatedUser(request) {
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
   const userId = sessions.get(token);
   return userId
-    ? db.prepare("SELECT id, username, nickname FROM users WHERE id = ?").get(userId)
+    ? db.prepare("SELECT id, username, nickname, created_at FROM users WHERE id = ?").get(userId)
     : null;
 }
 
@@ -595,6 +609,54 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/jobs") {
     sendJson(response, 200, getJobs(url.searchParams));
     return true;
+  }
+
+  const jobApplicationMatch = url.pathname.match(/^\/api\/jobs\/(\d+)\/application$/);
+  if (jobApplicationMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const jobId = Number(jobApplicationMatch[1]);
+    const job = db.prepare("SELECT id FROM jobs WHERE id = ? AND active = 1").get(jobId);
+    if (!job) {
+      sendJson(response, 404, { message: "지원할 일자리 정보를 찾을 수 없습니다." });
+      return true;
+    }
+
+    if (request.method === "GET") {
+      const application = db.prepare(`
+        SELECT id, status, applied_at, updated_at
+        FROM job_applications WHERE user_id = ? AND job_id = ?
+      `).get(user.id, jobId);
+      sendJson(response, 200, {
+        applied: Boolean(application),
+        application: application || null
+      });
+      return true;
+    }
+
+    if (request.method === "POST") {
+      db.prepare(`
+        INSERT INTO job_applications (user_id, job_id, status)
+        VALUES (?, ?, 'applied')
+        ON CONFLICT(user_id, job_id) DO UPDATE SET
+          status = 'applied', updated_at = CURRENT_TIMESTAMP
+      `).run(user.id, jobId);
+      const application = db.prepare(`
+        SELECT id, status, applied_at, updated_at
+        FROM job_applications WHERE user_id = ? AND job_id = ?
+      `).get(user.id, jobId);
+      sendJson(response, 201, { message: "일자리 지원이 완료되었습니다.", application });
+      return true;
+    }
+
+    if (request.method === "DELETE") {
+      const result = db.prepare("DELETE FROM job_applications WHERE user_id = ? AND job_id = ?")
+        .run(user.id, jobId);
+      sendJson(response, 200, {
+        message: result.changes ? "지원이 취소되었습니다." : "취소할 지원 내역이 없습니다."
+      });
+      return true;
+    }
   }
 
   const jobDetailMatch = url.pathname.match(/^\/api\/jobs\/(\d+)$/);
@@ -1026,6 +1088,93 @@ async function handleApi(request, response, url) {
     const token = crypto.randomBytes(32).toString("hex");
     sessions.set(token, user.id);
     sendJson(response, 200, { token, username: user.username, nickname: user.nickname || user.username });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const counts = db.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM posts WHERE user_id = ?) AS post_count,
+        (SELECT COUNT(*) FROM job_applications WHERE user_id = ?) AS application_count
+    `).get(user.id, user.id);
+    sendJson(response, 200, {
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname || user.username,
+      createdAt: user.created_at,
+      postCount: Number(counts.post_count || 0),
+      applicationCount: Number(counts.application_count || 0)
+    });
+    return true;
+  }
+
+  if (request.method === "PATCH" && url.pathname === "/api/me") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const body = await readJson(request);
+    const nickname = String(body.nickname || "").trim();
+    const currentPassword = String(body.currentPassword || "");
+    const newPassword = String(body.newPassword || "");
+    if (nickname.length < 2 || nickname.length > 20) {
+      sendJson(response, 400, { message: "닉네임은 2~20자로 입력해 주세요." });
+      return true;
+    }
+    if (newPassword && newPassword.length < 8) {
+      sendJson(response, 400, { message: "새 비밀번호는 8자 이상으로 입력해 주세요." });
+      return true;
+    }
+    if (newPassword) {
+      const account = db.prepare("SELECT * FROM users WHERE id = ?").get(user.id);
+      if (!currentPassword || !verifyPassword(currentPassword, account)) {
+        sendJson(response, 400, { message: "현재 비밀번호가 일치하지 않습니다." });
+        return true;
+      }
+      const { hash, salt } = hashPassword(newPassword);
+      db.prepare("UPDATE users SET nickname = ?, password_hash = ?, password_salt = ? WHERE id = ?")
+        .run(nickname, hash, salt, user.id);
+    } else {
+      db.prepare("UPDATE users SET nickname = ? WHERE id = ?").run(nickname, user.id);
+    }
+    sendJson(response, 200, { message: "개인정보가 수정되었습니다.", username: user.username, nickname });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/posts") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const posts = db.prepare(`
+      SELECT posts.*,
+             (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
+      FROM posts WHERE posts.user_id = ?
+      ORDER BY posts.created_at DESC, posts.id DESC
+    `).all(user.id);
+    sendJson(response, 200, posts);
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/applications") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const applications = db.prepare(`
+      SELECT job_applications.id AS application_id,
+             job_applications.status,
+             job_applications.applied_at,
+             job_applications.updated_at,
+             jobs.*
+      FROM job_applications
+      JOIN jobs ON jobs.id = job_applications.job_id
+      WHERE job_applications.user_id = ?
+      ORDER BY job_applications.applied_at DESC, job_applications.id DESC
+    `).all(user.id).map((entry) => ({
+      applicationId: entry.application_id,
+      status: entry.status,
+      appliedAt: entry.applied_at,
+      updatedAt: entry.updated_at,
+      job: mapJob(entry)
+    }));
+    sendJson(response, 200, applications);
     return true;
   }
 
