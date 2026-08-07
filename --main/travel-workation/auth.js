@@ -35,6 +35,12 @@ document.querySelectorAll(".auth-tab").forEach((tab) => {
   tab.addEventListener("click", () => showView(tab.dataset.authView));
 });
 
+document.querySelectorAll("[data-social-login]").forEach((button) => {
+  button.addEventListener("click", () => {
+    showMessage(`${button.dataset.socialLogin} 간편 로그인은 연동 준비 중입니다.`);
+  });
+});
+
 document.querySelector("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const { username, password } = Object.fromEntries(new FormData(event.currentTarget));
