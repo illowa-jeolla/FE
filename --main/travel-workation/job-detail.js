@@ -1,7 +1,8 @@
-const { request, escapeHtml, requireLogin, setStatus } = Workation;
+const { request, escapeHtml, requireLogin, setStatus, wireBookmarkButton, recordRecentView, comparedJobs, toggleJobComparison } = Workation;
 const $ = (selector) => document.querySelector(selector);
 let currentJobId = null;
 let hasApplied = false;
+let currentJob = null;
 
 function text(selector, value, fallback = "정보 확인 필요") {
   const element = $(selector);
@@ -16,6 +17,7 @@ function showError(message) {
 }
 
 function renderJob(job) {
+  currentJob = job;
   const region = job.region || "전라도";
   const location = job.location || region;
   const rating = Number(job.rating);
@@ -46,6 +48,21 @@ function renderJob(job) {
   $("#job-detail-content").hidden = false;
   requestAnimationFrame(initFixedJobSearch);
 }
+
+function updateCompareButton() {
+  const button = $("#job-compare-button");
+  const selected = comparedJobs().some((job) => Number(job.id) === Number(currentJobId));
+  button.classList.toggle("is-saved", selected);
+  button.setAttribute("aria-pressed", String(selected));
+  button.querySelector("span:last-child").textContent = selected ? "비교 중" : "비교";
+}
+
+$("#job-compare-button").addEventListener("click", () => {
+  if (!currentJob) return;
+  toggleJobComparison(currentJob);
+  updateCompareButton();
+});
+document.addEventListener("job-compare-change", updateCompareButton);
 
 let fixedSearchInitialized = false;
 let fixedSearchThreshold = 0;
@@ -191,6 +208,9 @@ document.addEventListener("keydown", (event) => {
   try {
     currentJobId = Number(id);
     renderJob(await request(`/api/jobs/${id}`));
+    wireBookmarkButton($("#job-bookmark-button"), "job", currentJobId);
+    recordRecentView("job", currentJobId);
+    updateCompareButton();
     if (sessionStorage.getItem("accessToken")) {
       const result = await request(`/api/jobs/${id}/application`);
       hasApplied = result.applied;

@@ -1,4 +1,4 @@
-const { request, setStatus, escapeHtml } = Workation;
+const { request, setStatus, escapeHtml, wireBookmarkButton, recordRecentView } = Workation;
 const recommendationForm = document.querySelector("#recommendation-form");
 const recommendationStatus = document.querySelector("#recommendation-status");
 const recommendationResults = document.querySelector("#recommendation-results");
@@ -26,7 +26,7 @@ function imageMarkup(destination) {
 
 function destinationMarkup(destination, index) {
   return `
-    <article class="recommend-destination" tabindex="0">
+    <article class="recommend-destination" tabindex="0" data-destination-id="${destination.id}">
       ${imageMarkup(destination)}
       <div class="recommend-destination__body">
         <span class="recommend-destination__meta">추천 ${index + 1} · ${escapeHtml(destination.region)}</span>
@@ -34,6 +34,7 @@ function destinationMarkup(destination, index) {
         <p>${escapeHtml(destination.category || "전라도 여행")} · ${destination.rating == null ? "관광데이터 추천" : `평점 ${Number(destination.rating).toFixed(1)}`}</p>
         <p>${escapeHtml(destination.description || "선택한 취향과 잘 어울리는 전라도 여행지입니다.")}</p>
         <div class="recommend-destination__reason"><span>추천 이유 보기</span><span>⌄</span></div>
+        <div class="recommend-destination__actions"><button class="icon-action" type="button" data-bookmark-destination="${destination.id}" aria-pressed="false"><span data-bookmark-icon>♡</span><span data-bookmark-label>찜</span></button><a class="button button-small" href="planner.html?itemType=destination&itemId=${destination.id}">일정에 담기</a></div>
       </div>
     </article>`;
 }
@@ -58,6 +59,12 @@ function renderRecommendations(data) {
     recommendationResults.innerHTML = '<div class="page-status is-visible">조건에 맞는 관광지가 아직 등록되지 않았어요. 조건을 바꿔 다시 시도해 주세요.</div>';
   } else {
     recommendationResults.innerHTML = data.destinations.map(destinationMarkup).join("");
+    recommendationResults.querySelectorAll("[data-bookmark-destination]").forEach((button) => {
+      wireBookmarkButton(button, "destination", Number(button.dataset.bookmarkDestination));
+    });
+    recommendationResults.querySelectorAll("[data-destination-id]").forEach((card) => card.addEventListener("click", () => {
+      recordRecentView("destination", Number(card.dataset.destinationId));
+    }, { once: true }));
   }
 
   document.querySelector("#recommendation-help").textContent = exhausted
@@ -125,3 +132,24 @@ resetButton.addEventListener("click", () => {
   setStatus(recommendationStatus);
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
+
+async function loadLinkedDestination() {
+  const destinationId = new URLSearchParams(location.search).get("destination");
+  if (!/^\d+$/.test(destinationId || "")) return;
+  try {
+    setStatus(recommendationStatus, "저장한 관광지를 불러오는 중입니다.");
+    const item = await request(`/api/items/destination/${destinationId}`);
+    renderRecommendations({
+      retry: 0,
+      maxRetries: 0,
+      prompt: `${item.title}의 관광 정보와 여행 일정을 다시 확인해 보세요.`,
+      destinations: [item.metadata]
+    });
+    setStatus(recommendationStatus);
+    recordRecentView("destination", Number(destinationId));
+  } catch (error) {
+    setStatus(recommendationStatus, error.message, "error");
+  }
+}
+
+loadLinkedDestination();

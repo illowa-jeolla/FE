@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="관심 있는 관광 일자리의 급여와 근무 조건을 비교합니다.">
+  <title>일자리 비교 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css?v=20260809-1">
+  <link rel="stylesheet" href="compare.css?v=20260809-1">
+</head>
+<body class="feature-page compare-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <nav class="main-nav" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a class="is-active" href="map.html">지역·일자리</a><a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a></nav>
+    <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
+  </header>
+  <main class="compare-main">
+    <section class="compare-intro"><div><p class="eyebrow dark">JOB COMPARE</p><h1>일자리 조건 비교</h1><p>급여와 일정, 근무 위치를 나란히 확인하고 나에게 맞는 공고를 선택해 보세요.</p></div><a class="button" href="map.html?view=search">공고 더 찾기</a></section>
+    <div class="page-status is-visible" id="compare-status" role="status">비교 목록을 확인하고 있습니다.</div>
+    <section class="compare-grid" id="compare-grid" hidden></section>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="shared.js?v=20260809-1"></script>
+  <script src="compare.js?v=20260809-1"></script>
+</body>
+</html>

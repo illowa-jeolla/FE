@@ -139,6 +139,63 @@ db.exec(`
     FOREIGN KEY (job_id) REFERENCES jobs(id)
   );
 
+  CREATE TABLE IF NOT EXISTS bookmarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    link TEXT NOT NULL,
+    metadata_json TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, item_type, item_id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS recent_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    link TEXT NOT NULL,
+    viewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, item_type, item_id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link TEXT,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    region TEXT,
+    link TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    start_time TEXT,
+    end_time TEXT,
+    note TEXT,
+    route_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_jobs_active_region_created
     ON jobs(active, region, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_destinations_active_search
@@ -157,6 +214,14 @@ db.exec(`
     ON gathering_participants(gathering_id);
   CREATE INDEX IF NOT EXISTS idx_job_applications_user_applied
     ON job_applications(user_id, applied_at DESC, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_bookmarks_user_created
+    ON bookmarks(user_id, created_at DESC, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_recent_views_user_viewed
+    ON recent_views(user_id, viewed_at DESC, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+    ON notifications(user_id, is_read, created_at DESC, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_planner_entries_user_date
+    ON planner_entries(user_id, event_date ASC, route_order ASC, id ASC);
 `);
 
 function ensureColumn(table, column, definition) {
@@ -173,6 +238,7 @@ ensureColumn("posts", "is_demo", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("posts", "images_data", "TEXT");
 ensureColumn("posts", "hashtags", "TEXT");
 ensureColumn("jobs", "map_demo", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("job_applications", "note", "TEXT");
 
 function seedCommunityDemoData() {
   const existing = db.prepare("SELECT COUNT(*) AS count FROM posts WHERE is_demo = 1").get().count;
@@ -210,6 +276,29 @@ function seedCommunityDemoData() {
 }
 
 seedCommunityDemoData();
+
+function seedDestinationDemoData() {
+  if (db.prepare("SELECT COUNT(*) AS count FROM destinations").get().count) return;
+  const destinations = [
+    ["전주 한옥마을", "전주", "역사·문화", "한옥 골목과 전통문화를 천천히 둘러보기 좋은 전주의 대표 여행지입니다.", "assets/s6jB4w.jpeg", 980, 4.8, "도보", "친구·연인"],
+    ["군산 근대역사거리", "군산", "역사·문화", "근대 건축과 오래된 상점을 따라 시간 여행을 즐길 수 있습니다.", "assets/u3OD9c.jpeg", 860, 4.6, "도보", "혼자·친구"],
+    ["광한루원", "남원", "역사·문화", "고전 소설의 배경과 정원 풍경을 함께 만나는 남원의 대표 명소입니다.", "assets/J6aHjc.jpeg", 790, 4.7, "대중교통", "가족·연인"],
+    ["목포 해상케이블카", "목포", "바다·전망", "유달산과 다도해를 잇는 시원한 바다 전망을 감상할 수 있습니다.", "assets/fVkV4.jpeg", 940, 4.7, "대중교통", "가족·친구"],
+    ["양림동 역사문화마을", "광주", "골목·문화", "근대 건축과 작은 문화 공간을 이어 걷기 좋은 광주의 여행 골목입니다.", "assets/lX3GW.jpeg", 760, 4.5, "도보", "혼자·친구"],
+    ["순천만국가정원", "순천", "자연·힐링", "계절 정원과 습지 풍경을 넉넉한 동선으로 즐길 수 있습니다.", "assets/OZ3bs.jpeg", 1120, 4.9, "대중교통", "가족·연인"],
+    ["오동도", "여수", "바다·산책", "바다를 곁에 두고 산책로와 동백숲을 함께 즐기는 여행지입니다.", "assets/JvLTt.jpeg", 1040, 4.8, "도보", "가족·연인"],
+    ["보성 녹차밭", "보성", "자연·힐링", "초록빛 차밭 능선을 따라 차분하게 걷고 쉬기 좋은 곳입니다.", "assets/bI7WI.jpeg", 920, 4.7, "자가용", "가족·친구"],
+    ["청산도 슬로길", "완도", "섬·도보", "섬마을과 바다 풍경을 천천히 연결해 걷는 완도의 대표 길입니다.", "assets/wt960.jpeg", 720, 4.6, "대중교통", "혼자·친구"]
+  ];
+  const insert = db.prepare(`
+    INSERT INTO destinations
+      (name, region, category, description, image_url, search_volume, rating, transport, companion)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  destinations.forEach((destination) => insert.run(...destination));
+}
+
+seedDestinationDemoData();
 
 function seedMapDemoData() {
   const regions = ["전주", "군산", "남원", "목포", "광주", "순천", "여수", "보성", "완도"];
@@ -387,6 +476,75 @@ function mapDestination(destination) {
     rating: destination.rating,
     transport: destination.transport,
     companion: destination.companion
+  };
+}
+
+function resolveSavedItem(itemType, itemId) {
+  if (itemType === "job") {
+    const job = db.prepare("SELECT * FROM jobs WHERE id = ? AND active = 1").get(itemId);
+    if (!job) return null;
+    return {
+      itemType,
+      itemId: job.id,
+      title: job.title,
+      subtitle: [job.company_name, job.region, job.pay].filter(Boolean).join(" · "),
+      region: job.region,
+      link: `job-detail.html?id=${job.id}`,
+      metadata: mapJob(job)
+    };
+  }
+  if (itemType === "destination") {
+    const destination = db.prepare("SELECT * FROM destinations WHERE id = ? AND active = 1").get(itemId);
+    if (!destination) return null;
+    return {
+      itemType,
+      itemId: destination.id,
+      title: destination.name,
+      subtitle: [destination.region, destination.category].filter(Boolean).join(" · "),
+      region: destination.region,
+      link: `recommend.html?destination=${destination.id}`,
+      metadata: mapDestination(destination)
+    };
+  }
+  if (itemType === "post") {
+    const post = db.prepare(`
+      SELECT posts.*, COALESCE(users.nickname, users.username) AS author
+      FROM posts JOIN users ON users.id = posts.user_id WHERE posts.id = ?
+    `).get(itemId);
+    if (!post) return null;
+    return {
+      itemType,
+      itemId: post.id,
+      title: post.concept || `${post.region} 여행 기록`,
+      subtitle: `${post.region} · ${post.author}`,
+      region: post.region,
+      link: `community-detail.html?id=${post.id}`,
+      metadata: { region: post.region, author: post.author }
+    };
+  }
+  return null;
+}
+
+function addNotification(userId, type, title, message, link = "") {
+  db.prepare(`
+    INSERT INTO notifications (user_id, type, title, message, link)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(userId, type, title, message, link);
+}
+
+function mapSavedRow(row) {
+  let metadata = {};
+  try { metadata = JSON.parse(row.metadata_json || "{}"); } catch { metadata = {}; }
+  return {
+    id: row.id,
+    itemType: row.item_type,
+    itemId: row.item_id,
+    title: row.title,
+    subtitle: row.subtitle,
+    link: row.link,
+    metadata,
+    createdAt: row.created_at,
+    viewedAt: row.viewed_at
   };
 }
 
@@ -624,7 +782,7 @@ async function handleApi(request, response, url) {
 
     if (request.method === "GET") {
       const application = db.prepare(`
-        SELECT id, status, applied_at, updated_at
+        SELECT id, status, note, applied_at, updated_at
         FROM job_applications WHERE user_id = ? AND job_id = ?
       `).get(user.id, jobId);
       sendJson(response, 200, {
@@ -642,16 +800,33 @@ async function handleApi(request, response, url) {
           status = 'applied', updated_at = CURRENT_TIMESTAMP
       `).run(user.id, jobId);
       const application = db.prepare(`
-        SELECT id, status, applied_at, updated_at
+        SELECT id, status, note, applied_at, updated_at
         FROM job_applications WHERE user_id = ? AND job_id = ?
       `).get(user.id, jobId);
+      addNotification(user.id, "application", "일자리 지원 완료", "지원한 공고를 마이페이지에서 관리할 수 있어요.", `job-detail.html?id=${jobId}`);
       sendJson(response, 201, { message: "일자리 지원이 완료되었습니다.", application });
+      return true;
+    }
+
+    if (request.method === "PATCH") {
+      const body = await readJson(request);
+      const note = String(body.note || "").trim().slice(0, 300);
+      const result = db.prepare(`
+        UPDATE job_applications SET note = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND job_id = ?
+      `).run(note, user.id, jobId);
+      if (!result.changes) {
+        sendJson(response, 404, { message: "지원 내역을 찾을 수 없습니다." });
+        return true;
+      }
+      sendJson(response, 200, { message: "지원 메모가 저장되었습니다.", note });
       return true;
     }
 
     if (request.method === "DELETE") {
       const result = db.prepare("DELETE FROM job_applications WHERE user_id = ? AND job_id = ?")
         .run(user.id, jobId);
+      if (result.changes) addNotification(user.id, "application", "일자리 지원 취소", "지원 취소 내역을 확인해 주세요.", `job-detail.html?id=${jobId}`);
       sendJson(response, 200, {
         message: result.changes ? "지원이 취소되었습니다." : "취소할 지원 내역이 없습니다."
       });
@@ -978,8 +1153,17 @@ async function handleApi(request, response, url) {
       sendJson(response, 400, { message: "댓글 내용을 입력해 주세요." });
       return true;
     }
+    const postId = Number(commentsMatch[1]);
+    const post = db.prepare("SELECT user_id, concept, region FROM posts WHERE id = ?").get(postId);
+    if (!post) {
+      sendJson(response, 404, { message: "게시글을 찾을 수 없습니다." });
+      return true;
+    }
     db.prepare("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)")
-      .run(Number(commentsMatch[1]), user.id, String(content).trim());
+      .run(postId, user.id, String(content).trim());
+    if (post.user_id !== user.id) {
+      addNotification(post.user_id, "comment", "내 여행 기록에 새 댓글", `${user.nickname || user.username}님이 댓글을 남겼어요.`, `community-detail.html?id=${postId}`);
+    }
     sendJson(response, 201, { message: "댓글이 등록되었습니다." });
     return true;
   }
@@ -1097,16 +1281,31 @@ async function handleApi(request, response, url) {
     const counts = db.prepare(`
       SELECT
         (SELECT COUNT(*) FROM posts WHERE user_id = ?) AS post_count,
-        (SELECT COUNT(*) FROM job_applications WHERE user_id = ?) AS application_count
-    `).get(user.id, user.id);
+        (SELECT COUNT(*) FROM job_applications WHERE user_id = ?) AS application_count,
+        (SELECT COUNT(*) FROM bookmarks WHERE user_id = ?) AS bookmark_count,
+        (SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0) AS unread_notification_count
+    `).get(user.id, user.id, user.id, user.id);
     sendJson(response, 200, {
       id: user.id,
       username: user.username,
       nickname: user.nickname || user.username,
       createdAt: user.created_at,
       postCount: Number(counts.post_count || 0),
-      applicationCount: Number(counts.application_count || 0)
+      applicationCount: Number(counts.application_count || 0),
+      bookmarkCount: Number(counts.bookmark_count || 0),
+      unreadNotificationCount: Number(counts.unread_notification_count || 0)
     });
+    return true;
+  }
+
+  const itemDetailMatch = url.pathname.match(/^\/api\/items\/(job|destination|post)\/(\d+)$/);
+  if (request.method === "GET" && itemDetailMatch) {
+    const item = resolveSavedItem(itemDetailMatch[1], Number(itemDetailMatch[2]));
+    if (!item) {
+      sendJson(response, 404, { message: "항목 정보를 찾을 수 없습니다." });
+      return true;
+    }
+    sendJson(response, 200, item);
     return true;
   }
 
@@ -1160,6 +1359,7 @@ async function handleApi(request, response, url) {
     const applications = db.prepare(`
       SELECT job_applications.id AS application_id,
              job_applications.status,
+             job_applications.note,
              job_applications.applied_at,
              job_applications.updated_at,
              jobs.*
@@ -1170,12 +1370,189 @@ async function handleApi(request, response, url) {
     `).all(user.id).map((entry) => ({
       applicationId: entry.application_id,
       status: entry.status,
+      note: entry.note || "",
       appliedAt: entry.applied_at,
       updatedAt: entry.updated_at,
       job: mapJob(entry)
     }));
     sendJson(response, 200, applications);
     return true;
+  }
+
+  const bookmarkMatch = url.pathname.match(/^\/api\/bookmarks\/(job|destination|post)\/(\d+)$/);
+  if (bookmarkMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const [, itemType, rawItemId] = bookmarkMatch;
+    const itemId = Number(rawItemId);
+    const item = resolveSavedItem(itemType, itemId);
+    if (!item) {
+      sendJson(response, 404, { message: "저장할 항목을 찾을 수 없습니다." });
+      return true;
+    }
+    if (request.method === "GET") {
+      const bookmark = db.prepare("SELECT id FROM bookmarks WHERE user_id = ? AND item_type = ? AND item_id = ?")
+        .get(user.id, itemType, itemId);
+      sendJson(response, 200, { bookmarked: Boolean(bookmark) });
+      return true;
+    }
+    if (request.method === "POST") {
+      db.prepare(`
+        INSERT INTO bookmarks (user_id, item_type, item_id, title, subtitle, link, metadata_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, item_type, item_id) DO UPDATE SET
+          title = excluded.title, subtitle = excluded.subtitle, link = excluded.link,
+          metadata_json = excluded.metadata_json, created_at = CURRENT_TIMESTAMP
+      `).run(user.id, itemType, itemId, item.title, item.subtitle, item.link, JSON.stringify(item.metadata));
+      sendJson(response, 201, { message: "찜 목록에 저장했습니다.", bookmarked: true });
+      return true;
+    }
+    if (request.method === "DELETE") {
+      db.prepare("DELETE FROM bookmarks WHERE user_id = ? AND item_type = ? AND item_id = ?")
+        .run(user.id, itemType, itemId);
+      sendJson(response, 200, { message: "찜 목록에서 삭제했습니다.", bookmarked: false });
+      return true;
+    }
+  }
+
+  const recentViewMatch = url.pathname.match(/^\/api\/recent-views\/(job|destination|post)\/(\d+)$/);
+  if (recentViewMatch && request.method === "POST") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const [, itemType, rawItemId] = recentViewMatch;
+    const item = resolveSavedItem(itemType, Number(rawItemId));
+    if (!item) {
+      sendJson(response, 404, { message: "최근 본 항목을 찾을 수 없습니다." });
+      return true;
+    }
+    db.prepare(`
+      INSERT INTO recent_views (user_id, item_type, item_id, title, subtitle, link)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, item_type, item_id) DO UPDATE SET
+        title = excluded.title, subtitle = excluded.subtitle, link = excluded.link,
+        viewed_at = CURRENT_TIMESTAMP
+    `).run(user.id, item.itemType, item.itemId, item.title, item.subtitle, item.link);
+    sendJson(response, 201, { recorded: true });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/bookmarks") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const rows = db.prepare("SELECT * FROM bookmarks WHERE user_id = ? ORDER BY created_at DESC, id DESC").all(user.id);
+    sendJson(response, 200, rows.map(mapSavedRow));
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/recent-views") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const rows = db.prepare("SELECT * FROM recent_views WHERE user_id = ? ORDER BY viewed_at DESC, id DESC LIMIT 30").all(user.id);
+    sendJson(response, 200, rows.map(mapSavedRow));
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/notifications") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const rows = db.prepare(`
+      SELECT id, type, title, message, link, is_read, created_at
+      FROM notifications WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 30
+    `).all(user.id).map((entry) => ({
+      id: entry.id,
+      type: entry.type,
+      title: entry.title,
+      message: entry.message,
+      link: entry.link,
+      isRead: Boolean(entry.is_read),
+      createdAt: entry.created_at
+    }));
+    sendJson(response, 200, rows);
+    return true;
+  }
+
+  if (request.method === "PATCH" && url.pathname === "/api/me/notifications/read") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    db.prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?").run(user.id);
+    sendJson(response, 200, { message: "알림을 모두 읽음 처리했습니다." });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/planner") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const entries = db.prepare(`
+      SELECT * FROM planner_entries WHERE user_id = ?
+      ORDER BY event_date ASC, route_order ASC, COALESCE(start_time, '99:99') ASC, id ASC
+    `).all(user.id).map((entry) => ({
+      id: entry.id,
+      itemType: entry.item_type,
+      itemId: entry.item_id,
+      title: entry.title,
+      region: entry.region,
+      link: entry.link,
+      eventDate: entry.event_date,
+      startTime: entry.start_time || "",
+      endTime: entry.end_time || "",
+      note: entry.note || "",
+      routeOrder: entry.route_order
+    }));
+    sendJson(response, 200, entries);
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/me/planner") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const body = await readJson(request);
+    const itemType = String(body.itemType || "");
+    const itemId = Number(body.itemId);
+    const eventDate = String(body.eventDate || "");
+    const item = resolveSavedItem(itemType, itemId);
+    if (!item || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+      sendJson(response, 400, { message: "일정에 추가할 항목과 날짜를 확인해 주세요." });
+      return true;
+    }
+    const nextOrder = db.prepare("SELECT COALESCE(MAX(route_order), 0) + 1 AS next FROM planner_entries WHERE user_id = ? AND event_date = ?")
+      .get(user.id, eventDate).next;
+    const result = db.prepare(`
+      INSERT INTO planner_entries
+        (user_id, item_type, item_id, title, region, link, event_date, start_time, end_time, note, route_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(user.id, item.itemType, item.itemId, item.title, item.region, item.link, eventDate,
+      String(body.startTime || "").slice(0, 5), String(body.endTime || "").slice(0, 5), String(body.note || "").trim().slice(0, 300), nextOrder);
+    addNotification(user.id, "planner", "여행 일정 저장", `${item.title} 일정을 저장했어요.`, "planner.html");
+    sendJson(response, 201, { message: "여행·근무 일정에 추가했습니다.", id: Number(result.lastInsertRowid) });
+    return true;
+  }
+
+  const plannerEntryMatch = url.pathname.match(/^\/api\/me\/planner\/(\d+)$/);
+  if (plannerEntryMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const entryId = Number(plannerEntryMatch[1]);
+    if (request.method === "PATCH") {
+      const body = await readJson(request);
+      const eventDate = String(body.eventDate || "");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+        sendJson(response, 400, { message: "일정 날짜를 확인해 주세요." });
+        return true;
+      }
+      const result = db.prepare(`
+        UPDATE planner_entries SET event_date = ?, start_time = ?, end_time = ?, note = ?,
+          route_order = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+      `).run(eventDate, String(body.startTime || "").slice(0, 5), String(body.endTime || "").slice(0, 5),
+        String(body.note || "").trim().slice(0, 300), Math.max(0, Number(body.routeOrder) || 0), entryId, user.id);
+      sendJson(response, result.changes ? 200 : 404, { message: result.changes ? "일정과 동선을 저장했습니다." : "일정을 찾을 수 없습니다." });
+      return true;
+    }
+    if (request.method === "DELETE") {
+      const result = db.prepare("DELETE FROM planner_entries WHERE id = ? AND user_id = ?").run(entryId, user.id);
+      sendJson(response, result.changes ? 200 : 404, { message: result.changes ? "일정을 삭제했습니다." : "일정을 찾을 수 없습니다." });
+      return true;
+    }
   }
 
   return false;

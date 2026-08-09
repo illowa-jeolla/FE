@@ -1,5 +1,5 @@
 const state = { region: "", reviews: [] };
-const { request, escapeHtml } = Workation;
+const { request, escapeHtml, comparedJobs, toggleJobComparison } = Workation;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
 const jobPhotos = ["assets/J6aHjc.jpeg", "assets/JvLTt.jpeg", "assets/lX3GW.jpeg", "assets/OZ3bs.jpeg", "assets/s6jB4w.jpeg", "assets/u3OD9c.jpeg", "assets/wt960.jpeg", "assets/y0SxMq.jpeg"];
@@ -30,7 +30,7 @@ function renderJobs(jobs) {
 
   setStatus();
   $("#map-job-list").innerHTML = jobs.map((job) => `
-    <a class="map-job-item" href="job-detail.html?id=${job.id}">
+    <article class="map-job-item" tabindex="0" role="link" data-job-id="${job.id}">
       <img class="map-job-photo" src="${jobPhoto(job)}" alt="${escapeHtml(job.region || "지역")} 일자리 현장">
       <div>
         <span>${escapeHtml(job.category || "관광 일자리")}</span>
@@ -44,10 +44,25 @@ function renderJobs(jobs) {
       </div>
       <footer>
         <span>${escapeHtml(job.location || state.region)}</span>
-        <strong>${escapeHtml(job.pay || "급여 정보 없음")}</strong><b>상세 보기 →</b>
+        <strong>${escapeHtml(job.pay || "급여 정보 없음")}</strong>
+        <div class="job-card-tools"><button class="icon-action" type="button" data-map-compare="${job.id}" aria-pressed="${comparedJobs().some((entry) => Number(entry.id) === Number(job.id))}"><span aria-hidden="true">⇄</span><span>비교</span></button><a href="job-detail.html?id=${job.id}">상세 보기 →</a></div>
       </footer>
-    </a>
+    </article>
   `).join("");
+
+  $("#map-job-list").querySelectorAll(".map-job-item").forEach((card) => {
+    const open = () => { location.href = `job-detail.html?id=${card.dataset.jobId}`; };
+    card.addEventListener("click", (event) => { if (!event.target.closest("a, button")) open(); });
+    card.addEventListener("keydown", (event) => { if (event.key === "Enter") open(); });
+  });
+  $("#map-job-list").querySelectorAll("[data-map-compare]").forEach((button) => button.addEventListener("click", () => {
+    const job = jobs.find((entry) => Number(entry.id) === Number(button.dataset.mapCompare));
+    if (!job) return;
+    const selected = toggleJobComparison(job);
+    button.setAttribute("aria-pressed", String(selected));
+    button.classList.toggle("is-saved", selected);
+    button.querySelector("span:last-child").textContent = selected ? "비교 중" : "비교";
+  }));
 }
 
 async function searchJobs(form = null) {

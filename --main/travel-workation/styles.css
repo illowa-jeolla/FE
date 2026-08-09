@@ -175,6 +175,22 @@ body > footer { min-height: 110px; padding: 24px clamp(24px, 6vw, 88px); display
 .detail-link { display: inline-flex; align-items: center; color: var(--primary-strong); font-weight: 800; }
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 50; transform: translate(-50%, 16px); padding: 12px 18px; color: #fff; background: var(--ink-strong); border-radius: 7px; opacity: 0; pointer-events: none; transition: 180ms ease; }
 .toast.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.icon-action { min-width: 40px; min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.icon-action [data-bookmark-icon] { color: #d54f8b; font-size: 19px; line-height: 1; }
+.icon-action.is-saved { border-color: #ec9fc1; background: #fff1f7; }
+.job-compare-tray { position: fixed; right: 20px; bottom: 20px; z-index: 90; width: min(620px, calc(100% - 40px)); padding: 12px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid #d7e9ed; border-radius: 8px; background: #fff; box-shadow: 0 16px 44px rgba(38, 64, 70, .18); }
+.job-compare-tray > strong { color: #2f6b72; font-size: 12px; }
+.job-compare-tray > div { min-width: 0; display: flex; gap: 6px; overflow-x: auto; }
+.job-compare-tray > div span { flex: 0 0 auto; max-width: 190px; padding: 7px 8px; display: inline-flex; align-items: center; gap: 7px; border-radius: 6px; color: #3f5860; background: #edf8fa; font-size: 11px; white-space: nowrap; }
+.job-compare-tray > div span button { width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; color: #3f5860; background: #d5ecef; cursor: pointer; }
+.job-card-tools { display: flex; align-items: center; gap: 7px; }
+.job-card-tools .icon-action { min-height: 34px; padding-inline: 10px; }
+.recommend-destination__actions { margin-top: 14px; display: flex; align-items: center; gap: 8px; }
+.community-detail-actions { margin: 18px 0; display: flex; align-items: center; gap: 8px; }
+@media (max-width: 650px) {
+  .job-compare-tray { right: 10px; bottom: 10px; width: calc(100% - 20px); grid-template-columns: auto 1fr; }
+  .job-compare-tray > .button { grid-column: 1 / -1; width: 100%; }
+}
 
 @media (max-width: 1120px) {
   .site-header { grid-template-columns: auto 1fr auto; }

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="내 정보와 여행 게시물, 지원한 관광 일자리를 관리합니다.">
   <title>마이페이지 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260807-24">
-  <link rel="stylesheet" href="mypage.css?v=20260807-1">
+  <link rel="stylesheet" href="styles.css?v=20260809-1">
+  <link rel="stylesheet" href="mypage.css?v=20260809-1">
 </head>
 <body class="feature-page mypage-page">
   <header class="site-header">
@@ -32,9 +32,16 @@
       <dl class="mypage-counts">
         <div><dt>작성한 게시물</dt><dd id="mypage-post-count">0</dd></div>
         <div><dt>지원한 일자리</dt><dd id="mypage-application-count">0</dd></div>
+        <div><dt>찜한 항목</dt><dd id="mypage-bookmark-count">0</dd></div>
         <div><dt>가입일</dt><dd id="mypage-created-at">-</dd></div>
       </dl>
     </section>
+
+    <nav class="mypage-quick-tools" aria-label="마이페이지 빠른 메뉴">
+      <a href="planner.html"><span aria-hidden="true">▣</span><strong>여행·근무 일정</strong><small>날짜와 이동 동선을 관리해요</small></a>
+      <a href="compare.html"><span aria-hidden="true">⇄</span><strong>일자리 비교</strong><small>담아둔 공고를 한눈에 봐요</small></a>
+      <a href="map.html?view=search"><span aria-hidden="true">⌖</span><strong>새 일자리 찾기</strong><small>지역과 조건으로 다시 찾아요</small></a>
+    </nav>
 
     <div class="mypage-layout" id="mypage-content" hidden>
       <aside class="mypage-profile" aria-labelledby="profile-title">
@@ -55,17 +62,25 @@
 
       <section class="mypage-activity" aria-labelledby="activity-title">
         <div class="mypage-section-heading"><p>내 활동</p><h2 id="activity-title">기록 모아보기</h2></div>
+        <section class="mypage-notifications" aria-labelledby="notification-title">
+          <div><h3 id="notification-title">새 알림 <span id="notification-unread-count">0</span></h3><button class="button button-small" id="notification-read-all" type="button">모두 읽음</button></div>
+          <div id="notification-list"></div>
+        </section>
         <div class="mypage-tabs" role="tablist" aria-label="내 활동 보기">
           <button class="is-active" type="button" role="tab" aria-selected="true" data-mypage-view="posts">내가 쓴 게시물 <span id="post-tab-count">0</span></button>
           <button type="button" role="tab" aria-selected="false" data-mypage-view="applications">지원한 일자리 <span id="application-tab-count">0</span></button>
+          <button type="button" role="tab" aria-selected="false" data-mypage-view="bookmarks">찜 목록 <span id="bookmark-tab-count">0</span></button>
+          <button type="button" role="tab" aria-selected="false" data-mypage-view="recent">최근 본 항목</button>
         </div>
         <div class="mypage-list" id="mypage-posts" role="tabpanel"></div>
         <div class="mypage-list" id="mypage-applications" role="tabpanel" hidden></div>
+        <div class="mypage-list" id="mypage-bookmarks" role="tabpanel" hidden></div>
+        <div class="mypage-list" id="mypage-recent" role="tabpanel" hidden></div>
       </section>
     </div>
   </main>
 
-  <script src="shared.js?v=20260807-7"></script>
-  <script src="mypage.js?v=20260807-1"></script>
+  <script src="shared.js?v=20260809-1"></script>
+  <script src="mypage.js?v=20260809-1"></script>
 </body>
 </html>
