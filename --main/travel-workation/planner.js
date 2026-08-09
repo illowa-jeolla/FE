@@ -4,6 +4,7 @@ const status = document.querySelector("#planner-status");
 const routeDate = document.querySelector("#route-date");
 let entries = [];
 let sources = [];
+const budgetInputs = [...document.querySelectorAll("[data-budget]")];
 const regionCoordinates = {
   전주: [35.8242, 127.1480], 군산: [35.9677, 126.7366], 남원: [35.4164, 127.3904],
   목포: [34.8118, 126.3922], 광주: [35.1595, 126.8526], 순천: [34.9506, 127.4872],
@@ -89,6 +90,25 @@ function renderList() {
 
 function renderAll() { renderSummary(); renderRoute(); renderList(); }
 
+function loadBudget() {
+  let budget = {};
+  try { budget = JSON.parse(localStorage.getItem("workationBudget") || "{}"); } catch { budget = {}; }
+  budgetInputs.forEach((input) => { input.value = Number(budget[input.dataset.budget] || 0) || ""; });
+  updateBudget();
+}
+
+function updateBudget() {
+  const budget = Object.fromEntries(budgetInputs.map((input) => [input.dataset.budget, Math.max(0, Number(input.value) || 0)]));
+  localStorage.setItem("workationBudget", JSON.stringify(budget));
+  document.querySelector("#budget-total").textContent = `${Object.values(budget).reduce((sum, value) => sum + value, 0).toLocaleString("ko-KR")}원`;
+}
+
+function plannerShareText() {
+  const grouped = Object.groupBy(entries, (entry) => entry.eventDate);
+  const lines = Object.keys(grouped).sort().flatMap((date) => [formatDay(date), ...grouped[date].sort((a, b) => a.routeOrder - b.routeOrder).map((entry, index) => `${index + 1}. ${entry.title}${entry.startTime ? ` (${entry.startTime})` : ""}`)]);
+  return [`일로와전라 워케이션 일정`, ...lines, `예상 예산 ${document.querySelector("#budget-total").textContent}`].join("\n");
+}
+
 async function loadPlanner() {
   if (!sessionStorage.getItem("accessToken")) {
     location.replace(`auth.html?returnTo=${encodeURIComponent(location.pathname + location.search)}`);
@@ -126,6 +146,15 @@ form.addEventListener("submit", async (event) => {
 });
 
 routeDate.addEventListener("change", renderRoute);
+budgetInputs.forEach((input) => input.addEventListener("input", updateBudget));
+document.querySelector("#share-planner").addEventListener("click", async () => {
+  if (!entries.length) return showToast("공유할 일정을 먼저 추가해 주세요.");
+  const text = plannerShareText();
+  try {
+    if (navigator.share) await navigator.share({ title: "일로와전라 워케이션 일정", text });
+    else { await navigator.clipboard.writeText(text); showToast("일정 요약을 클립보드에 복사했어요."); }
+  } catch (error) { if (error.name !== "AbortError") showToast("일정 공유를 완료하지 못했어요."); }
+});
 document.querySelector("#planner-date-summary").addEventListener("click", (event) => {
   const button = event.target.closest("[data-jump-date]");
   if (!button) return;
@@ -169,4 +198,5 @@ document.querySelector("#planner-list").addEventListener("click", async (event) 
   } catch (error) { showToast(error.message); }
 });
 
+loadBudget();
 loadPlanner();

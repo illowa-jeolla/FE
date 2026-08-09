@@ -37,6 +37,8 @@ function renderProfile(data) {
   profile = data;
   profileForm.elements.username.value = data.username;
   profileForm.elements.nickname.value = data.nickname;
+  profileForm.elements.profilePublic.checked = data.profilePublic;
+  profileForm.elements.postsPublic.checked = data.postsPublic;
   document.querySelector("#mypage-nickname").textContent = data.nickname;
   document.querySelector("#mypage-username").textContent = `@${data.username}`;
   document.querySelector("#mypage-avatar").textContent = data.nickname.trim().slice(0, 1).toUpperCase();
@@ -160,12 +162,12 @@ profileForm.addEventListener("submit", async (event) => {
   }
   try {
     setStatus(profileStatus, "변경사항을 저장하고 있습니다.");
-    const result = await request("/api/me", { method: "PATCH", body: JSON.stringify({ nickname: values.nickname, currentPassword: values.currentPassword, newPassword: values.newPassword }) });
+    const result = await request("/api/me", { method: "PATCH", body: JSON.stringify({ nickname: values.nickname, currentPassword: values.currentPassword, newPassword: values.newPassword, profilePublic: profileForm.elements.profilePublic.checked, postsPublic: profileForm.elements.postsPublic.checked }) });
     sessionStorage.setItem("nickname", result.nickname);
     profileForm.elements.currentPassword.value = "";
     profileForm.elements.newPassword.value = "";
     profileForm.elements.newPasswordConfirm.value = "";
-    renderProfile({ ...profile, nickname: result.nickname });
+    renderProfile({ ...profile, nickname: result.nickname, profilePublic: result.profilePublic, postsPublic: result.postsPublic });
     updateAuthLink();
     setStatus(profileStatus, result.message);
   } catch (error) { setStatus(profileStatus, error.message, "error"); }

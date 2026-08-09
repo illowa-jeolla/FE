@@ -17,6 +17,7 @@
 .mypage-section-heading p { margin: 0; }
 .mypage-section-heading h2 { margin: 6px 0 0; font-size: 24px; }
 .mypage-profile form { margin-top: 24px; display: grid; gap: 16px; }
+.mypage-privacy { margin: 4px 0 0; padding: 14px 0; display: grid; gap: 12px; border: 0; border-block: 1px solid var(--line); }.mypage-privacy legend { padding: 0 0 8px; color: var(--ink); font-size: 11px; font-weight: 850; }.mypage-privacy label { display: flex; align-items: center; justify-content: space-between; gap: 16px; }.mypage-privacy label > span { display: grid; gap: 3px; }.mypage-privacy label strong { font-size: 11px; }.mypage-privacy label small { color: var(--muted); font-size: 9px; font-weight: 500; }.mypage-privacy input { width: 18px; height: 18px; accent-color: #347b82; }
 .mypage-profile label { display: grid; gap: 7px; color: var(--ink); font-size: 12px; font-weight: 750; }
 .mypage-profile input { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; }
 .mypage-profile input[readonly] { color: var(--muted); background: #f8f4f6; }

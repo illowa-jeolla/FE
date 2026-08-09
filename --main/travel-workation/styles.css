@@ -31,6 +31,7 @@ button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 [hidden] { display: none !important; }
 
 .site-header {
@@ -64,6 +65,8 @@ button { cursor: pointer; }
 .main-nav a { position: relative; color: #6f5363; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .main-nav a:hover, .main-nav a.is-active, .main-nav a[aria-current="page"] { color: var(--primary-strong); font-weight: 800; }
 .site-header > .button { justify-self: end; }
+.header-actions { min-width: 0; justify-self: end; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.header-actions [data-auth-link] { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .button, .home-button {
   min-height: 44px;
@@ -123,6 +126,13 @@ button { cursor: pointer; }
 .home-section-heading span, .home-feature-card__tag { color: var(--primary-strong); font-size: 12px; font-weight: 800; }
 .home-section-heading h2 { margin: 10px 0 0; color: #321628; font-family: Geist, Inter, sans-serif; font-size: clamp(34px, 4vw, 48px); line-height: 1.25; }
 .home-section-heading p { margin: 14px auto 0; color: var(--muted); line-height: 1.7; }
+.home-page .header-search-link { display: none; }
+.home-search { width: min(760px, 100%); min-height: 60px; margin: 30px auto 0; padding: 5px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid #eadce3; border-radius: 8px; background: #fff; box-shadow: 0 12px 34px rgba(70, 39, 55, .1); }
+.home-search:focus-within { border-color: #e888b6; box-shadow: 0 0 0 4px rgba(232, 136, 182, .14), 0 12px 34px rgba(70, 39, 55, .1); }
+.home-search input { width: 100%; min-width: 0; height: 48px; padding: 0 18px; border: 0; outline: 0; color: var(--ink-strong); background: transparent; font: inherit; font-size: 15px; }
+.home-search input::placeholder { color: #a18c97; }
+.home-search button { min-width: 86px; height: 48px; padding: 0 20px; border: 0; border-radius: 7px; color: #fff; background: var(--primary); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.home-search button:hover { background: var(--primary-strong); }
 .home-feature-grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .home-feature-card { min-height: 310px; padding: 26px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: var(--shadow-soft); }
 .home-feature-card--featured { background: linear-gradient(145deg, #fff 55%, #fff0f7); }
@@ -177,6 +187,19 @@ body > footer { min-height: 110px; padding: 24px clamp(24px, 6vw, 88px); display
 .toast.is-visible { transform: translate(-50%, 0); opacity: 1; }
 .icon-action { min-width: 40px; min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .icon-action [data-bookmark-icon] { color: #d54f8b; font-size: 19px; line-height: 1; }
+.header-search-link { min-width: 62px; min-height: 40px; padding: 0 14px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d8e7e9; border-radius: 8px; color: #35666c; background: #f7fbfb; font-size: 12px; font-weight: 800; }
+.mobile-bottom-nav { display: none; }
+.item-reviews { margin-top: 24px; padding: 22px 0; border-top: 1px solid var(--line); }.item-review-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }.item-review-heading h2 { margin: 5px 0 0; font-size: 22px; }.item-review-heading > strong { color: #28666d; font-size: 13px; }.item-reviews form { margin-top: 16px; display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; align-items: end; gap: 9px; }.item-reviews label { display: grid; gap: 6px; font-size: 10px; font-weight: 800; }.item-reviews select, .item-reviews textarea { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; }.item-reviews textarea { resize: vertical; }.item-review-list { margin-top: 14px; display: grid; }.item-review-list article { padding: 14px 0; display: grid; gap: 6px; border-bottom: 1px solid var(--line); }.item-review-list article > div { display: flex; justify-content: space-between; gap: 12px; }.item-review-list article span { color: #d36a99; letter-spacing: 0; }.item-review-list p { margin: 0; font-size: 12px; }.item-review-list time, .item-review-empty { color: var(--muted); font-size: 10px; }
+
+@media (max-width: 720px) {
+  body { padding-bottom: 66px; }
+  .mobile-bottom-nav { position: fixed; z-index: 90; right: 0; bottom: 0; left: 0; height: 64px; padding: 5px max(8px, env(safe-area-inset-left)); display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid #ded5d9; background: rgba(255, 255, 255, .97); box-shadow: 0 -4px 18px rgba(49, 35, 42, .08); backdrop-filter: blur(12px); }
+  .mobile-bottom-nav a { min-width: 0; display: grid; place-items: center; align-content: center; gap: 2px; color: #796d73; }
+  .mobile-bottom-nav a > span { width: 26px; height: 23px; display: grid; place-items: center; border-radius: 7px; font-size: 10px; font-weight: 900; }
+  .mobile-bottom-nav small { font-size: 9px; font-weight: 750; }
+  .mobile-bottom-nav a.is-active { color: #296970; }.mobile-bottom-nav a.is-active > span { background: #dff3f5; }
+  .item-reviews form { grid-template-columns: 1fr; }
+}
 .icon-action.is-saved { border-color: #ec9fc1; background: #fff1f7; }
 .job-compare-tray { position: fixed; right: 20px; bottom: 20px; z-index: 90; width: min(620px, calc(100% - 40px)); padding: 12px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid #d7e9ed; border-radius: 8px; background: #fff; box-shadow: 0 16px 44px rgba(38, 64, 70, .18); }
 .job-compare-tray > strong { color: #2f6b72; font-size: 12px; }
@@ -206,6 +229,9 @@ body > footer { min-height: 110px; padding: 24px clamp(24px, 6vw, 88px); display
   .brand { font-size: 17px; }
   .brand-mark { width: 30px; height: 30px; font-size: 14px; }
   .site-header > .button { display: none; }
+  .header-actions { gap: 6px; }
+  .header-actions .header-search-link, .header-actions [data-auth-link] { min-width: 54px; min-height: 36px; padding-inline: 10px; font-size: 11px; }
+  .header-actions [data-auth-link] { max-width: 88px; }
   .main-nav { grid-column: 1 / -1; order: 3; padding: 7px 0 2px; }
   .main-nav a { font-size: 12px; }
   .home-hero { min-height: 560px; padding: 54px 20px; background-position: 62% center; }
@@ -214,6 +240,9 @@ body > footer { min-height: 110px; padding: 24px clamp(24px, 6vw, 88px); display
   .home-stats { width: 100%; }
   .home-stats div { min-width: 0; flex: 1; padding-inline: 12px; }
   .home-stats dt { font-size: 20px; }
+  .home-search { min-height: 54px; margin-top: 24px; padding: 4px; }
+  .home-search input { height: 44px; padding-inline: 13px; font-size: 13px; }
+  .home-search button { min-width: 68px; height: 44px; padding-inline: 14px; font-size: 12px; }
   .home-feature-grid { grid-template-columns: 1fr; }
   .home-cta, body > footer { align-items: flex-start; flex-direction: column; }
   .map-page-main { padding: 14px; grid-template-columns: 1fr; }
@@ -689,8 +718,8 @@ body.job-detail-page.modal-open { overflow: hidden; }
   html:has(body.job-detail-page) { height: auto; overflow-x: clip; overflow-y: auto; }
   body.job-detail-page { height: auto; overflow: visible; }
   .job-detail-main { height: auto; overflow: visible; }
-  .job-detail-workspace { overflow: visible; }
-  .job-detail-results { overflow: visible; }
+  .job-detail-workspace { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  .job-detail-results { min-width: 0; padding: 20px 16px 60px; overflow: visible; }
   .job-location-card { grid-template-columns: 1fr; }
   .job-location-meta { grid-template-columns: repeat(3, 1fr); }
   .job-criteria-card.is-fixed-search { position: relative; top: auto; left: auto !important; width: auto !important; }

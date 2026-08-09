@@ -167,6 +167,25 @@ function closeApplyModal() {
   applyOpenButton.focus();
 }
 
+async function loadJobReviews() {
+  const data = await request(`/api/reviews/job/${currentJobId}`);
+  $("#job-review-summary").textContent = data.count ? `${data.average}점 · ${data.count}개` : "후기 없음";
+  $("#job-review-list").innerHTML = data.reviews.length ? data.reviews.map((review) => `<article><div><strong>${escapeHtml(review.author)}</strong><span>${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</span></div><p>${escapeHtml(review.content)}</p><time>${String(review.created_at).slice(0, 10)}</time></article>`).join("") : '<p class="item-review-empty">첫 후기를 남겨보세요.</p>';
+}
+
+$("#job-review-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const reviewStatus = $("#job-review-status");
+  if (!requireLogin(reviewStatus)) return;
+  const values = Object.fromEntries(new FormData(event.currentTarget));
+  try {
+    const result = await request(`/api/reviews/job/${currentJobId}`, { method: "POST", body: JSON.stringify(values) });
+    setStatus(reviewStatus, result.message);
+    event.currentTarget.elements.content.value = "";
+    await loadJobReviews();
+  } catch (error) { setStatus(reviewStatus, error.message, "error"); }
+});
+
 applyOpenButton.addEventListener("click", () => {
   if (!requireLogin(applyStatus)) {
     location.href = `auth.html?returnTo=${encodeURIComponent(location.pathname + location.search)}`;
@@ -208,6 +227,7 @@ document.addEventListener("keydown", (event) => {
   try {
     currentJobId = Number(id);
     renderJob(await request(`/api/jobs/${id}`));
+    await loadJobReviews();
     wireBookmarkButton($("#job-bookmark-button"), "job", currentJobId);
     recordRecentView("job", currentJobId);
     updateCompareButton();

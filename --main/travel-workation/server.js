@@ -196,6 +196,30 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
+  CREATE TABLE IF NOT EXISTS item_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, item_type, item_id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item_type TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, item_type, item_id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_jobs_active_region_created
     ON jobs(active, region, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_destinations_active_search
@@ -222,6 +246,10 @@ db.exec(`
     ON notifications(user_id, is_read, created_at DESC, id DESC);
   CREATE INDEX IF NOT EXISTS idx_planner_entries_user_date
     ON planner_entries(user_id, event_date ASC, route_order ASC, id ASC);
+  CREATE INDEX IF NOT EXISTS idx_item_reviews_target
+    ON item_reviews(item_type, item_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_reports_target
+    ON reports(item_type, item_id, created_at DESC);
 `);
 
 function ensureColumn(table, column, definition) {
@@ -239,6 +267,10 @@ ensureColumn("posts", "images_data", "TEXT");
 ensureColumn("posts", "hashtags", "TEXT");
 ensureColumn("jobs", "map_demo", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("job_applications", "note", "TEXT");
+ensureColumn("jobs", "deadline", "TEXT");
+ensureColumn("users", "profile_public", "INTEGER NOT NULL DEFAULT 1");
+ensureColumn("users", "posts_public", "INTEGER NOT NULL DEFAULT 1");
+db.exec(`UPDATE jobs SET deadline = date('now', '+' || ((id % 12) + 3) || ' days') WHERE deadline IS NULL`);
 
 function seedCommunityDemoData() {
   const existing = db.prepare("SELECT COUNT(*) AS count FROM posts WHERE is_demo = 1").get().count;
@@ -446,7 +478,8 @@ function mapJob(job) {
     pay: job.pay,
     detailUrl: job.detail_url,
     rating: job.rating,
-    jobKind: job.job_kind || "general"
+    jobKind: job.job_kind || "general",
+    deadline: job.deadline
   };
 }
 
@@ -530,6 +563,26 @@ function addNotification(userId, type, title, message, link = "") {
     INSERT INTO notifications (user_id, type, title, message, link)
     VALUES (?, ?, ?, ?, ?)
   `).run(userId, type, title, message, link);
+}
+
+function syncDeadlineNotifications(userId) {
+  const applications = db.prepare(`
+    SELECT jobs.id, jobs.title, jobs.deadline,
+           CAST(julianday(jobs.deadline) - julianday(date('now')) AS INTEGER) AS days_left
+    FROM job_applications
+    JOIN jobs ON jobs.id = job_applications.job_id
+    WHERE job_applications.user_id = ?
+      AND jobs.deadline IS NOT NULL
+      AND date(jobs.deadline) BETWEEN date('now') AND date('now', '+3 days')
+  `).all(userId);
+  const exists = db.prepare("SELECT 1 FROM notifications WHERE user_id = ? AND type = 'deadline' AND link = ? AND title = ? LIMIT 1");
+  for (const application of applications) {
+    const title = application.days_left <= 0 ? "오늘 지원 마감" : `지원 마감 D-${application.days_left}`;
+    const link = `job-detail.html?id=${application.id}`;
+    if (!exists.get(userId, link, title)) {
+      addNotification(userId, "deadline", title, `${application.title} 공고의 지원 마감일을 확인해 주세요.`, link);
+    }
+  }
 }
 
 function mapSavedRow(row) {
@@ -1050,12 +1103,66 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  const reviewMatch = url.pathname.match(/^\/api\/reviews\/(job|destination)\/(\d+)$/);
+  if (reviewMatch && request.method === "GET") {
+    const [, itemType, rawItemId] = reviewMatch;
+    const reviews = db.prepare(`
+      SELECT item_reviews.id, item_reviews.rating, item_reviews.content,
+             item_reviews.created_at, COALESCE(users.nickname, users.username) AS author
+      FROM item_reviews JOIN users ON users.id = item_reviews.user_id
+      WHERE item_type = ? AND item_id = ? ORDER BY item_reviews.created_at DESC
+    `).all(itemType, Number(rawItemId));
+    const summary = db.prepare("SELECT COUNT(*) AS count, ROUND(AVG(rating), 1) AS average FROM item_reviews WHERE item_type = ? AND item_id = ?")
+      .get(itemType, Number(rawItemId));
+    sendJson(response, 200, { count: Number(summary.count), average: summary.average, reviews });
+    return true;
+  }
+  if (reviewMatch && request.method === "POST") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const [, itemType, rawItemId] = reviewMatch;
+    const body = await readJson(request);
+    const rating = Number(body.rating);
+    const content = String(body.content || "").trim().slice(0, 500);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5 || content.length < 5) {
+      sendJson(response, 400, { message: "별점과 5자 이상의 후기를 입력해 주세요." });
+      return true;
+    }
+    db.prepare(`
+      INSERT INTO item_reviews (user_id, item_type, item_id, rating, content)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, item_type, item_id) DO UPDATE SET
+        rating = excluded.rating, content = excluded.content, updated_at = CURRENT_TIMESTAMP
+    `).run(user.id, itemType, Number(rawItemId), rating, content);
+    sendJson(response, 201, { message: "후기가 저장되었습니다." });
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/reports") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const body = await readJson(request);
+    const itemType = String(body.itemType || "");
+    const itemId = Number(body.itemId);
+    const reason = String(body.reason || "").trim().slice(0, 300);
+    if (!["post", "comment", "review"].includes(itemType) || !Number.isInteger(itemId) || !reason) {
+      sendJson(response, 400, { message: "신고 대상과 사유를 확인해 주세요." });
+      return true;
+    }
+    db.prepare(`
+      INSERT INTO reports (user_id, item_type, item_id, reason) VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, item_type, item_id) DO UPDATE SET reason = excluded.reason, created_at = CURRENT_TIMESTAMP
+    `).run(user.id, itemType, itemId, reason);
+    sendJson(response, 201, { message: "신고가 접수되었습니다." });
+    return true;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/posts") {
     const region = (url.searchParams.get("region") || "").trim();
     const posts = db.prepare(`
       SELECT posts.*, users.username, COALESCE(users.nickname, users.username) AS nickname
       FROM posts JOIN users ON users.id = posts.user_id
-      WHERE posts.created_at >= datetime('now', '-24 hours')
+      WHERE posts.created_at >= datetime('now', '-24 hours') AND users.posts_public = 1
       ${region ? "AND posts.region = ?" : ""}
       ORDER BY posts.created_at DESC, posts.id DESC
     `).all(...(region ? [region] : []));
@@ -1085,11 +1192,12 @@ async function handleApi(request, response, url) {
 
   const postDetailMatch = url.pathname.match(/^\/api\/posts\/(\d+)$/);
   if (request.method === "GET" && postDetailMatch) {
+    const viewer = getAuthenticatedUser(request);
     const post = db.prepare(`
-      SELECT posts.*, users.username, COALESCE(users.nickname, users.username) AS nickname
+      SELECT posts.*, users.username, users.posts_public, COALESCE(users.nickname, users.username) AS nickname
       FROM posts JOIN users ON users.id = posts.user_id WHERE posts.id = ?
     `).get(Number(postDetailMatch[1]));
-    if (!post) {
+    if (!post || (!post.posts_public && viewer?.id !== post.user_id)) {
       sendJson(response, 404, { message: "여행 기록을 찾을 수 없습니다." });
       return true;
     }
@@ -1275,6 +1383,58 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/search") {
+    const query = String(url.searchParams.get("q") || "").trim();
+    if (query.length < 2) {
+      sendJson(response, 400, { message: "검색어를 두 글자 이상 입력해 주세요." });
+      return true;
+    }
+    const like = `%${query}%`;
+    const jobs = db.prepare(`
+      SELECT * FROM jobs WHERE active = 1
+      AND (title LIKE ? OR company_name LIKE ? OR region LIKE ? OR category LIKE ?)
+      ORDER BY rating DESC, created_at DESC LIMIT 8
+    `).all(like, like, like, like).map(mapJob);
+    const destinations = db.prepare(`
+      SELECT * FROM destinations WHERE active = 1
+      AND (name LIKE ? OR region LIKE ? OR category LIKE ? OR description LIKE ?)
+      ORDER BY search_volume DESC, rating DESC LIMIT 8
+    `).all(like, like, like, like).map(mapDestination);
+    const posts = db.prepare(`
+      SELECT posts.id, posts.region, posts.concept, posts.content,
+             COALESCE(users.nickname, users.username) AS author
+      FROM posts JOIN users ON users.id = posts.user_id
+      WHERE posts.region LIKE ? OR posts.concept LIKE ? OR posts.content LIKE ?
+      ORDER BY posts.created_at DESC LIMIT 8
+    `).all(like, like, like);
+    sendJson(response, 200, { query, jobs, destinations, posts });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/me/recommendations") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const regionRows = db.prepare(`
+      SELECT jobs.region FROM job_applications JOIN jobs ON jobs.id = job_applications.job_id
+      WHERE job_applications.user_id = ?
+      UNION ALL
+      SELECT json_extract(metadata_json, '$.region') FROM bookmarks
+      WHERE user_id = ? AND json_valid(metadata_json)
+    `).all(user.id, user.id);
+    const counts = new Map();
+    regionRows.forEach((row) => {
+      const region = row.region || Object.values(row)[0];
+      if (region) counts.set(region, (counts.get(region) || 0) + 1);
+    });
+    const preferredRegion = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+    const jobs = db.prepare(`SELECT * FROM jobs WHERE active = 1 ${preferredRegion ? "AND region = ?" : ""} ORDER BY rating DESC, deadline ASC LIMIT 4`)
+      .all(...(preferredRegion ? [preferredRegion] : [])).map(mapJob);
+    const destinations = db.prepare(`SELECT * FROM destinations WHERE active = 1 ${preferredRegion ? "AND region = ?" : ""} ORDER BY rating DESC, search_volume DESC LIMIT 4`)
+      .all(...(preferredRegion ? [preferredRegion] : [])).map(mapDestination);
+    sendJson(response, 200, { preferredRegion, jobs, destinations });
+    return true;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/me") {
     const user = requireUser(request, response);
     if (!user) return true;
@@ -1290,6 +1450,8 @@ async function handleApi(request, response, url) {
       username: user.username,
       nickname: user.nickname || user.username,
       createdAt: user.created_at,
+      profilePublic: Boolean(user.profile_public),
+      postsPublic: Boolean(user.posts_public),
       postCount: Number(counts.post_count || 0),
       applicationCount: Number(counts.application_count || 0),
       bookmarkCount: Number(counts.bookmark_count || 0),
@@ -1316,6 +1478,8 @@ async function handleApi(request, response, url) {
     const nickname = String(body.nickname || "").trim();
     const currentPassword = String(body.currentPassword || "");
     const newPassword = String(body.newPassword || "");
+    const profilePublic = body.profilePublic === undefined ? Boolean(user.profile_public) : Boolean(body.profilePublic);
+    const postsPublic = body.postsPublic === undefined ? Boolean(user.posts_public) : Boolean(body.postsPublic);
     if (nickname.length < 2 || nickname.length > 20) {
       sendJson(response, 400, { message: "닉네임은 2~20자로 입력해 주세요." });
       return true;
@@ -1331,12 +1495,13 @@ async function handleApi(request, response, url) {
         return true;
       }
       const { hash, salt } = hashPassword(newPassword);
-      db.prepare("UPDATE users SET nickname = ?, password_hash = ?, password_salt = ? WHERE id = ?")
-        .run(nickname, hash, salt, user.id);
+      db.prepare("UPDATE users SET nickname = ?, password_hash = ?, password_salt = ?, profile_public = ?, posts_public = ? WHERE id = ?")
+        .run(nickname, hash, salt, Number(profilePublic), Number(postsPublic), user.id);
     } else {
-      db.prepare("UPDATE users SET nickname = ? WHERE id = ?").run(nickname, user.id);
+      db.prepare("UPDATE users SET nickname = ?, profile_public = ?, posts_public = ? WHERE id = ?")
+        .run(nickname, Number(profilePublic), Number(postsPublic), user.id);
     }
-    sendJson(response, 200, { message: "개인정보가 수정되었습니다.", username: user.username, nickname });
+    sendJson(response, 200, { message: "개인정보가 수정되었습니다.", username: user.username, nickname, profilePublic, postsPublic });
     return true;
   }
 
@@ -1455,6 +1620,7 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/me/notifications") {
     const user = requireUser(request, response);
     if (!user) return true;
+    syncDeadlineNotifications(user.id);
     const rows = db.prepare(`
       SELECT id, type, title, message, link, is_read, created_at
       FROM notifications WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 30

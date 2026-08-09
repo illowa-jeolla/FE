@@ -140,6 +140,34 @@
     }));
   }
 
+  function renderGlobalNavigation() {
+    const header = document.querySelector(".site-header");
+    const authLink = header?.querySelector("[data-auth-link]");
+    if (header && authLink && !header.querySelector(".header-actions")) {
+      const actions = document.createElement("div");
+      actions.className = "header-actions";
+      const searchLink = document.createElement("a");
+      searchLink.href = "search.html";
+      searchLink.className = "header-search-link";
+      searchLink.dataset.globalSearch = "";
+      searchLink.textContent = "검색";
+      searchLink.setAttribute("aria-label", "통합 검색");
+      authLink.before(actions);
+      actions.append(searchLink, authLink);
+    }
+    if (document.querySelector(".mobile-bottom-nav")) return;
+    const current = location.pathname.split("/").pop() || "index.html";
+    const items = [
+      ["index.html", "홈"], ["search.html", "검색"], ["map.html", "지도"],
+      ["planner.html", "일정"], ["mypage.html?view=bookmarks", "찜"]
+    ];
+    const nav = document.createElement("nav");
+    nav.className = "mobile-bottom-nav";
+    nav.setAttribute("aria-label", "모바일 빠른 메뉴");
+    nav.innerHTML = items.map(([href, label]) => `<a href="${href}" class="${current === href.split("?")[0] ? "is-active" : ""}"><span>${label.slice(0, 1)}</span><small>${label}</small></a>`).join("");
+    document.body.append(nav);
+  }
+
   function toggleJobComparison(job) {
     const jobs = comparedJobs();
     const exists = jobs.some((entry) => Number(entry.id) === Number(job.id));
@@ -167,10 +195,12 @@
     recordRecentView,
     comparedJobs,
     toggleJobComparison,
-    renderCompareTray
+    renderCompareTray,
+    renderGlobalNavigation
   };
 
   updateAuthLink();
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderCompareTray);
-  else renderCompareTray();
+  const initializeSharedUi = () => { renderCompareTray(); renderGlobalNavigation(); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initializeSharedUi);
+  else initializeSharedUi();
 })();

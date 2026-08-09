@@ -19,6 +19,9 @@ function formatTime(value) {
 }
 
 function renderPosts(posts) {
+  let blocked = [];
+  try { blocked = JSON.parse(localStorage.getItem("workationBlockedUsers") || "[]"); } catch { blocked = []; }
+  posts = posts.filter((post) => !blocked.includes(post.username));
   if (!posts.length) {
     postFeed.innerHTML = "";
     setStatus(feedStatus, "선택한 지역에 24시간 내 등록된 여행이 없습니다.");

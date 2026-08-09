@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="여행과 근무 일정을 날짜별로 관리하고 이동 동선을 저장합니다.">
   <title>여행 플래너 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260809-1">
+  <link rel="stylesheet" href="styles.css?v=20260809-4">
   <link rel="stylesheet" href="planner.css?v=20260809-3">
 </head>
 <body class="feature-page planner-page">
@@ -15,7 +15,7 @@
     <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
   </header>
   <main class="planner-main">
-    <section class="planner-intro"><div><p class="eyebrow dark">TRIP & WORK PLANNER</p><h1>여행·근무 일정</h1><p>지원한 일자리와 찜한 관광지를 날짜별로 배치하고 방문 순서를 저장하세요.</p></div><a class="button" href="mypage.html">마이페이지</a></section>
+    <section class="planner-intro"><div><p class="eyebrow dark">TRIP & WORK PLANNER</p><h1>여행·근무 일정</h1><p>지원한 일자리와 찜한 관광지를 날짜별로 배치하고 방문 순서를 저장하세요.</p></div><div class="planner-intro-actions"><button class="button" id="share-planner" type="button">일정 공유</button><a class="button" href="mypage.html">마이페이지</a></div></section>
     <div class="page-status is-visible" id="planner-status" role="status">일정 정보를 불러오고 있습니다.</div>
     <div class="planner-workspace" id="planner-workspace" hidden>
       <aside class="planner-add-panel">
@@ -28,6 +28,7 @@
           <button class="button button-primary" type="submit">일정에 추가</button>
         </form>
         <div class="planner-source-help"><strong>담을 항목이 부족한가요?</strong><a href="recommend.html">관광지 찜하기</a><a href="map.html?view=search">일자리 찾기</a></div>
+        <section class="planner-budget" aria-labelledby="budget-title"><div><p class="eyebrow dark">BUDGET</p><h2 id="budget-title">예산 계산기</h2></div><div class="planner-budget-fields"><label>숙박비<input type="number" min="0" step="1000" data-budget="stay"></label><label>교통비<input type="number" min="0" step="1000" data-budget="transport"></label><label>식비<input type="number" min="0" step="1000" data-budget="food"></label><label>체험·기타<input type="number" min="0" step="1000" data-budget="activity"></label></div><div class="planner-budget-total"><span>예상 총액</span><strong id="budget-total">0원</strong></div></section>
       </aside>
       <section class="planner-content">
         <div class="planner-date-summary" id="planner-date-summary"></div>
@@ -38,7 +39,7 @@
     </div>
   </main>
   <div class="toast" id="toast" role="status"></div>
-  <script src="shared.js?v=20260809-1"></script>
-  <script src="planner.js?v=20260809-2"></script>
+  <script src="shared.js?v=20260809-3"></script>
+  <script src="planner.js?v=20260809-3"></script>
 </body>
 </html>

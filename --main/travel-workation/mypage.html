@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="내 정보와 여행 게시물, 지원한 관광 일자리를 관리합니다.">
   <title>마이페이지 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260809-1">
+  <link rel="stylesheet" href="styles.css?v=20260809-4">
   <link rel="stylesheet" href="mypage.css?v=20260809-1">
 </head>
 <body class="feature-page mypage-page">
@@ -55,6 +55,7 @@
             <label>새 비밀번호<input name="newPassword" type="password" minlength="8" autocomplete="new-password"></label>
             <label>새 비밀번호 확인<input name="newPasswordConfirm" type="password" minlength="8" autocomplete="new-password"></label>
           </div>
+          <fieldset class="mypage-privacy"><legend>공개 범위</legend><label><span><strong>프로필 공개</strong><small>닉네임과 기본 활동 정보를 공개해요</small></span><input name="profilePublic" type="checkbox"></label><label><span><strong>작성 게시물 공개</strong><small>다른 사용자가 내 여행 기록을 볼 수 있어요</small></span><input name="postsPublic" type="checkbox"></label></fieldset>
           <p class="page-status" id="profile-status" role="status"></p>
           <button class="button button-primary" type="submit">변경사항 저장</button>
         </form>
@@ -80,7 +81,7 @@
     </div>
   </main>
 
-  <script src="shared.js?v=20260809-1"></script>
-  <script src="mypage.js?v=20260809-1"></script>
+  <script src="shared.js?v=20260809-3"></script>
+  <script src="mypage.js?v=20260809-2"></script>
 </body>
 </html>
