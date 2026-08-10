@@ -1,71 +1,71 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="내 정보와 여행 게시물, 지원한 관광 일자리를 관리합니다.">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="내 정보와 여행, 저장한 가이드, 게시글, 지원 공고를 관리합니다.">
   <title>마이페이지 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260807-24">
-  <link rel="stylesheet" href="mypage.css?v=20260807-1">
+  <link rel="stylesheet" href="styles.css?v=20260807-24"><link rel="stylesheet" href="feature-pages.css?v=20260810-8">
 </head>
 <body class="feature-page mypage-page">
   <header class="site-header">
     <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
-    <nav class="main-nav" aria-label="주요 메뉴">
-      <a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a href="map.html">지역·일자리</a>
-      <a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a>
-    </nav>
-    <a class="button button-small button-ghost is-active" href="mypage.html" data-auth-link>마이페이지</a>
+    <nav class="main-nav" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a href="map.html">지역·일자리</a><a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a></nav>
+    <a class="button button-small button-ghost" href="mypage.html" data-auth-link>마이페이지</a>
   </header>
-
   <main class="mypage-main">
-    <section class="mypage-intro">
-      <div><p class="eyebrow dark">MY PAGE</p><h1>내 여행과 일자리 활동</h1></div>
-      <button class="button button-small" id="logout-button" type="button">로그아웃</button>
+    <section class="mypage-profile-card">
+      <div class="mypage-avatar" id="mypage-avatar">나</div>
+      <div class="mypage-profile-copy"><span>MY PAGE</span><h1 id="mypage-nickname">내 정보를 불러오는 중이에요</h1><p id="mypage-username"></p></div>
+      <div class="mypage-profile-actions"><button id="mypage-logout" type="button">로그아웃</button><button class="is-danger" id="mypage-delete" type="button">탈퇴하기</button></div>
     </section>
-
-    <div class="mypage-status page-status is-visible" id="mypage-status" role="status">내 정보를 불러오고 있습니다.</div>
-
-    <section class="mypage-summary" id="mypage-summary" hidden>
-      <div class="mypage-avatar" id="mypage-avatar" aria-hidden="true">일</div>
-      <div class="mypage-identity"><span>반가워요</span><h2 id="mypage-nickname">사용자</h2><p id="mypage-username">@username</p></div>
-      <dl class="mypage-counts">
-        <div><dt>작성한 게시물</dt><dd id="mypage-post-count">0</dd></div>
-        <div><dt>지원한 일자리</dt><dd id="mypage-application-count">0</dd></div>
-        <div><dt>가입일</dt><dd id="mypage-created-at">-</dd></div>
-      </dl>
+    <div class="page-status" id="mypage-status" role="status"></div>
+    <section class="mypage-layout" id="mypage-content" hidden>
+      <nav class="mypage-tabs" aria-label="마이페이지 메뉴">
+        <button class="is-active" data-tab="profile" type="button"><span>01</span>내 정보</button>
+        <button data-tab="trips" type="button"><span>02</span>내가 다닌 여행지 <b id="trip-count">0</b></button>
+        <button data-tab="guides" type="button"><span>03</span>저장한 여행 가이드 <b id="guide-count">0</b></button>
+        <button data-tab="posts" type="button"><span>04</span>내 여행 공유 <b id="post-count">0</b></button>
+        <button data-tab="applications" type="button"><span>05</span>내가 지원한 공고 <b id="application-count">0</b></button>
+        <button data-tab="favorites" type="button"><span>06</span>찜한 일자리 <b id="favorite-count">0</b></button>
+        <button data-tab="gatherings" type="button"><span>07</span>내 게더링 <b id="gathering-count">0</b></button>
+      </nav>
+      <div class="mypage-panels">
+        <section class="mypage-panel is-active" data-panel="profile"><span class="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>서비스에서 사용할 닉네임을 변경할 수 있어요.</p><form id="nickname-form"><label>아이디<input id="profile-username" disabled></label><label>닉네임<input id="profile-nickname" minlength="2" maxlength="20" required></label><button type="submit">닉네임 저장</button></form></section>
+        <section class="mypage-panel" data-panel="trips"><span class="mypage-kicker">MY TRIPS</span><h2>내가 다닌 여행지</h2><div class="mypage-card-list" id="trip-list"></div></section>
+        <section class="mypage-panel" data-panel="guides"><span class="mypage-kicker">SAVED GUIDES</span><h2>내가 저장한 여행 가이드</h2><div class="mypage-card-list" id="guide-list"></div></section>
+        <section class="mypage-panel" data-panel="posts"><span class="mypage-kicker">MY STORIES</span><h2>내 여행 공유</h2><div class="mypage-card-list" id="post-list"></div></section>
+        <section class="mypage-panel" data-panel="applications"><span class="mypage-kicker">APPLICATIONS</span><h2>내가 지원한 공고</h2><div class="mypage-card-list" id="application-list"></div></section>
+        <section class="mypage-panel" data-panel="favorites"><span class="mypage-kicker">FAVORITE JOBS</span><h2>내가 찜한 일자리</h2><p>관심 있는 공고를 모아두고 상세 조건을 다시 확인할 수 있어요.</p><div class="mypage-card-list" id="favorite-list"></div></section>
+        <section class="mypage-panel" data-panel="gatherings"><span class="mypage-kicker">MY GATHERINGS</span><h2>내 게더링</h2><div class="mypage-gathering-filters" aria-label="내 게더링 조건"><button type="button" data-gathering-filter="owned" aria-pressed="false">내가 올린 게더링</button><button type="button" data-gathering-filter="active" aria-pressed="false">참여 중 게더링</button><button type="button" data-gathering-filter="past" aria-pressed="false">참여한 게더링</button></div><div class="mypage-card-list" id="gathering-list"></div></section>
+      </div>
     </section>
-
-    <div class="mypage-layout" id="mypage-content" hidden>
-      <aside class="mypage-profile" aria-labelledby="profile-title">
-        <div class="mypage-section-heading"><p>개인정보</p><h2 id="profile-title">프로필 수정</h2></div>
-        <form id="profile-form">
-          <label>아이디<input name="username" type="text" readonly></label>
-          <label>닉네임<input name="nickname" type="text" minlength="2" maxlength="20" required></label>
-          <div class="mypage-password-fields">
-            <p>비밀번호 변경</p>
-            <label>현재 비밀번호<input name="currentPassword" type="password" autocomplete="current-password"></label>
-            <label>새 비밀번호<input name="newPassword" type="password" minlength="8" autocomplete="new-password"></label>
-            <label>새 비밀번호 확인<input name="newPasswordConfirm" type="password" minlength="8" autocomplete="new-password"></label>
-          </div>
-          <p class="page-status" id="profile-status" role="status"></p>
-          <button class="button button-primary" type="submit">변경사항 저장</button>
-        </form>
-      </aside>
-
-      <section class="mypage-activity" aria-labelledby="activity-title">
-        <div class="mypage-section-heading"><p>내 활동</p><h2 id="activity-title">기록 모아보기</h2></div>
-        <div class="mypage-tabs" role="tablist" aria-label="내 활동 보기">
-          <button class="is-active" type="button" role="tab" aria-selected="true" data-mypage-view="posts">내가 쓴 게시물 <span id="post-tab-count">0</span></button>
-          <button type="button" role="tab" aria-selected="false" data-mypage-view="applications">지원한 일자리 <span id="application-tab-count">0</span></button>
-        </div>
-        <div class="mypage-list" id="mypage-posts" role="tabpanel"></div>
-        <div class="mypage-list" id="mypage-applications" role="tabpanel" hidden></div>
-      </section>
-    </div>
   </main>
-
-  <script src="shared.js?v=20260807-7"></script>
-  <script src="mypage.js?v=20260807-1"></script>
+  <div class="gathering-detail-modal" id="mypage-gathering-detail-modal" hidden><button class="gathering-detail-backdrop" type="button" aria-label="게더링 상세 창 닫기" data-mypage-gathering-close></button><section class="gathering-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="mypage-gathering-detail-title"><button class="gathering-detail-close" type="button" aria-label="닫기" data-mypage-gathering-close>×</button><div id="mypage-gathering-detail-content"></div></section></div>
+  <div class="guide-review-modal" id="guide-review-modal" hidden>
+    <button class="guide-review-backdrop" type="button" aria-label="리뷰 창 닫기" data-review-close></button>
+    <form class="guide-review-dialog" id="guide-review-form">
+      <button class="guide-review-close" type="button" aria-label="닫기" data-review-close>×</button>
+      <span class="mypage-kicker">TRAVEL REVIEW</span>
+      <h2 id="guide-review-title">여행 리뷰 남기기</h2>
+      <p>여행은 어떠셨나요? 별점과 간단한 후기를 남겨주세요.</p>
+      <div class="review-stars guide-review-stars" aria-label="별점 선택">
+        <input id="guide-rating-5" name="rating" type="radio" value="5" required checked><label for="guide-rating-5" title="5점">★</label>
+        <input id="guide-rating-4" name="rating" type="radio" value="4"><label for="guide-rating-4" title="4점">★</label>
+        <input id="guide-rating-3" name="rating" type="radio" value="3"><label for="guide-rating-3" title="3점">★</label>
+        <input id="guide-rating-2" name="rating" type="radio" value="2"><label for="guide-rating-2" title="2점">★</label>
+        <input id="guide-rating-1" name="rating" type="radio" value="1"><label for="guide-rating-1" title="1점">★</label>
+      </div>
+      <strong id="guide-rating-copy">5점 · 정말 좋았어요</strong>
+      <section class="community-photo-upload guide-review-photo">
+        <strong>사진 업로드</strong><p>첫 번째 사진이 대표로 보여져요 · 최대 5장</p>
+        <input id="guide-review-image" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+        <div class="photo-preview-grid" id="guide-review-photo-preview"><button class="photo-add-card" type="button"><span>＋</span><b>사진 추가</b></button></div>
+      </section>
+      <label>간단한 리뷰<textarea name="content" maxlength="300" placeholder="기억에 남는 장소와 여행의 느낌을 간단히 남겨주세요." required></textarea></label>
+      <div class="page-status" id="guide-review-status" role="status"></div>
+      <button class="guide-review-submit" type="submit">리뷰 등록하기</button>
+    </form>
+  </div>
+  <script src="shared.js?v=20260809-1"></script><script src="mypage.js?v=20260810-8"></script>
 </body>
 </html>

@@ -1,6 +1,11 @@
 const { request, requireLogin, setStatus, escapeHtml } = Workation;
 const feedStatus = document.querySelector("#feed-status");
 const postFeed = document.querySelector("#post-feed");
+const loadMoreButton = document.querySelector("#community-load-more");
+const feedEnd = document.querySelector("#community-feed-end");
+const PAGE_SIZE = 8;
+let allPosts = [];
+let visibleCount = PAGE_SIZE;
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -15,13 +20,24 @@ function formatTime(value) {
   const minutes = Math.max(1, Math.floor((Date.now() - new Date(`${value}Z`).getTime()) / 60000));
   if (minutes < 60) return `${minutes}분 전`;
   const hours = Math.floor(minutes / 60);
-  return hours < 24 ? `${hours}시간 전` : "24시간 전";
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  return days < 30 ? `${days}일 전` : new Date(`${value}Z`).toLocaleDateString("ko-KR");
 }
 
 function renderPosts(posts) {
+  allPosts = posts;
+  visibleCount = PAGE_SIZE;
+  renderVisiblePosts();
+}
+
+function renderVisiblePosts() {
+  const posts = allPosts.slice(0, visibleCount);
   if (!posts.length) {
     postFeed.innerHTML = "";
-    setStatus(feedStatus, "선택한 지역에 24시간 내 등록된 여행이 없습니다.");
+    loadMoreButton.hidden = true;
+    feedEnd.hidden = true;
+    setStatus(feedStatus, "선택한 지역에 등록된 여행이 없습니다.");
     return;
   }
   setStatus(feedStatus);
@@ -36,13 +52,16 @@ function renderPosts(posts) {
       </div>
     </a>
   `).join("");
+  const hasMore = visibleCount < allPosts.length;
+  loadMoreButton.hidden = !hasMore;
+  feedEnd.hidden = hasMore;
 }
 
 async function loadPosts() {
   const region = document.querySelector("#post-region-filter").value;
   document.querySelector("#community-filter-notice").textContent = region
-    ? `${region} · 최근 24시간 여행 기록이에요.`
-    : "전라도 전체 · 최근 24시간 여행 기록이에요.";
+    ? `${region} · 전체 여행 기록이에요.`
+    : "전라도 전체 · 모든 여행 기록이에요.";
   try {
     setStatus(feedStatus, "최근 게시물을 불러오는 중입니다.");
     const query = region ? `?region=${encodeURIComponent(region)}` : "";
@@ -53,6 +72,11 @@ async function loadPosts() {
 }
 
 document.querySelector("#post-filter-button").addEventListener("click", loadPosts);
+
+loadMoreButton.addEventListener("click", () => {
+  visibleCount += PAGE_SIZE;
+  renderVisiblePosts();
+});
 
 postFeed.addEventListener("submit", async (event) => {
   const commentForm = event.target.closest(".comment-form");

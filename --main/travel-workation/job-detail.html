@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="관광 일자리의 근무 조건과 위치를 확인합니다.">
   <title>관광 일자리 상세 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260807-24">
+  <link rel="stylesheet" href="styles.css?v=20260807-29">
   <link rel="stylesheet" href="feature-pages.css?v=20260805-2">
 </head>
 <body class="feature-page job-detail-page">
@@ -33,12 +33,17 @@
           <label>지역<select name="region"><option value="">전체 지역</option><option>전주</option><option>군산</option><option>남원</option><option>목포</option><option>광주</option><option>순천</option><option>여수</option><option>보성</option><option>완도</option></select></label>
           <fieldset><legend>여행 기간</legend><div><label>출발일<input name="tripStart" type="date" value="2026-08-20"></label><label>도착일<input name="tripEnd" type="date" value="2026-08-22"></label></div><p id="job-detail-date-hint">2박 3일 일정으로 추천 결과를 좁혀 보여드려요.</p></fieldset>
           <div class="job-detail-search-row"><label>일하는 방식<select name="workType"><option value="">전체 방식</option><option>현장 운영</option><option>원격 근무</option><option>체험형</option></select></label><label>희망 시간<select name="time"><option value="">전체 시간</option><option>오전</option><option>오후</option><option>주말</option></select></label></div>
-          <button class="button button-primary" type="submit">조건으로 검색하기</button>
-          <button class="button" type="button" id="job-back-button">목록으로 돌아가기</button>
+          <div class="job-detail-secondary-actions">
+            <button class="button button-primary job-detail-search-button" type="submit">조건으로 검색하기</button>
+            <button class="button job-detail-back-button" type="button" id="job-back-button">목록으로 돌아가기</button>
+          </div>
         </form>
         <section class="job-apply-card">
           <div><p>지원 안내</p><h3>이 공고가 마음에 드나요?</h3><span>담당자에게 문의하고 근무 일정을 확인해 보세요.</span></div>
-          <button class="button button-primary" id="job-apply-open" type="button">이 공고 지원하기</button>
+          <div class="job-apply-actions">
+            <button class="button button-primary" id="job-apply-open" type="button">공고 지원하기</button>
+            <button class="button job-favorite-button" id="job-favorite-button" type="button" aria-label="찜하기" title="찜하기" aria-pressed="false">♡</button>
+          </div>
         </section>
       </aside>
 
@@ -91,18 +96,14 @@
     <button class="job-apply-backdrop" type="button" aria-label="지원 안내 닫기" data-apply-close></button>
     <section class="job-apply-dialog" role="dialog" aria-modal="true" aria-labelledby="job-apply-title">
       <p class="eyebrow">지원 안내</p>
-      <h2 id="job-apply-title">이 공고에 지원할까요?</h2>
-      <p class="job-apply-description" id="job-apply-description">지원하면 마이페이지에서 공고와 지원일을 다시 확인할 수 있어요.</p>
+      <h2 id="job-apply-title">이 공고는 아래 번호로 문의해 주세요</h2>
+      <p class="job-apply-description">지원 가능 여부와 근무 일정을 문자로 빠르게 확인해요.</p>
       <div class="job-contact-number"><span>문의 번호</span><a href="tel:01024581931">010-2458-1931</a><small>운영팀, 지역 관광 행사TF</small></div>
       <div class="job-contact-meta"><div><span>문의 시간</span><strong>10:00 - 18:00</strong></div><div><span>담당자</span><strong>김서윤 매니저</strong></div></div>
-      <p class="page-status" id="job-apply-status" role="status"></p>
-      <div class="job-apply-actions">
-        <button class="button job-apply-close" type="button" data-apply-close>닫기</button>
-        <button class="button button-primary" id="job-apply-confirm" type="button">지원 완료하기</button>
-      </div>
+      <button class="button job-apply-close" type="button" data-apply-close>닫기</button>
     </section>
   </div>
-  <script src="shared.js?v=20260807-7"></script>
-  <script src="job-detail.js?v=20260807-7"></script>
+  <script src="shared.js?v=20260809-1"></script>
+  <script src="job-detail.js?v=20260809-2"></script>
 </body>
 </html>

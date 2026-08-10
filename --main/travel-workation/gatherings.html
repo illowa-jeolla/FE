@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="전라도 여행 중 즉석 모임을 만들고 참여합니다.">
+  <meta name="description" content="전라도 여행 중 지역, 날짜, 콘셉트에 맞는 게더링을 찾고 참여합니다.">
   <title>즉석 게더링 | 일로와전라</title>
   <link rel="stylesheet" href="styles.css?v=20260805-2">
-  <link rel="stylesheet" href="feature-pages.css?v=20260805-2">
+  <link rel="stylesheet" href="feature-pages.css?v=20260807-41">
 </head>
 <body class="feature-page">
   <header class="site-header">
-    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <a class="brand" href="index.html"><span class="brand-mark">ㅇ</span><span>일로와전라</span></a>
     <nav class="main-nav" aria-label="주요 메뉴">
       <a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a href="map.html">지역·일자리</a>
       <a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a class="is-active" href="gatherings.html">게더링</a>
@@ -18,50 +18,54 @@
     <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
   </header>
 
-  <main class="feature-page-main">
+  <main class="feature-page-main gatherings-page-main">
     <section class="page-intro">
-      <div><p class="eyebrow dark">즉석 게더링</p><h1>지금 같은 지역의 여행자와 만나요</h1></div>
-      <p>산책, 식사, 전시와 같은 짧은 모임을 만들고 남은 자리를 확인해 바로 참여할 수 있습니다.</p>
+      <div><p class="eyebrow dark">즉석 게더링</p><h1>지금 같은 지역의 여행자를 만나요</h1></div>
+      <div class="page-intro-actions"><button class="button button-primary" id="gathering-create-open" type="button">게더링 만들기 +</button></div>
     </section>
-    <div class="page-workspace">
-      <section class="page-panel">
-        <h2>게더링 만들기</h2>
-        <form class="stack-form" id="gathering-form">
-          <label>모임 이름<input name="title" maxlength="60" placeholder="예: 여수 밤바다 산책" required></label>
-          <div class="form-row">
-            <label>지역
-              <select name="region" required>
-                <option value="">지역 선택</option><option>여수</option><option>순천</option><option>목포</option>
-                <option>전주</option><option>광주</option><option>군산</option><option>남원</option>
-                <option>담양</option><option>해남</option><option>보성</option><option>완도</option>
-              </select>
-            </label>
-            <label>정원<input name="capacity" type="number" min="2" max="20" value="4" required></label>
-          </div>
-          <label>만날 장소<input name="location" maxlength="80" placeholder="정확한 만남 장소" required></label>
-          <div class="form-row">
-            <label>시간<input id="gathering-time" name="eventTime" type="datetime-local" required></label>
-            <label>콘셉트<input name="concept" maxlength="40" placeholder="산책, 미식, 전시"></label>
-          </div>
-          <button class="button button-primary" type="submit">게더링 열기</button>
-          <div class="page-status" id="gathering-status" role="status"></div>
+    <div class="page-workspace gatherings-search-layout">
+      <section class="page-panel gathering-search-panel">
+        <p class="eyebrow dark">FIND A GATHERING</p>
+        <h2>게더링 조건 검색</h2>
+        <form class="stack-form" id="gathering-search-form">
+          <label>지역<select name="region"><option value="">전체 지역</option><option>여수</option><option>순천</option><option>목포</option><option>전주</option><option>광주</option><option>군산</option><option>남원</option><option>담양</option><option>해남</option><option>보성</option><option>완도</option></select></label>
+          <div class="form-row"><label>날짜<input name="date" type="date"></label><label>시간<input name="time" type="time"></label></div>
+          <fieldset class="gathering-date-scope"><legend>날짜 검색 범위</legend><label><input name="dateScope" type="radio" value="exact" checked><span>선택한 날만</span></label><label><input name="dateScope" type="radio" value="from"><span>선택한 날 이후 전체</span></label></fieldset>
+          <label>콘셉트<input name="concept" maxlength="40" placeholder="펍투어, 미식, 전시, 산책"></label>
+          <button class="button button-primary" type="submit">조건으로 검색하기</button>
+          <button class="button" id="gathering-search-reset" type="button">전체 게더링 보기</button>
         </form>
       </section>
       <section class="page-panel">
-        <div class="filter-row">
-          <select id="gathering-region-filter" aria-label="게더링 지역 필터">
-            <option value="">전체 지역</option><option>여수</option><option>순천</option><option>목포</option>
-            <option>전주</option><option>광주</option><option>군산</option><option>남원</option>
-            <option>담양</option><option>해남</option><option>보성</option><option>완도</option>
-          </select>
-          <button class="button button-primary" id="gathering-filter-button" type="button">지역 적용</button>
-        </div>
+        <div class="gathering-results-head"><div><p class="eyebrow dark">OPEN GATHERINGS</p><h2>참여 가능한 게더링</h2></div><strong id="gathering-result-count">0</strong></div>
         <div class="page-status is-visible" id="gathering-list-status">게더링을 불러오는 중입니다.</div>
         <div class="gathering-list" id="gathering-list"></div>
       </section>
     </div>
   </main>
-  <script src="shared.js?v=20260807-7"></script>
-  <script src="gatherings.js?v=20260805-1"></script>
+  <div class="gathering-create-modal" id="gathering-create-modal" hidden>
+    <button class="gathering-create-backdrop" type="button" aria-label="게더링 만들기 창 닫기" data-gathering-create-close></button>
+    <section class="gathering-create-dialog" role="dialog" aria-modal="true" aria-labelledby="gathering-create-title">
+      <header><div><p>CREATE A GATHERING</p><h2 id="gathering-create-title">새 게더링 만들기</h2></div><button type="button" aria-label="닫기" data-gathering-create-close>×</button></header>
+      <form class="stack-form" id="gathering-create-form">
+        <label>모임 이름<input name="title" maxlength="60" placeholder="예: 여수 밤바다 펍투어" required></label>
+        <div class="form-row"><label>지역<select name="region" required><option value="">지역 선택</option><option>여수</option><option>순천</option><option>목포</option><option>전주</option><option>광주</option><option>군산</option><option>남원</option><option>담양</option><option>해남</option><option>보성</option><option>완도</option></select></label><label>정원<input name="capacity" type="number" min="2" max="20" value="4" required></label></div>
+        <label>만날 장소<input name="location" maxlength="80" placeholder="정확한 만남 장소" required></label>
+        <div class="form-row"><label>날짜와 시간<input id="gathering-create-time" name="eventTime" type="datetime-local" required></label><label>콘셉트<input name="concept" maxlength="40" placeholder="펍투어, 미식, 전시, 산책"></label></div>
+        <label>모임 설명<textarea name="description" maxlength="500" rows="5" placeholder="어떤 모임인지, 무엇을 함께 하는지, 준비물이나 참고 사항을 알려주세요."></textarea></label>
+        <button class="button button-primary gathering-create-submit" type="submit">게더링 만들기</button>
+        <div class="page-status" id="gathering-create-status" role="status"></div>
+      </form>
+    </section>
+  </div>
+  <div class="gathering-detail-modal" id="gathering-detail-modal" hidden>
+    <button class="gathering-detail-backdrop" type="button" aria-label="게더링 상세 창 닫기" data-gathering-detail-close></button>
+    <section class="gathering-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="gathering-detail-title">
+      <button class="gathering-detail-close" type="button" aria-label="닫기" data-gathering-detail-close>×</button>
+      <div id="gathering-detail-content"></div>
+    </section>
+  </div>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="gatherings.js?v=20260810-23"></script>
 </body>
 </html>

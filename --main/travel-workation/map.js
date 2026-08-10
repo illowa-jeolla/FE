@@ -1,4 +1,4 @@
-const state = { region: "", reviews: [] };
+const state = { region: "", reviews: [], regionData: null, summaryView: "region", aiSummary: "", aiSummaryEnabled: false, summaryRegion: "" };
 const { request, escapeHtml } = Workation;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
@@ -84,6 +84,7 @@ function changeJobView(view) {
 }
 
 function renderRegionSummary(summary) {
+  state.regionData = summary;
   const rating = Number(summary.averageRating);
   const reviewCount = Number(summary.reviewCount);
   $("#region-summary-copy").textContent = summary.destinationCount
@@ -93,30 +94,160 @@ function renderRegionSummary(summary) {
   $("#region-review-count").textContent = `${Number.isFinite(reviewCount) ? reviewCount : 0}개`;
   $("#region-summary-metrics").hidden = false;
   state.reviews = summary.reviews || [];
+  state.aiSummary = "";
+  state.aiSummaryEnabled = false;
+  state.summaryRegion = "";
   $("#region-review-list").hidden = true;
   $("#region-review-list").innerHTML = "";
-  const reviewButton = $("#region-review-button");
-  reviewButton.hidden = false;
-  reviewButton.textContent = state.reviews.length ? "리뷰 자세히 보기" : "등록된 리뷰 없음";
-  reviewButton.disabled = !state.reviews.length;
+  if (state.summaryView === "reviews") showReviewSummary();
 }
 
-function renderReviews() {
+function showRegionInfo() {
+  $("#region-review-detail-button").hidden = !state.reviews.length;
+  $("#region-review-detail-list").hidden = true;
+  $("#region-all-reviews-button").hidden = true;
+  $("#region-review-detail-button").textContent = "리뷰 보기";
+  state.summaryView = "region";
+  $$('[data-summary-view]').forEach((button) => button.classList.toggle("is-active", button.dataset.summaryView === "region"));
+  $("#region-panel-eyebrow").textContent = "지역 정보";
+  $("#summary-region-title").textContent = state.region || "지역을";
+  $("#region-review-list").hidden = true;
+  if (state.regionData) renderRegionSummary(state.regionData);
+  else { $("#region-summary-copy").textContent = "지도에서 지역을 선택하면 관광지 평점과 여행자 리뷰를 확인할 수 있어요."; $("#region-summary-metrics").hidden = true; }
+}
+
+async function showReviewSummary() {
+  $("#region-review-detail-button").hidden = true;
+  $("#region-review-detail-list").hidden = true;
+  $("#region-all-reviews-button").hidden = true;
+  state.summaryView = "reviews";
+  $$('[data-summary-view]').forEach((button) => button.classList.toggle("is-active", button.dataset.summaryView === "reviews"));
+  $("#region-panel-eyebrow").textContent = "AI 리뷰 분석";
+  $("#summary-region-title").textContent = state.region || "지역을";
+  $("#region-summary-copy").textContent = state.region ? `${state.region} 여행 리뷰의 공통 의견을 AI가 분석해요.` : "지도에서 지역을 먼저 선택해 주세요.";
+  $("#region-summary-metrics").hidden = true;
   const list = $("#region-review-list");
+  list.hidden = false;
+  if (!state.region) { list.innerHTML = `<article class="ai-review-summary"><strong>지역을 선택해 주세요</strong><p>지도에서 지역을 선택하면 리뷰 분석을 시작할게요.</p></article>`; return; }
+  if (!state.reviews.length) { list.innerHTML = `<article class="ai-review-summary"><strong>작성된 리뷰가 아직 없어요</strong><p>${escapeHtml(state.region)} 여행 리뷰가 등록되면 AI가 공통 의견을 요약해 드려요.</p></article>`; return; }
+  if (state.aiSummary && state.summaryRegion === state.region) {
+    renderAiReviewSummary();
+    return;
+  }
+  list.innerHTML = `<article class="ai-review-summary is-loading"><div class="ai-review-loader"><i></i><i></i><i></i></div><span>AI REVIEW SUMMARY</span><strong>${escapeHtml(state.region)} 리뷰를 분석하고 있어요</strong><p>별점과 후기에서 공통으로 언급된 내용을 찾고 있습니다.</p></article>`;
+  const requestedRegion = state.region;
+  try {
+    const result = await request(`/api/regions/review-summary?region=${encodeURIComponent(requestedRegion)}`);
+    if (state.region !== requestedRegion) return;
+    state.aiSummary = result.summary;
+    state.aiSummaryEnabled = Boolean(result.aiEnabled);
+    state.summaryRegion = requestedRegion;
+    renderAiReviewSummary();
+  } catch (error) {
+    list.innerHTML = `<article class="ai-review-summary is-error"><strong>요약을 만들지 못했어요</strong><p>${escapeHtml(error.message)}</p></article>`;
+  }
+}
+
+function renderAiReviewSummary() {
+  const list = $("#region-review-list");
+  list.innerHTML = `<article class="ai-review-summary"><span>${state.aiSummaryEnabled ? "AI REVIEW SUMMARY" : "REVIEW SUMMARY"}</span><strong>${escapeHtml(state.region)} 여행자들의 공통 의견</strong><p>${escapeHtml(state.aiSummary)}</p><small>${state.aiSummaryEnabled ? "작성된 리뷰를 AI가 종합한 참고용 요약이에요." : "AI 연결 전에는 별점 통계를 기준으로 기본 요약을 보여드려요."}</small></article>`;
+
+  list.innerHTML += state.reviews.map((review) => {
+    const rating = Math.max(1, Math.min(5, Math.round(Number(review.rating) || 5)));
+    const images = review.images?.length ? review.images : review.imageData ? [review.imageData] : [];
+    return `<article>
+      ${images.length ? `<div class="region-review-images">${images.map((image, index) => `<img src="${escapeHtml(image)}" alt="여행 리뷰 사진 ${index + 1}">`).join("")}</div>` : ""}
+      <div><strong>${escapeHtml(review.nickname || review.username)}</strong><span>${escapeHtml(review.concept || "여행 이야기")}</span></div>
+      <span class="region-review-stars" aria-label="별점 ${rating}점">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</span>
+      <p>${escapeHtml(review.content)}</p>
+    </article>`;
+  }).join("");
+}
+
+function toggleReviewDetails() {
+  const list = $("#region-review-detail-list");
   const opening = list.hidden;
   list.hidden = !opening;
-  $("#region-review-button").textContent = opening ? "리뷰 접기" : "리뷰 자세히 보기";
-  if (!opening || list.innerHTML) return;
-
-  list.innerHTML = state.reviews.map((review) => `
-    <article>
+  $("#region-review-detail-button").textContent = opening ? "리뷰 접기" : "리뷰 보기";
+  $("#region-all-reviews-button").hidden = !opening || !state.reviews.length;
+  if (!opening) return;
+  list.innerHTML = state.reviews.map((review) => {
+    const rating = Math.max(1, Math.min(5, Math.round(Number(review.rating) || 5)));
+    const images = review.images?.length ? review.images : review.imageData ? [review.imageData] : [];
+    return `<article>
+      ${images.length ? `<div class="region-review-images">${images.map((image, index) => `<img src="${escapeHtml(image)}" alt="여행 리뷰 사진 ${index + 1}">`).join("")}</div>` : ""}
       <div><strong>${escapeHtml(review.nickname || review.username)}</strong><span>${escapeHtml(review.concept || "여행 이야기")}</span></div>
+      <span class="region-review-stars" aria-label="별점 ${rating}점">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</span>
       <p>${escapeHtml(review.content)}</p>
-    </article>
-  `).join("");
+    </article>`;
+  }).join("");
+}
+
+const reviewModal = $("#region-reviews-modal");
+const reviewModalGrid = $("#region-reviews-grid");
+const reviewModalStatus = $("#region-reviews-status");
+const reviewMoreButton = $("#region-reviews-more");
+const REVIEW_PAGE_SIZE = 10;
+let reviewOffset = 0;
+let reviewTotal = 0;
+let reviewLoading = false;
+
+function renderFullReview(review) {
+  const rating = Math.max(1, Math.min(5, Math.round(Number(review.rating) || 5)));
+  const images = review.images?.length ? review.images : review.imageData ? [review.imageData] : [];
+  const createdAt = review.createdAt || review.created_at;
+  const date = createdAt ? new Date(`${createdAt}${String(createdAt).includes("Z") ? "" : "Z"}`).toLocaleDateString("ko-KR") : "";
+  return `<article class="region-full-review-card">
+    ${images.length ? `<div class="region-full-review-images">${images.map((image, index) => `<img src="${escapeHtml(image)}" alt="${escapeHtml(state.region)} 여행 리뷰 사진 ${index + 1}">`).join("")}</div>` : ""}
+    <div class="region-full-review-head"><div><strong>${escapeHtml(review.nickname || review.username)}</strong><span>${escapeHtml(review.concept || "여행 이야기")}</span></div><time>${escapeHtml(date)}</time></div>
+    <span class="region-review-stars" aria-label="별점 ${rating}점">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</span>
+    <p>${escapeHtml(review.content)}</p>
+  </article>`;
+}
+
+async function loadFullReviews(reset = false) {
+  if (!state.region || reviewLoading) return;
+  if (reset) {
+    reviewOffset = 0;
+    reviewTotal = 0;
+    reviewModalGrid.innerHTML = "";
+  }
+  reviewLoading = true;
+  reviewMoreButton.disabled = true;
+  reviewModalStatus.textContent = reset ? "전체 리뷰를 불러오는 중입니다." : "리뷰를 더 불러오는 중입니다.";
+  try {
+    const result = await request(`/api/regions/reviews?region=${encodeURIComponent(state.region)}&limit=${REVIEW_PAGE_SIZE}&offset=${reviewOffset}`);
+    reviewTotal = Number(result.total) || 0;
+    reviewModalGrid.insertAdjacentHTML("beforeend", (result.reviews || []).map(renderFullReview).join(""));
+    reviewOffset += (result.reviews || []).length;
+    reviewModalStatus.textContent = reviewTotal ? `전체 ${reviewTotal}개의 여행 리뷰` : "등록된 여행 리뷰가 없습니다.";
+    reviewMoreButton.hidden = !result.hasMore;
+  } catch (error) {
+    reviewModalStatus.textContent = error.message || "전체 리뷰를 불러오지 못했습니다.";
+    reviewMoreButton.hidden = true;
+  } finally {
+    reviewLoading = false;
+    reviewMoreButton.disabled = false;
+  }
+}
+
+function openFullReviews() {
+  if (!state.region) return;
+  $("#region-reviews-title").textContent = `${state.region} 전체 여행 리뷰`;
+  reviewModal.hidden = false;
+  document.body.classList.add("region-reviews-open");
+  loadFullReviews(true);
+}
+
+function closeFullReviews() {
+  reviewModal.hidden = true;
+  document.body.classList.remove("region-reviews-open");
 }
 
 async function selectRegion(region) {
+  $("#region-review-detail-button").hidden = true;
+  $("#region-review-detail-list").hidden = true;
+  $("#region-all-reviews-button").hidden = true;
   state.region = region;
   $("#selected-map-region").textContent = region;
   $("#region-summary-copy").textContent = `${region}의 관광지 정보와 여행 이야기를 불러오고 있어요.`;
@@ -150,6 +281,7 @@ async function selectRegion(region) {
 
   if (summaryResult.status === "fulfilled") {
     renderRegionSummary(summaryResult.value);
+    $("#region-review-detail-button").hidden = state.summaryView !== "region" || !state.reviews.length;
   } else {
     $("#region-summary-copy").textContent = `${region}의 등록된 평가와 여행 리뷰가 아직 없어요.`;
     state.reviews = [];
@@ -157,8 +289,14 @@ async function selectRegion(region) {
 }
 
 async function clearRegionSelection() {
+  $("#region-review-detail-button").hidden = true;
+  $("#region-review-detail-list").hidden = true;
+  $("#region-all-reviews-button").hidden = true;
   state.region = "";
   state.reviews = [];
+  state.aiSummary = "";
+  state.aiSummaryEnabled = false;
+  state.summaryRegion = "";
   $("#selected-map-region").textContent = "선택 전";
   $("#summary-region-title").textContent = "지역을";
   $("#region-summary-copy").textContent = "지도에서 지역을 선택하면 관광지 평점과 여행자 리뷰를 확인할 수 있어요.";
@@ -187,7 +325,18 @@ $$("[data-region]").forEach((button) => {
   });
 });
 
-$("#region-review-button").addEventListener("click", renderReviews);
+$$('[data-summary-view]').forEach((button) => button.addEventListener("click", () => button.dataset.summaryView === "reviews" ? showReviewSummary() : showRegionInfo()));
+$("#region-review-detail-button").addEventListener("click", toggleReviewDetails);
+$("#region-all-reviews-button").addEventListener("click", openFullReviews);
+$("#region-summary-metrics").addEventListener("click", openFullReviews);
+$("#region-summary-metrics").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openFullReviews(); }
+});
+$("#region-review-detail-list").addEventListener("click", (event) => { if (event.target.closest("article")) openFullReviews(); });
+$("#region-review-list").addEventListener("click", (event) => { if (event.target.closest("article") && state.reviews.length) openFullReviews(); });
+reviewMoreButton.addEventListener("click", () => loadFullReviews(false));
+reviewModal.querySelectorAll("[data-region-reviews-close]").forEach((button) => button.addEventListener("click", closeFullReviews));
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !reviewModal.hidden) closeFullReviews(); });
 
 $$('[data-job-view]').forEach((button) => {
   button.addEventListener("click", () => changeJobView(button.dataset.jobView));

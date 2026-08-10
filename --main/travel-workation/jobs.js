@@ -92,3 +92,14 @@ const today = formatDateInput(new Date());
 startInput.value = today;
 endInput.value = today;
 syncDates();
+
+const initialParams = new URLSearchParams(location.search);
+if (initialParams.get("source") === "region" && initialParams.get("region")) {
+  const region = initialParams.get("region");
+  const directRadio = form.querySelector('input[name="source"][value="region"]');
+  directRadio.checked = true;
+  regionSelect.disabled = false;
+  regionSelect.required = true;
+  if ([...regionSelect.options].some((option) => option.value === region)) regionSelect.value = region;
+  requestAnimationFrame(() => form.requestSubmit());
+}
