@@ -1,8 +1,5 @@
-const { request, escapeHtml, requireLogin, setStatus, wireBookmarkButton, recordRecentView, comparedJobs, toggleJobComparison } = Workation;
+const { request, escapeHtml } = Workation;
 const $ = (selector) => document.querySelector(selector);
-let currentJobId = null;
-let hasApplied = false;
-let currentJob = null;
 
 function text(selector, value, fallback = "정보 확인 필요") {
   const element = $(selector);
@@ -17,7 +14,6 @@ function showError(message) {
 }
 
 function renderJob(job) {
-  currentJob = job;
   const region = job.region || "전라도";
   const location = job.location || region;
   const rating = Number(job.rating);
@@ -48,21 +44,6 @@ function renderJob(job) {
   $("#job-detail-content").hidden = false;
   requestAnimationFrame(initFixedJobSearch);
 }
-
-function updateCompareButton() {
-  const button = $("#job-compare-button");
-  const selected = comparedJobs().some((job) => Number(job.id) === Number(currentJobId));
-  button.classList.toggle("is-saved", selected);
-  button.setAttribute("aria-pressed", String(selected));
-  button.querySelector("span:last-child").textContent = selected ? "비교 중" : "비교";
-}
-
-$("#job-compare-button").addEventListener("click", () => {
-  if (!currentJob) return;
-  toggleJobComparison(currentJob);
-  updateCompareButton();
-});
-document.addEventListener("job-compare-change", updateCompareButton);
 
 let fixedSearchInitialized = false;
 let fixedSearchThreshold = 0;
@@ -143,19 +124,36 @@ $("#job-detail-search-form").elements.tripEnd.addEventListener("change", updateD
 
 const applyModal = $("#job-apply-modal");
 const applyOpenButton = $("#job-apply-open");
-const applyConfirmButton = $("#job-apply-confirm");
-const applyStatus = $("#job-apply-status");
+const favoriteButton = $("#job-favorite-button");
+let currentJobId = "";
+let isFavorite = false;
 
-function updateApplicationUi() {
-  applyOpenButton.textContent = hasApplied ? "지원 완료 · 마이페이지에서 보기" : "이 공고 지원하기";
-  applyConfirmButton.hidden = hasApplied;
-  $("#job-apply-title").textContent = hasApplied ? "지원이 완료된 공고예요" : "이 공고에 지원할까요?";
-  $("#job-apply-description").textContent = hasApplied
-    ? "지원 내역과 공고 정보는 마이페이지에서 확인하거나 취소할 수 있어요."
-    : "지원하면 마이페이지에서 공고와 지원일을 다시 확인할 수 있어요.";
+function renderFavorite() {
+  favoriteButton.textContent = isFavorite ? "♥" : "♡";
+  favoriteButton.setAttribute("aria-label", isFavorite ? "찜 해제" : "찜하기");
+  favoriteButton.title = isFavorite ? "찜 해제" : "찜하기";
+  favoriteButton.classList.toggle("is-favorite", isFavorite);
+  favoriteButton.setAttribute("aria-pressed", String(isFavorite));
 }
 
-function openApplyModal() {
+favoriteButton.addEventListener("click", async () => {
+  if (!sessionStorage.getItem("accessToken")) { location.href = "auth.html"; return; }
+  favoriteButton.disabled = true;
+  try {
+    const result = await request(`/api/jobs/${currentJobId}/favorite`, { method: isFavorite ? "DELETE" : "POST" });
+    isFavorite = result.favorite;
+    renderFavorite();
+  } catch (error) { showError(error.message || "찜 정보를 저장하지 못했습니다."); }
+  finally { favoriteButton.disabled = false; }
+});
+
+async function openApplyModal() {
+  if (!sessionStorage.getItem("accessToken")) { location.href = "auth.html"; return; }
+  applyOpenButton.disabled = true;
+  try {
+    await request(`/api/jobs/${currentJobId}/apply`, { method: "POST" });
+    applyOpenButton.textContent = "지원 완료";
+  } catch (error) { showError(error.message || "지원 정보를 저장하지 못했습니다."); applyOpenButton.disabled = false; return; }
   applyModal.hidden = false;
   document.body.classList.add("modal-open");
   applyModal.querySelector(".job-apply-close").focus();
@@ -167,52 +165,7 @@ function closeApplyModal() {
   applyOpenButton.focus();
 }
 
-async function loadJobReviews() {
-  const data = await request(`/api/reviews/job/${currentJobId}`);
-  $("#job-review-summary").textContent = data.count ? `${data.average}점 · ${data.count}개` : "후기 없음";
-  $("#job-review-list").innerHTML = data.reviews.length ? data.reviews.map((review) => `<article><div><strong>${escapeHtml(review.author)}</strong><span>${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</span></div><p>${escapeHtml(review.content)}</p><time>${String(review.created_at).slice(0, 10)}</time></article>`).join("") : '<p class="item-review-empty">첫 후기를 남겨보세요.</p>';
-}
-
-$("#job-review-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const reviewStatus = $("#job-review-status");
-  if (!requireLogin(reviewStatus)) return;
-  const values = Object.fromEntries(new FormData(event.currentTarget));
-  try {
-    const result = await request(`/api/reviews/job/${currentJobId}`, { method: "POST", body: JSON.stringify(values) });
-    setStatus(reviewStatus, result.message);
-    event.currentTarget.elements.content.value = "";
-    await loadJobReviews();
-  } catch (error) { setStatus(reviewStatus, error.message, "error"); }
-});
-
-applyOpenButton.addEventListener("click", () => {
-  if (!requireLogin(applyStatus)) {
-    location.href = `auth.html?returnTo=${encodeURIComponent(location.pathname + location.search)}`;
-    return;
-  }
-  if (hasApplied) {
-    location.href = "mypage.html?view=applications";
-    return;
-  }
-  setStatus(applyStatus);
-  openApplyModal();
-});
-applyConfirmButton.addEventListener("click", async () => {
-  if (!currentJobId || !requireLogin(applyStatus)) return;
-  try {
-    applyConfirmButton.disabled = true;
-    setStatus(applyStatus, "지원 정보를 저장하고 있습니다.");
-    await request(`/api/jobs/${currentJobId}/application`, { method: "POST" });
-    hasApplied = true;
-    updateApplicationUi();
-    setStatus(applyStatus, "지원이 완료되었습니다. 마이페이지에서 확인할 수 있어요.");
-  } catch (error) {
-    setStatus(applyStatus, error.message, "error");
-  } finally {
-    applyConfirmButton.disabled = false;
-  }
-});
+applyOpenButton.addEventListener("click", openApplyModal);
 applyModal.querySelectorAll("[data-apply-close]").forEach((button) => button.addEventListener("click", closeApplyModal));
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !applyModal.hidden) closeApplyModal();
@@ -225,16 +178,12 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   try {
-    currentJobId = Number(id);
+    currentJobId = id;
     renderJob(await request(`/api/jobs/${id}`));
-    await loadJobReviews();
-    wireBookmarkButton($("#job-bookmark-button"), "job", currentJobId);
-    recordRecentView("job", currentJobId);
-    updateCompareButton();
     if (sessionStorage.getItem("accessToken")) {
-      const result = await request(`/api/jobs/${id}/application`);
-      hasApplied = result.applied;
-      updateApplicationUi();
+      const favorite = await request(`/api/jobs/${id}/favorite`);
+      isFavorite = favorite.favorite;
+      renderFavorite();
     }
   } catch (error) {
     showError(error.message || "공고 정보를 불러오지 못했습니다. 서버를 확인해 주세요.");

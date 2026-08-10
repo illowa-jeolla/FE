@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="숙소 주변 실제 관광지와 이동 경로를 제공하는 맞춤 여행 가이드입니다.">
+  <title>나의 맞춤 여행 가이드 | 일로와전라</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260805-2">
+  <link rel="stylesheet" href="feature-pages.css?v=20260809-3">
+</head>
+<body class="feature-page travel-guide-page travel-result-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">일</span><span>일로와전라</span></a>
+    <nav class="main-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a><a class="is-active" href="recommend.html">관광지 추천</a><a href="map.html">지역·일자리</a>
+      <a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a href="gatherings.html">게더링</a>
+    </nav>
+    <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
+  </header>
+
+  <main class="travel-result-main">
+    <section class="travel-guide-loading" id="travel-guide-loading" aria-live="polite">
+      <div class="travel-loading-orbit"><span>일</span><i></i></div>
+      <span class="travel-guide-eyebrow">AI TRAVEL CURATOR</span>
+      <h1>당신만의 여행을<br>만들고 있어요</h1>
+      <p id="travel-loading-message">입력한 지역과 숙소 위치를 확인하고 있어요.</p>
+      <ol class="travel-loading-steps">
+        <li class="is-active"><b>01</b><span>숙소 위치 확인</span></li>
+        <li><b>02</b><span>주변 관광지 검색</span></li>
+        <li><b>03</b><span>최적 동선 만들기</span></li>
+      </ol>
+      <div class="travel-loading-bar"><span></span></div>
+    </section>
+
+    <section class="travel-guide-error" id="travel-guide-error" hidden>
+      <span>!</span><h1>가이드를 만들지 못했어요</h1><p id="travel-guide-error-message"></p>
+      <div><a class="button" href="recommend.html">조건 다시 선택</a><button class="button button-primary" id="retry-guide" type="button">다시 시도</button></div>
+    </section>
+
+    <section class="travel-guide-content travel-result-content" id="travel-guide-content" hidden aria-live="polite">
+      <a class="travel-guide-back" href="recommend.html">← 조건 다시 선택하기</a>
+      <header class="travel-guide-heading">
+        <div><span class="travel-guide-eyebrow">YOUR PERSONAL GUIDE</span><h2><strong id="guide-region-label"></strong>, 이렇게 둘러보세요</h2><p><b id="guide-hotel-label"></b>에서 출발하는 실제 위치 기반 추천 동선이에요.</p><div class="travel-selected-preferences" id="guide-preference-label"></div></div>
+        <div class="travel-guide-period"><span id="guide-date-label"></span><div class="travel-guide-actions"><button class="travel-save-guide" id="save-guide" type="button">♡ 일정 저장</button><button class="travel-recommend-again" id="recommend-again" type="button">↻ 다른 코스 추천</button><a class="travel-reset-conditions" id="reset-conditions" href="recommend.html" hidden>← 조건 다시 정하기</a></div></div>
+      </header>
+      <div class="travel-route-layout">
+        <aside class="travel-place-panel"><div class="travel-route-summary"><span>DAY 1 · 추천 동선</span><b id="travel-route-summary-detail"></b></div><div id="travel-place-list"></div></aside>
+        <section class="travel-route-map" aria-label="숙소 주변 추천 관광지와 여행 경로">
+          <div class="travel-map-sea">전라도 여행</div><div class="travel-map-land travel-map-land-a"></div><div class="travel-map-land travel-map-land-b"></div><div class="travel-map-road road-a"></div><div class="travel-map-road road-b"></div><div class="travel-route-line"></div>
+          <button class="travel-hotel-pin" id="travel-hotel-pin" type="button"><span>⌂</span><small id="map-hotel-label"></small></button>
+          <div id="travel-map-pins"></div><article class="travel-map-card" id="travel-map-card"></article>
+          <div class="travel-map-controls"><button type="button" aria-label="지도 확대">＋</button><button type="button" aria-label="지도 축소">−</button></div>
+        </section>
+      </div>
+      <aside class="travel-guide-tip"><span>AI 여행 TIP</span><p id="travel-tip"></p></aside>
+      <div class="travel-jobs-cta"><div><span>WORK NEARBY</span><strong id="nearby-jobs-title">추천 지역 주변에서 일자리도 찾아보세요</strong><p>관광·축제·팝업 등 지역에 등록된 일자리를 바로 확인할 수 있어요.</p></div><a id="nearby-jobs-cta" href="map.html?view=search">주변 일자리 찾아보기 <b>→</b></a></div>
+    </section>
+  </main>
+  <script src="shared.js?v=20260809-1"></script>
+  <script src="travel-guide.js?v=20260809-19"></script>
+</body>
+</html>

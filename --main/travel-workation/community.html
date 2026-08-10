@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="24시간 안에 올라온 전라도 여행 사진과 이야기를 지역별로 공유합니다.">
+  <meta name="description" content="전라도 여행 사진과 이야기를 지역별로 공유합니다.">
   <title>여행 공유 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260809-4">
-  <link rel="stylesheet" href="feature-pages.css?v=20260807-11">
+  <link rel="stylesheet" href="styles.css?v=20260805-2">
+  <link rel="stylesheet" href="feature-pages.css?v=20260807-14">
 </head>
 <body class="feature-page">
   <header class="site-header">
@@ -22,7 +22,6 @@
     <section class="page-intro">
       <div><p class="eyebrow dark">지금의 여행</p><h1>전라도를 공유해요</h1></div>
       <div class="page-intro-actions">
-        <p>여행 사진과 이야기를 나눠보세요.</p>
         <a class="button button-primary" id="open-post-form" href="community-write.html">여행 올리기 +</a>
       </div>
     </section>
@@ -35,16 +34,16 @@
             <option>담양</option><option>해남</option><option>보성</option><option>완도</option>
           </select>
           <button class="button button-primary" id="post-filter-button" type="button">지역 적용</button>
-          <button class="button community-time-filter is-active" type="button" aria-pressed="true">최근 24시간</button>
         </div>
-        <div class="community-filter-notice" id="community-filter-notice">최근 24시간 여행 기록을 모아보고 있어요.</div>
+        <div class="community-filter-notice" id="community-filter-notice">모든 여행 기록을 모아보고 있어요.</div>
         <div class="page-status is-visible" id="feed-status">최근 게시물을 불러오는 중입니다.</div>
         <div class="post-feed" id="post-feed"></div>
-        <div class="community-feed-end">오늘의 여행 기록을 모두 확인했어요</div>
+        <div class="community-load-more-wrap"><button class="button" id="community-load-more" type="button" hidden>더보기</button></div>
+        <div class="community-feed-end" id="community-feed-end" hidden>여행 기록을 모두 확인했어요</div>
       </section>
     </div>
   </main>
-<script src="shared.js?v=20260809-3"></script>
-  <script src="community.js?v=20260807-4"></script>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="community.js?v=20260807-6"></script>
 </body>
 </html>
