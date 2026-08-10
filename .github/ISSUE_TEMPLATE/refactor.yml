@@ -39,7 +39,7 @@ body:
         - [ ] 변수명 개선
         - [ ] 불필요한 코드 제거
     validations:
-      required: true
+      required: true  
 
   - type: textarea
     id: expected
