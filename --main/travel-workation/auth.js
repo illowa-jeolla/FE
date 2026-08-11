@@ -49,15 +49,15 @@ document.querySelectorAll("[data-social-login]").forEach((button) => {
 
 document.querySelector("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const { username, password } = Object.fromEntries(new FormData(event.currentTarget));
+  const { email, password } = Object.fromEntries(new FormData(event.currentTarget));
 
   try {
     showMessage("로그인 중입니다.");
-    const data = await request("/api/auth/login", { username, password });
+    const data = await request("/api/auth/login", { email: email.trim().toLowerCase(), password });
     if (data.token) sessionStorage.setItem("accessToken", data.token);
-    if (data.username) sessionStorage.setItem("username", data.username);
+    if (data.email) sessionStorage.setItem("email", data.email);
+    if (data.email || data.username) sessionStorage.setItem("username", data.email || data.username);
     if (data.nickname) sessionStorage.setItem("nickname", data.nickname);
-    else if (data.username === "qwer") sessionStorage.setItem("nickname", "운영자");
     location.href = loginDestination();
   } catch (error) {
     showMessage(error.message, true);
@@ -75,13 +75,15 @@ document.querySelector("#register-form").addEventListener("submit", async (event
 
   try {
     showMessage("계정을 만들고 있습니다.");
+    const email = values.email.trim().toLowerCase();
     await request("/api/auth/register", {
-      username: values.username,
+      email,
       password: values.password,
       nickname: values.nickname
     });
     event.currentTarget.reset();
     showView("login");
+    document.querySelector("#login-form [name='email']").value = email;
     showMessage("회원가입이 완료되었습니다. 로그인해 주세요.");
   } catch (error) {
     showMessage(error.message, true);

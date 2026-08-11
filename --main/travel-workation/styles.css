@@ -31,6 +31,7 @@ button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 [hidden] { display: none !important; }
 
 .site-header {
@@ -306,6 +307,24 @@ body.region-reviews-open { overflow: hidden; }
 .home-section-heading { margin-bottom: 56px; }
 .home-section-heading h2 { margin-top: 16px; }
 .home-section-heading > p { display: none; }
+.home-search {
+  width: min(820px, 100%);
+  min-height: 66px;
+  margin: 30px auto 0;
+  padding: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid #eadce3;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 38px rgba(70, 39, 55, .1);
+}
+.home-search:focus-within { border-color: #e888b6; box-shadow: 0 0 0 4px rgba(232, 136, 182, .14), 0 14px 38px rgba(70, 39, 55, .1); }
+.home-search input { width: 100%; min-width: 0; height: 52px; padding: 0 20px; border: 0; outline: 0; color: var(--ink-strong); background: transparent; font-size: 16px; }
+.home-search input::placeholder { color: #9f8995; }
+.home-search button { min-width: 94px; height: 52px; padding: 0 22px; border: 0; border-radius: 7px; color: #fff; background: var(--primary); font-size: 14px; font-weight: 800; }
+.home-search button:hover { background: var(--primary-strong); }
 .home-feature-grid { max-width: 1200px; gap: 28px 24px; }
 .home-feature-card {
   min-height: 350px;
@@ -510,7 +529,13 @@ html:has(body.map-page)::-webkit-scrollbar { display: none; }
   .home-hero { padding: 54px 20px; align-items: center; }
   .home-hero__content, .home-hero p { width: 100%; }
   .home-hero h1 { font-size: 35px; }
+  .home-stats { width: 100%; }
+  .home-stats div { width: auto; min-width: 0; flex: 1; padding-right: 12px; }
+  .home-stats div + div { padding-left: 12px; }
   .home-features { padding: 64px 20px 72px; }
+  .home-search { min-height: 56px; margin-top: 24px; padding: 4px; }
+  .home-search input { height: 46px; padding-inline: 13px; font-size: 13px; }
+  .home-search button { min-width: 68px; height: 46px; padding-inline: 14px; font-size: 12px; }
   .home-cta { width: calc(100% - 40px); margin: 0 20px; padding: 28px 24px; }
 }
 

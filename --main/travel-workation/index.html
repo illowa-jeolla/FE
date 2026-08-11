@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260807-26">
+  <link rel="stylesheet" href="styles.css?v=20260811-2">
 </head>
 <body>
   <header class="site-header">
@@ -46,6 +46,11 @@
       <div class="home-section-heading">
         <span>WHAT CAN I DO?</span>
         <h2 id="features-title">원하는 기능으로 바로 이동하세요</h2>
+        <form class="home-search" action="search.html" method="get" role="search">
+          <label class="sr-only" for="home-search-query">통합 검색</label>
+          <input id="home-search-query" name="q" type="search" minlength="2" placeholder="지역, 관광지, 일자리, 여행 이야기를 검색해 보세요" autocomplete="off" required>
+          <button type="submit">검색</button>
+        </form>
       </div>
       <div class="home-feature-grid">
         <article class="home-feature-card home-feature-card--featured">
