@@ -3,6 +3,12 @@ const apiBaseUrl = window.AUTH_API_BASE_URL
   ?? (location.protocol === "file:" ? "http://localhost:8080" : "");
 
 const message = document.querySelector("#auth-message");
+const returnTo = new URLSearchParams(location.search).get("returnTo");
+
+function loginDestination() {
+  if (!returnTo || returnTo.startsWith("//") || /^[a-z]+:/i.test(returnTo) || returnTo.includes("..")) return "index.html";
+  return returnTo;
+}
 
 function showMessage(text, error = false) {
   message.textContent = text;
@@ -50,7 +56,9 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
     const data = await request("/api/auth/login", { username, password });
     if (data.token) sessionStorage.setItem("accessToken", data.token);
     if (data.username) sessionStorage.setItem("username", data.username);
-    location.href = "index.html";
+    if (data.nickname) sessionStorage.setItem("nickname", data.nickname);
+    else if (data.username === "qwer") sessionStorage.setItem("nickname", "운영자");
+    location.href = loginDestination();
   } catch (error) {
     showMessage(error.message, true);
   }
@@ -69,7 +77,8 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     showMessage("계정을 만들고 있습니다.");
     await request("/api/auth/register", {
       username: values.username,
-      password: values.password
+      password: values.password,
+      nickname: values.nickname
     });
     event.currentTarget.reset();
     showView("login");

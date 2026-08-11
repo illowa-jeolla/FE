@@ -35,3 +35,10 @@
   .auth-intro h1 { font-size: 34px; }
   .auth-panel { padding: 24px 20px; }
 }
+
+/* Pencil design parity */
+.auth-main { max-width: 1200px; padding: 58px 42px; grid-template-columns: minmax(0, 1fr) 460px; gap: 90px; }
+.auth-intro h1 { font-size: 48px; }
+.auth-intro::after { max-width: 620px; aspect-ratio: 16 / 6; border-radius: 12px; }
+.auth-panel { padding: 38px; border-radius: 20px; box-shadow: 0 18px 48px rgba(59, 32, 48, .08); }
+.auth-form input, .social-button { border-radius: 10px; }

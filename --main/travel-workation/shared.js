@@ -51,9 +51,26 @@
     const link = document.querySelector("[data-auth-link]");
     if (!link) return;
     const username = sessionStorage.getItem("username");
+    const nickname = sessionStorage.getItem("nickname") || (username === "qwer" ? "운영자" : "");
     if (username) {
-      link.textContent = username;
-      link.href = "local-fit.html";
+      let actions = link.closest(".header-account-actions");
+      if (!actions) {
+        actions = document.createElement("div");
+        actions.className = "header-account-actions";
+        link.before(actions);
+        actions.append(link);
+      }
+      if (!actions.querySelector("[data-mypage-link]")) {
+        const mypageLink = document.createElement("a");
+        mypageLink.href = "mypage.html";
+        mypageLink.className = "header-mypage-link";
+        mypageLink.dataset.mypageLink = "";
+        mypageLink.textContent = "마이페이지";
+        actions.prepend(mypageLink);
+      }
+      link.textContent = nickname || username;
+      link.href = "mypage.html";
+      link.classList.add("header-nickname-link");
     }
   }
 

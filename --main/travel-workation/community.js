@@ -1,11 +1,11 @@
 const { request, requireLogin, setStatus, escapeHtml } = Workation;
-const postForm = document.querySelector("#post-form");
-const postStatus = document.querySelector("#post-status");
 const feedStatus = document.querySelector("#feed-status");
 const postFeed = document.querySelector("#post-feed");
-const timeFormatter = new Intl.DateTimeFormat("ko-KR", {
-  month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"
-});
+const loadMoreButton = document.querySelector("#community-load-more");
+const feedEnd = document.querySelector("#community-feed-end");
+const PAGE_SIZE = 8;
+let allPosts = [];
+let visibleCount = PAGE_SIZE;
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -17,37 +17,51 @@ function fileToDataUrl(file) {
 }
 
 function formatTime(value) {
-  return timeFormatter.format(new Date(`${value}Z`));
+  const minutes = Math.max(1, Math.floor((Date.now() - new Date(`${value}Z`).getTime()) / 60000));
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  return days < 30 ? `${days}일 전` : new Date(`${value}Z`).toLocaleDateString("ko-KR");
 }
 
 function renderPosts(posts) {
+  allPosts = posts;
+  visibleCount = PAGE_SIZE;
+  renderVisiblePosts();
+}
+
+function renderVisiblePosts() {
+  const posts = allPosts.slice(0, visibleCount);
   if (!posts.length) {
     postFeed.innerHTML = "";
-    setStatus(feedStatus, "선택한 지역에 24시간 내 등록된 여행이 없습니다.");
+    loadMoreButton.hidden = true;
+    feedEnd.hidden = true;
+    setStatus(feedStatus, "선택한 지역에 등록된 여행이 없습니다.");
     return;
   }
   setStatus(feedStatus);
   postFeed.innerHTML = posts.map((post) => `
-    <article class="post-card">
-      ${post.image_data ? `<img src="${post.image_data}" alt="${escapeHtml(post.region)} 여행 사진">` : ""}
+    <a class="post-card" href="community-detail.html?id=${post.id}">
+      ${post.image_data ? `<img src="${escapeHtml(post.image_data)}" alt="${escapeHtml(post.region)} 여행 사진">` : '<div class="post-image-fallback" aria-hidden="true"></div>'}
       <div class="post-body">
-        <div class="post-meta"><span>${escapeHtml(post.username)} · ${escapeHtml(post.region)}</span><time>${formatTime(post.created_at)}</time></div>
+        <div class="post-meta"><span>${escapeHtml(post.region)}</span><time>${formatTime(post.created_at)}</time></div>
         <h3>${escapeHtml(post.concept || "지금의 여행")}</h3>
         <p>${escapeHtml(post.content)}</p>
-        <div class="comment-list">
-          ${(post.comments || []).map((comment) => `<p><strong>${escapeHtml(comment.username)}</strong> ${escapeHtml(comment.content)}</p>`).join("") || "<p>첫 댓글을 남겨보세요.</p>"}
-        </div>
-        <form class="comment-form" data-post-id="${post.id}">
-          <input name="content" maxlength="120" placeholder="댓글 입력" required>
-          <button class="button button-primary" type="submit">등록</button>
-        </form>
+        <div class="post-card-footer"><span>@${escapeHtml(post.nickname || post.username)}</span><span>댓글 ${(post.comments || []).length}</span></div>
       </div>
-    </article>
+    </a>
   `).join("");
+  const hasMore = visibleCount < allPosts.length;
+  loadMoreButton.hidden = !hasMore;
+  feedEnd.hidden = hasMore;
 }
 
 async function loadPosts() {
   const region = document.querySelector("#post-region-filter").value;
+  document.querySelector("#community-filter-notice").textContent = region
+    ? `${region} · 전체 여행 기록이에요.`
+    : "전라도 전체 · 모든 여행 기록이에요.";
   try {
     setStatus(feedStatus, "최근 게시물을 불러오는 중입니다.");
     const query = region ? `?region=${encodeURIComponent(region)}` : "";
@@ -57,28 +71,12 @@ async function loadPosts() {
   }
 }
 
-postForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!requireLogin(postStatus)) return;
-  const values = Object.fromEntries(new FormData(postForm));
-  const file = document.querySelector("#post-image").files[0];
-  if (file && file.size > 1_000_000) {
-    setStatus(postStatus, "사진은 1MB 이하로 선택해 주세요.", "error");
-    return;
-  }
-  try {
-    setStatus(postStatus, "여행을 공유하는 중입니다.");
-    values.imageData = file ? await fileToDataUrl(file) : "";
-    await request("/api/posts", { method: "POST", body: JSON.stringify(values) });
-    postForm.reset();
-    setStatus(postStatus, "여행을 공유했습니다.", "success");
-    await loadPosts();
-  } catch (error) {
-    setStatus(postStatus, error.message, "error");
-  }
-});
-
 document.querySelector("#post-filter-button").addEventListener("click", loadPosts);
+
+loadMoreButton.addEventListener("click", () => {
+  visibleCount += PAGE_SIZE;
+  renderVisiblePosts();
+});
 
 postFeed.addEventListener("submit", async (event) => {
   const commentForm = event.target.closest(".comment-form");
