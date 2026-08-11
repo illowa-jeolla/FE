@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="전라도 지도에서 지역을 선택하고 관광 일자리를 찾습니다.">
   <title>지역·일자리 | 일로와전라</title>
-  <link rel="stylesheet" href="styles.css?v=20260805-2">
+  <link rel="stylesheet" href="styles.css?v=20260809-30">
   <link rel="stylesheet" href="feature-pages.css?v=20260805-2">
 </head>
 <body class="map-page">
@@ -19,21 +19,46 @@
   </header>
 
   <main class="map-page-main">
+    <section class="job-view-switch" aria-label="일자리 보기 방식">
+      <button class="is-active" type="button" data-job-view="map"><span aria-hidden="true">⌖</span><strong>지도</strong></button>
+      <button type="button" data-job-view="search"><span aria-hidden="true">⌕</span><strong>검색</strong></button>
+    </section>
+
     <section class="map-controls-panel region-summary-panel" aria-live="polite">
+      <div class="map-summary-tabs"><button class="is-active" type="button" data-summary-view="region">지역 정보</button><button type="button" data-summary-view="reviews">리뷰 요약</button></div>
       <div>
-        <p class="eyebrow dark">지역 정보</p>
+        <p class="eyebrow dark" id="region-panel-eyebrow">지역 정보</p>
         <h1><span id="summary-region-title">지역을</span><br>선택해 주세요</h1>
       </div>
       <p class="region-summary-copy" id="region-summary-copy">지도에서 지역을 선택하면 관광지 평점과 여행자 리뷰를 확인할 수 있어요.</p>
-      <dl class="region-summary-metrics" id="region-summary-metrics" hidden>
+      <dl class="region-summary-metrics" id="region-summary-metrics" aria-label="전체 지역 리뷰 보기" role="button" tabindex="0" hidden>
         <div><dt id="region-rating">★ 0.0</dt><dd>평균 별점</dd></div>
         <div><dt id="region-review-count">0개</dt><dd>여행 리뷰</dd></div>
       </dl>
-      <button class="button region-review-button" id="region-review-button" type="button" hidden>리뷰 자세히 보기</button>
+      <button id="region-review-button" type="button" hidden aria-hidden="true"></button>
+      <button class="button region-review-button" id="region-review-detail-button" type="button" hidden>리뷰 보기</button>
+      <div class="region-review-list" id="region-review-detail-list" hidden></div>
+      <button class="button region-review-button" id="region-all-reviews-button" type="button" hidden>전체 리뷰 보기</button>
       <div class="region-review-list" id="region-review-list" hidden></div>
     </section>
 
+    <section class="job-search-panel" hidden>
+      <div class="job-detail-card-head"><h2>일자리 검색</h2><span>DB 공고</span></div>
+      <form id="map-job-search-form">
+        <label>지역<select name="region"><option value="">전체 지역</option><option>전주</option><option>군산</option><option>남원</option><option>목포</option><option>광주</option><option>순천</option><option>여수</option><option>보성</option><option>완도</option></select></label>
+        <fieldset class="map-job-date-group">
+          <legend>여행 기간</legend>
+          <div><label>출발일<input name="tripStart" type="date" value="2026-08-20"></label><label>도착일<input name="tripEnd" type="date" value="2026-08-22"></label></div>
+        </fieldset>
+        <label>일하는 방식<select name="workType"><option value="">전체 방식</option><option>현장 운영</option><option>원격 근무</option><option>체험형</option></select></label>
+        <label>희망 시간<select name="time"><option value="">전체 시간</option><option>오전</option><option>오후</option><option>주말</option></select></label>
+        <button class="button button-primary" type="submit">조건으로 검색하기</button>
+        <button class="button" id="map-job-search-reset" type="button">전체 공고 보기</button>
+      </form>
+    </section>
+
     <section class="map-canvas-panel" aria-labelledby="map-page-title">
+      <div class="map-canvas-scroll-content">
       <div class="map-canvas-heading">
         <div>
           <p class="eyebrow dark">관광지·일자리 탐색</p>
@@ -41,18 +66,30 @@
         </div>
         <strong id="selected-map-region">선택 전</strong>
       </div>
+      <div class="map-filter-chips" aria-label="지역 빠른 선택">
+        <button type="button" data-region="전주">전주</button>
+        <button type="button" data-region="군산">군산</button>
+        <button type="button" data-region="남원">남원</button>
+        <button type="button" data-region="목포">목포</button>
+        <button type="button" data-region="광주">광주</button>
+        <button type="button" data-region="순천">순천</button>
+        <button type="button" data-region="여수">여수</button>
+        <button type="button" data-region="보성">보성</button>
+        <button type="button" data-region="완도">완도</button>
+      </div>
       <div class="jeolla-map" aria-label="전라도 지역 선택 지도">
         <img class="map-image" src="assets/jeolla-region-map.png" alt="산과 섬을 친근하게 표현한 전라도 안내 지도">
-        <button class="map-pin" type="button" style="--x:55%;--y:24%" data-region="전주">전주</button>
-        <button class="map-pin" type="button" style="--x:38%;--y:22%" data-region="군산">군산</button>
-        <button class="map-pin" type="button" style="--x:65%;--y:38%" data-region="남원">남원</button>
-        <button class="map-pin" type="button" style="--x:29%;--y:59%" data-region="목포">목포</button>
-        <button class="map-pin" type="button" style="--x:48%;--y:50%" data-region="광주">광주</button>
-        <button class="map-pin" type="button" style="--x:61%;--y:65%" data-region="순천">순천</button>
-        <button class="map-pin" type="button" style="--x:69%;--y:71%" data-region="여수">여수</button>
-        <button class="map-pin" type="button" style="--x:48%;--y:64%" data-region="보성">보성</button>
-        <button class="map-pin" type="button" style="--x:39%;--y:79%" data-region="완도">완도</button>
+        <button class="map-pin" type="button" style="--x:57%;--y:34%" data-region="전주">전주</button>
+        <button class="map-pin" type="button" style="--x:45%;--y:30%" data-region="군산">군산</button>
+        <button class="map-pin" type="button" style="--x:65%;--y:47%" data-region="남원">남원</button>
+        <button class="map-pin" type="button" style="--x:32%;--y:67%" data-region="목포">목포</button>
+        <button class="map-pin" type="button" style="--x:53%;--y:57%" data-region="광주">광주</button>
+        <button class="map-pin" type="button" style="--x:64%;--y:68%" data-region="순천">순천</button>
+        <button class="map-pin" type="button" style="--x:70%;--y:76%" data-region="여수">여수</button>
+        <button class="map-pin" type="button" style="--x:53%;--y:69%" data-region="보성">보성</button>
+        <button class="map-pin" type="button" style="--x:38%;--y:82%" data-region="완도">완도</button>
         <div class="map-legend"><span></span> 선택 가능 지역</div>
+      </div>
       </div>
     </section>
 
@@ -69,8 +106,18 @@
     </aside>
   </main>
 
+  <div class="region-reviews-modal" id="region-reviews-modal" hidden>
+    <button class="region-reviews-backdrop" type="button" aria-label="전체 리뷰 창 닫기" data-region-reviews-close></button>
+    <section class="region-reviews-dialog" role="dialog" aria-modal="true" aria-labelledby="region-reviews-title">
+      <header><div><p>TRAVEL REVIEWS</p><h2 id="region-reviews-title">전체 여행 리뷰</h2></div><button type="button" aria-label="닫기" data-region-reviews-close>×</button></header>
+      <div class="region-reviews-status" id="region-reviews-status" role="status"></div>
+      <div class="region-reviews-grid" id="region-reviews-grid"></div>
+      <button class="button region-reviews-more" id="region-reviews-more" type="button" hidden>더보기</button>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="shared.js?v=20260805-1"></script>
-  <script src="map.js?v=20260805-1"></script>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="map.js?v=20260809-12"></script>
 </body>
 </html>

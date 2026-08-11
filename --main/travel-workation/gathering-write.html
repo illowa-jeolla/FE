@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="새로운 여행 게더링을 만듭니다.">
+  <title>게더링 만들기 | 일로와전라</title>
+  <link rel="stylesheet" href="styles.css?v=20260805-2">
+  <link rel="stylesheet" href="feature-pages.css?v=20260807-15">
+</head>
+<body class="feature-page">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">ㅇ</span><span>일로와전라</span></a>
+    <nav class="main-nav" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="recommend.html">관광지 추천</a><a href="map.html">지역·일자리</a><a href="local-fit.html">AI 매칭</a><a href="community.html">여행 공유</a><a class="is-active" href="gatherings.html">게더링</a></nav>
+    <a class="button button-small button-ghost" href="auth.html" data-auth-link>로그인</a>
+  </header>
+  <main class="feature-page-main gathering-write-main">
+    <section class="page-intro">
+      <div><p class="eyebrow dark">CREATE A GATHERING</p><h1>새 게더링을 만들어보세요</h1></div>
+      <div class="page-intro-actions"><a class="button" href="gatherings.html">목록으로 돌아가기</a></div>
+    </section>
+    <section class="page-panel gathering-write-panel">
+      <form class="stack-form" id="gathering-form">
+        <label>모임 이름<input name="title" maxlength="60" placeholder="예: 여수 밤바다 펍투어" required></label>
+        <div class="form-row">
+          <label>지역<select name="region" required><option value="">지역 선택</option><option>여수</option><option>순천</option><option>목포</option><option>전주</option><option>광주</option><option>군산</option><option>남원</option><option>담양</option><option>해남</option><option>보성</option><option>완도</option></select></label>
+          <label>정원<input name="capacity" type="number" min="2" max="20" value="4" required></label>
+        </div>
+        <label>만날 장소<input name="location" maxlength="80" placeholder="정확한 만남 장소" required></label>
+        <div class="form-row"><label>날짜와 시간<input id="gathering-time" name="eventTime" type="datetime-local" required></label><label>콘셉트<input name="concept" maxlength="40" placeholder="펍투어, 미식, 전시, 산책"></label></div>
+        <label>모임 설명<textarea name="description" maxlength="500" rows="5" placeholder="어떤 모임인지, 무엇을 함께 하는지, 준비물이나 참고 사항을 알려주세요."></textarea></label>
+        <button class="button button-primary" type="submit">게더링 만들기</button>
+        <div class="page-status" id="gathering-status" role="status"></div>
+      </form>
+    </section>
+  </main>
+  <script src="shared.js?v=20260807-6"></script>
+  <script src="gathering-write.js?v=20260810-1"></script>
+</body>
+</html>

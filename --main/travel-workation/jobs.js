@@ -41,16 +41,26 @@ function renderJobs(data) {
     return;
   }
   list.innerHTML = data.jobs.map((job) => `
-    <article class="result-item">
+    <article class="result-item job-result-card" tabindex="0" role="link" data-job-id="${job.id}">
       <div class="result-head">
         <div><span>${escapeHtml(job.category || "관광 일자리")}</span><h3>${escapeHtml(job.title)}</h3></div>
         <strong>${job.jobKind === "short" ? "단기" : "일반"}</strong>
       </div>
       <p>${escapeHtml(job.companyName || "")}</p>
       <div class="tag-row"><span>${escapeHtml(job.region)}</span><span>${escapeHtml(job.workType)}</span><span>${escapeHtml(job.duration)}</span></div>
-      <footer><span>${escapeHtml(job.location || job.region)}</span>${job.detailUrl ? `<a class="detail-link" href="${escapeHtml(job.detailUrl)}">공고 보기</a>` : `<strong>${escapeHtml(job.pay || "급여 정보 없음")}</strong>`}</footer>
+      <footer><span>${escapeHtml(job.location || job.region)}</span><a class="detail-link" href="job-detail.html?id=${job.id}">상세 보기 →</a></footer>
     </article>
   `).join("");
+
+  list.querySelectorAll(".job-result-card").forEach((card) => {
+    const open = () => { location.href = `job-detail.html?id=${card.dataset.jobId}`; };
+    card.addEventListener("click", (event) => {
+      if (!event.target.closest("a")) open();
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+    });
+  });
 }
 
 form.addEventListener("submit", async (event) => {
@@ -82,3 +92,14 @@ const today = formatDateInput(new Date());
 startInput.value = today;
 endInput.value = today;
 syncDates();
+
+const initialParams = new URLSearchParams(location.search);
+if (initialParams.get("source") === "region" && initialParams.get("region")) {
+  const region = initialParams.get("region");
+  const directRadio = form.querySelector('input[name="source"][value="region"]');
+  directRadio.checked = true;
+  regionSelect.disabled = false;
+  regionSelect.required = true;
+  if ([...regionSelect.options].some((option) => option.value === region)) regionSelect.value = region;
+  requestAnimationFrame(() => form.requestSubmit());
+}
