@@ -1,6 +1,20 @@
-const apiBaseUrl = window.AUTH_API_BASE_URL
-  ?? window.JOBS_API_BASE_URL
+const localApiBaseUrl = window.JOBS_API_BASE_URL
   ?? (location.protocol === "file:" ? "http://localhost:8080" : "");
+const authApiConfig = window.AUTH_API_CONFIG ?? {};
+
+function trimTrailingSlash(value = "") {
+  return String(value).replace(/\/+$/, "");
+}
+
+function authApiUrl(endpoint) {
+  const origin = trimTrailingSlash(authApiConfig.origin);
+  const basePath = `/${String(authApiConfig.basePath || "/api/v1").replace(/^\/+|\/+$/g, "")}`;
+  return `${origin}${basePath}${endpoint}`;
+}
+
+const loginApiUrl = authApiConfig.enabled
+  ? authApiUrl(authApiConfig.endpoints?.login || "/auth/login")
+  : `${localApiBaseUrl}/api/auth/login`;
 
 const message = document.querySelector("#auth-message");
 const returnTo = new URLSearchParams(location.search).get("returnTo");
@@ -26,8 +40,8 @@ function showView(view) {
   showMessage("");
 }
 
-async function request(path, body) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+async function request(url, body) {
+  const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body)
@@ -35,6 +49,24 @@ async function request(path, body) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || "요청을 처리하지 못했습니다.");
   return data;
+}
+
+function saveLoginSession(data) {
+  const accessToken = data.tokenResponse?.accessToken ?? data.token;
+  const refreshToken = data.tokenResponse?.refreshToken;
+  const email = data.email ?? data.username ?? "";
+  const nickname = data.name ?? data.nickname ?? "";
+
+  if (!accessToken) throw new Error("로그인 응답에 accessToken이 없습니다.");
+
+  sessionStorage.setItem("accessToken", accessToken);
+  if (refreshToken) sessionStorage.setItem("refreshToken", refreshToken);
+  if (data.userId != null) sessionStorage.setItem("userId", String(data.userId));
+  if (email) {
+    sessionStorage.setItem("email", email);
+    sessionStorage.setItem("username", email);
+  }
+  if (nickname) sessionStorage.setItem("nickname", nickname);
 }
 
 document.querySelectorAll(".auth-tab").forEach((tab) => {
@@ -53,11 +85,8 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
 
   try {
     showMessage("로그인 중입니다.");
-    const data = await request("/api/auth/login", { email: email.trim().toLowerCase(), password });
-    if (data.token) sessionStorage.setItem("accessToken", data.token);
-    if (data.email) sessionStorage.setItem("email", data.email);
-    if (data.email || data.username) sessionStorage.setItem("username", data.email || data.username);
-    if (data.nickname) sessionStorage.setItem("nickname", data.nickname);
+    const data = await request(loginApiUrl, { email: email.trim().toLowerCase(), password });
+    saveLoginSession(data);
     location.href = loginDestination();
   } catch (error) {
     showMessage(error.message, true);
@@ -76,7 +105,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   try {
     showMessage("계정을 만들고 있습니다.");
     const email = values.email.trim().toLowerCase();
-    await request("/api/auth/register", {
+    await request(`${localApiBaseUrl}/api/auth/register`, {
       email,
       password: values.password,
       nickname: values.nickname
