@@ -19,11 +19,13 @@ function canReview(item) {
 function render() {
   const { profile, trips, guides, posts, gatherings = [], applications, favoriteJobs = [] } = dashboard;
   const reviewedGuideIds = new Set(trips.map((trip) => String(trip.guideId)));
-  document.querySelector("#mypage-nickname").textContent = `${profile.nickname || profile.username}님의 기록`;
-  document.querySelector("#mypage-username").textContent = `@${profile.username}`;
-  document.querySelector("#mypage-avatar").textContent = (profile.nickname || profile.username).slice(0, 1);
-  document.querySelector("#profile-username").value = profile.username;
-  document.querySelector("#profile-nickname").value = profile.nickname || profile.username;
+  const email = profile.email || profile.username || "";
+  const displayName = profile.nickname || email.split("@")[0] || "사용자";
+  document.querySelector("#mypage-nickname").textContent = `${displayName}님의 기록`;
+  document.querySelector("#mypage-email").textContent = email;
+  document.querySelector("#mypage-avatar").textContent = displayName.slice(0, 1);
+  document.querySelector("#profile-email").value = email;
+  document.querySelector("#profile-nickname").value = profile.nickname || displayName;
   [["trip", trips], ["guide", guides], ["post", posts], ["gathering", gatherings], ["application", applications], ["favorite", favoriteJobs]].forEach(([key, values]) => document.querySelector(`#${key}-count`).textContent = values.length);
   document.querySelector("#trip-list").innerHTML = trips.length ? trips.map((trip) => { const images = trip.images?.length ? trip.images : trip.imageData ? [trip.imageData] : []; const rating = Math.max(1, Math.min(5, Number(trip.rating) || 5)); return `<article class="mypage-trip-review" data-open-trip="${trip.id}" tabindex="0">${images.length ? `<div class="mypage-trip-cover"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(trip.region)} 여행 리뷰 사진"><span>${escapeHtml(trip.region)}</span><b>★ ${rating}.0</b>${images.length > 1 ? `<small>+${images.length - 1}</small>` : ""}</div>` : `<div class="mypage-trip-cover is-empty"><span>${escapeHtml(trip.region)}</span><b>★ ${rating}.0</b></div>`}<div class="mypage-trip-copy"><span>MY TRAVEL REVIEW</span><h3>${escapeHtml(trip.destinationName)}</h3><p>${escapeHtml(trip.note || "여행 리뷰")}</p><footer><small>${date(trip.createdAt)}</small><strong>여행 기록 보기 →</strong></footer></div></article>`; }).join("") : empty("리뷰를 남긴 여행 가이드가 아직 없어요.");
   document.querySelector("#guide-list").innerHTML = guides.length ? guides.map((item) => {

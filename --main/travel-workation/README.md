@@ -67,6 +67,7 @@ GET, POST /api/gatherings
 POST /api/gatherings/:id/join
 POST /api/auth/register
 POST /api/auth/login
+GET /api/search?q=여수
 ```
 
 ```text

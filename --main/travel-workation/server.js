@@ -565,6 +565,14 @@ function verifyPassword(password, user) {
   return saved.length === entered.length && crypto.timingSafeEqual(saved, entered);
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function getAuthenticatedUser(request) {
   const authorization = request.headers.authorization || "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -1407,7 +1415,7 @@ async function handleApi(request, response, url) {
     attachGatheringParticipants(gatherings);
     const applications = db.prepare(`SELECT job_applications.id, job_applications.created_at AS createdAt, jobs.id AS jobId, jobs.title, jobs.company_name AS companyName, jobs.category, jobs.region, jobs.location, jobs.work_type AS workType, jobs.work_time AS workTime, jobs.duration, jobs.pay FROM job_applications JOIN jobs ON jobs.id = job_applications.job_id WHERE job_applications.user_id = ? ORDER BY job_applications.created_at DESC, job_applications.id DESC`).all(user.id);
     const favoriteJobs = db.prepare(`SELECT favorite_jobs.created_at AS createdAt, jobs.id AS jobId, jobs.title, jobs.company_name AS companyName, jobs.category, jobs.region, jobs.location, jobs.work_type AS workType, jobs.work_time AS workTime, jobs.duration, jobs.pay FROM favorite_jobs JOIN jobs ON jobs.id = favorite_jobs.job_id WHERE favorite_jobs.user_id = ? ORDER BY favorite_jobs.created_at DESC`).all(user.id);
-    sendJson(response, 200, { profile: user, trips, guides, posts, gatherings, applications, favoriteJobs });
+    sendJson(response, 200, { profile: { ...user, email: user.username }, trips, guides, posts, gatherings, applications, favoriteJobs });
     return true;
   }
 
@@ -1431,7 +1439,7 @@ async function handleApi(request, response, url) {
     const nickname = String(body.nickname || "").trim();
     if (nickname.length < 2 || nickname.length > 20) { sendJson(response, 400, { message: "닉네임은 2~20자로 입력해 주세요." }); return true; }
     db.prepare("UPDATE users SET nickname = ? WHERE id = ?").run(nickname, user.id);
-    sendJson(response, 200, { username: user.username, nickname });
+    sendJson(response, 200, { email: user.username, username: user.username, nickname });
     return true;
   }
 
@@ -1532,37 +1540,76 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/register") {
-    const { username = "", password = "", nickname = "" } = await readJson(request);
-    if (username.trim().length < 4 || password.length < 8 || nickname.trim().length < 2 || nickname.trim().length > 20) {
-      sendJson(response, 400, { message: "아이디는 4자 이상, 비밀번호는 8자 이상, 닉네임은 2~20자로 입력해 주세요." });
+    const { email = "", password = "", nickname = "" } = await readJson(request);
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail) || password.length < 8 || nickname.trim().length < 2 || nickname.trim().length > 20) {
+      sendJson(response, 400, { message: "올바른 이메일, 8자 이상의 비밀번호, 2~20자의 닉네임을 입력해 주세요." });
       return true;
     }
 
     try {
+      if (db.prepare("SELECT 1 FROM users WHERE LOWER(username) = ?").get(normalizedEmail)) {
+        sendJson(response, 409, { message: "이미 사용 중인 이메일입니다." });
+        return true;
+      }
       const { hash, salt } = hashPassword(password);
       db.prepare("INSERT INTO users (username, password_hash, password_salt, nickname) VALUES (?, ?, ?, ?)")
-        .run(username.trim(), hash, salt, nickname.trim());
+        .run(normalizedEmail, hash, salt, nickname.trim());
       sendJson(response, 201, { message: "회원가입이 완료되었습니다." });
     } catch (error) {
       const duplicate = String(error.message).includes("UNIQUE");
       sendJson(response, duplicate ? 409 : 500, {
-        message: duplicate ? "이미 사용 중인 아이디입니다." : "회원가입을 처리하지 못했습니다."
+        message: duplicate ? "이미 사용 중인 이메일입니다." : "회원가입을 처리하지 못했습니다."
       });
     }
     return true;
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
-    const { username = "", password = "" } = await readJson(request);
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username.trim());
+    const { email = "", password = "" } = await readJson(request);
+    const normalizedEmail = normalizeEmail(email);
+    const user = isValidEmail(normalizedEmail)
+      ? db.prepare("SELECT * FROM users WHERE LOWER(username) = ?").get(normalizedEmail)
+      : null;
     if (!user || !verifyPassword(password, user)) {
-      sendJson(response, 401, { message: "아이디 또는 비밀번호를 확인해 주세요." });
+      sendJson(response, 401, { message: "이메일 또는 비밀번호를 확인해 주세요." });
       return true;
     }
 
     const token = crypto.randomBytes(32).toString("hex");
     sessions.set(token, user.id);
-    sendJson(response, 200, { token, username: user.username, nickname: user.nickname || user.username });
+    sendJson(response, 200, { token, email: user.username, username: user.username, nickname: user.nickname || user.username.split("@")[0] });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/search") {
+    const query = String(url.searchParams.get("q") || "").trim();
+    if (query.length < 2) {
+      sendJson(response, 400, { message: "검색어를 두 글자 이상 입력해 주세요." });
+      return true;
+    }
+    const like = `%${query}%`;
+    const jobs = db.prepare(`
+      SELECT * FROM jobs WHERE active = 1
+      AND (title LIKE ? OR company_name LIKE ? OR region LIKE ? OR category LIKE ?)
+      ORDER BY rating DESC, created_at DESC LIMIT 8
+    `).all(like, like, like, like).map(mapJob);
+    const destinations = db.prepare(`
+      SELECT * FROM destinations WHERE active = 1
+      AND (name LIKE ? OR region LIKE ? OR category LIKE ? OR description LIKE ?)
+      ORDER BY search_volume DESC, rating DESC LIMIT 8
+    `).all(like, like, like, like).map(mapDestination);
+    const posts = db.prepare(`
+      SELECT id, region, concept, content FROM posts
+      WHERE region LIKE ? OR concept LIKE ? OR content LIKE ?
+      ORDER BY created_at DESC LIMIT 8
+    `).all(like, like, like);
+    const gatherings = db.prepare(`
+      SELECT id, title, region, concept, description FROM gatherings
+      WHERE title LIKE ? OR region LIKE ? OR concept LIKE ? OR description LIKE ?
+      ORDER BY event_time DESC, id DESC LIMIT 8
+    `).all(like, like, like, like);
+    sendJson(response, 200, { query, jobs, destinations, posts, gatherings });
     return true;
   }
 
