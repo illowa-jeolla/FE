@@ -35,7 +35,7 @@ button { cursor: pointer; }
 .brand-mark-react { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #6b2348; background: #f2a4cb; font-size: 14px; }
 .main-nav-react { justify-self: center; display: flex; align-items: center; gap: 28px; color: #674e5d; font-size: 14px; font-weight: 700; }
 .main-nav-react a:hover { color: var(--primary-dark); }
-.account-button { min-height: 42px; padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 8px; color: var(--primary-dark); background: var(--primary-soft); font-size: 13px; font-weight: 800; }
+.account-button { min-width: 82px; min-height: 42px; padding: 0 18px; justify-self: end; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 8px; color: var(--primary-dark); background: var(--primary-soft); font-size: 13px; font-weight: 800; white-space: nowrap; }
 .mobile-menu-button { display: none; width: 40px; height: 40px; padding: 0; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; }
 
 .home-hero-react { position: relative; min-height: min(650px, calc(100vh - 76px)); display: flex; align-items: stretch; overflow: hidden; color: #fff; background: url("/assets/jeonnam-workation-hero.png") center 58% / cover no-repeat; }
@@ -110,7 +110,34 @@ button { cursor: pointer; }
 .react-map-page-main { width: 100%; }
 .react-map-page-main .map-job-item footer { display: flex; flex-wrap: wrap; gap: 7px; }
 .react-map-page-main .jobs-status { padding: 28px 14px; border: 1px dashed #ead7e1; color: var(--muted); background: #fffafd; text-align: center; }
+.map-result-tabs { margin-bottom: 18px; padding: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 1px solid #f0dfe7; border-radius: 8px; background: #fff8fb; }
+.map-result-tabs button { min-height: 38px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 800; }
+.map-result-tabs button.is-active { color: #54213e; background: #f3a1c9; box-shadow: 0 4px 12px rgba(116, 52, 84, .1); }
+.map-destination-item { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 11px; }
+.map-destination-item > img { width: 72px; height: 72px; grid-row: 1 / 3; border-radius: 7px; object-fit: cover; background: #fff0f7; }
+.map-destination-item > .job-meta { grid-column: 2; }
+.map-destination-item > footer { grid-column: 1 / -1; }
+.map-destination-item > div:first-of-type p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.5; }
 .is-map-page-react { background: #fff9fc; }
+
+.destination-detail-react { max-width: 1180px; }
+.destination-hero-react { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: var(--shadow-soft); }
+.destination-hero-react > img { width: 100%; height: 410px; object-fit: cover; background: #eff7f8; }
+.destination-hero-react > div { padding: 38px; display: flex; flex-direction: column; justify-content: center; }
+.destination-hero-react > div > span, .destination-info-grid-react article > span { color: var(--primary-dark); font: 800 12px Geist, sans-serif; }
+.destination-hero-react h2 { margin: 12px 0; font-size: 32px; }
+.destination-hero-react p { margin: 0; color: var(--muted); line-height: 1.75; }
+.destination-score-react { margin-top: 28px; padding-top: 20px; display: flex; justify-content: space-between; border-top: 1px solid var(--line); }
+.destination-score-react strong { color: var(--primary-dark); font-size: 22px; }
+.destination-score-react span { color: var(--muted); font-weight: 700; }
+.destination-info-grid-react { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.destination-info-grid-react article { padding: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.destination-info-grid-react h2 { margin: 9px 0 24px; font-size: 23px; }
+.destination-info-grid-react dl { margin: 0; display: grid; gap: 0; }
+.destination-info-grid-react dl div { padding: 14px 0; display: grid; grid-template-columns: 120px 1fr; gap: 14px; border-top: 1px solid var(--line); }
+.destination-info-grid-react dt { color: var(--muted); font-size: 13px; }
+.destination-info-grid-react dd { margin: 0; font-size: 14px; font-weight: 700; }
+.destination-homepage-react { min-height: 44px; margin-top: 20px; display: inline-flex; align-items: center; color: var(--primary-dark); font-weight: 800; }
 
 @media (min-width: 1121px) {
   .react-map-page-main { height: calc(100vh - 76px); min-height: 0; overflow: hidden; }
@@ -138,6 +165,8 @@ button { cursor: pointer; }
   .auth-main-react { grid-template-columns: 1fr; gap: 38px; padding: 46px 0; }
   .auth-intro-react img { display: none; }
   .auth-panel-react { width: min(520px, 100%); }
+  .destination-hero-react { grid-template-columns: 1fr; }
+  .destination-hero-react > img { height: 360px; }
 }
 
 @media (max-width: 640px) {
@@ -159,6 +188,10 @@ button { cursor: pointer; }
   .auth-intro-react h1 { font-size: 34px; }
   .auth-panel-react { padding: 24px 20px; }
   .site-footer-react { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .destination-info-grid-react { grid-template-columns: 1fr; }
+  .destination-hero-react > img { height: 260px; }
+  .destination-hero-react > div, .destination-info-grid-react article { padding: 24px 20px; }
+  .destination-info-grid-react dl div { grid-template-columns: 1fr; gap: 6px; }
 }
 
 /* Shared React pages */
@@ -346,9 +379,12 @@ select, input, textarea { color: var(--ink); }
 .preview-grid-react button { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; border: 0; border-radius: 50%; color: #fff; background: rgba(0,0,0,.65); }
 .editor-actions-react { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .gathering-grid-react { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.gathering-filter-react { display: grid; grid-template-columns: minmax(130px, .8fr) minmax(180px, 1.2fr) minmax(150px, 1fr) minmax(150px, 1fr) auto auto; align-items: end; }
+.page-intro-actions-react { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.gathering-filter-react { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
 .gathering-filter-react label { min-width: 0; }
 .gathering-filter-react input, .gathering-filter-react select { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.gathering-filter-actions-react { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gathering-filter-actions-react button { width: 100%; }
 .gathering-filter-note-react { margin: -16px 0 0; color: var(--muted); font-size: 12px; }
 .gathering-card-react { padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; }
 .gathering-card-react.is-owned { border-left: 4px solid var(--primary); }
@@ -358,6 +394,13 @@ select, input, textarea { color: var(--ink); }
 .gathering-card-react footer { margin-top: 18px; padding-top: 15px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); }
 .gathering-card-react footer button { min-height: 38px; padding: 0 12px; border: 0; border-radius: 6px; color: #fff; background: var(--primary-dark); font-weight: 800; }
 .gathering-card-react footer button:disabled { color: #8b7783; background: #eee5ea; }
+.gathering-manage-card-react { cursor: default; }
+.gathering-manage-card-react footer { justify-content: flex-end; gap: 8px; }
+.gathering-manage-card-react footer .secondary-action-react { color: var(--ink-strong); background: #fff; }
+.gathering-manage-card-react footer .danger-action-react { color: #fff; background: #b5405d; }
+.gathering-participants-react { margin-top: 18px; padding: 14px; display: grid; gap: 5px; border-radius: 6px; background: #fff6fa; }
+.gathering-participants-react strong { font-size: 14px; }
+.gathering-participants-react span { color: var(--muted); font-size: 12px; line-height: 1.5; }
 
 /* Modal */
 .modal-react { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 20px; }
@@ -414,13 +457,15 @@ select, input, textarea { color: var(--ink); }
   .map-results-react { grid-column: 1 / -1; max-height: 520px; }
   .map-results-react > div:last-child { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .fit-cards-react { grid-template-columns: 1fr; }
-  .gathering-filter-react { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gathering-filter-react { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gathering-filter-react button { width: 100%; }
 }
 
 @media (max-width: 760px) {
   .page-shell-react, .page-shell-react.narrow-react, .mypage-react { width: calc(100% - 28px); padding: 36px 0 70px; }
   .page-intro-react { align-items: stretch; flex-direction: column; }
+  .page-intro-actions-react { justify-content: stretch; }
+  .page-intro-actions-react > * { flex: 1; text-align: center; }
   .page-intro-react h1 { font-size: 34px; }
   .result-grid-react, .jobs-grid-react, .place-grid-react, .post-feed-react, .gathering-grid-react { grid-template-columns: 1fr; }
   .planner-react, .editor-react, .fit-form-react, .fit-result-react, .mypage-panel-react { padding: 20px; }
@@ -433,6 +478,7 @@ select, input, textarea { color: var(--ink); }
   .filter-bar-react { align-items: stretch; flex-direction: column; }
   .filter-bar-react label { min-width: 0; }
   .gathering-filter-react { display: grid; grid-template-columns: 1fr; }
+  .gathering-filter-actions-react { grid-column: auto; }
   .map-page-react { height: auto; min-height: calc(100vh - 66px); padding: 14px; grid-template-columns: 1fr; overflow: visible; }
   .visual-map-react { min-height: 580px; }
   .map-results-react { grid-column: auto; }

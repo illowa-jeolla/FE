@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { getSessionUser, hasSession } from "../auth/session";
+import { apiRequest } from "../api/client";
+import { clearSession, getSessionUser, hasSession } from "../auth/session";
 
 const navigation = [
   ["관광지 추천", "/recommend"],
@@ -12,9 +13,44 @@ const navigation = [
 
 export default function SiteLayout() {
   const [open, setOpen] = useState(false);
-  const user = getSessionUser();
+  const [session, setSession] = useState(() => ({
+    status: hasSession() ? "checking" : "guest",
+    user: getSessionUser()
+  }));
   const location = useLocation();
   const isMapPage = location.pathname === "/map";
+  const signedIn = session.status === "authenticated";
+  const storedName = String(session.user?.name || "").trim();
+  const accountLabel = !storedName || /^[?\uFFFD]+$/.test(storedName) ? "마이페이지" : storedName;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasSession()) {
+      setSession({ status: "guest", user: getSessionUser() });
+      return () => { cancelled = true; };
+    }
+
+    apiRequest("/api/me")
+      .then((data) => {
+        if (cancelled) return;
+        const profile = data.profile || {};
+        const email = profile.email || profile.username || "";
+        const name = profile.nickname || email.split("@")[0] || "";
+        if (email) sessionStorage.setItem("email", email);
+        if (name) sessionStorage.setItem("nickname", name);
+        setSession({ status: "authenticated", user: { ...profile, email, name } });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (error.status === 401) clearSession();
+        setSession({
+          status: error.status === 401 ? "guest" : "authenticated",
+          user: getSessionUser()
+        });
+      });
+
+    return () => { cancelled = true; };
+  }, [location.pathname]);
 
   return (
     <div className={`app-shell${isMapPage ? " is-map-page-react" : ""}`}>
@@ -30,8 +66,8 @@ export default function SiteLayout() {
           <Link to="/" onClick={() => setOpen(false)}>홈</Link>
           {navigation.map(([label, path]) => <NavLink key={path} to={path} onClick={() => setOpen(false)}>{label}</NavLink>)}
         </nav>
-        {hasSession() ? (
-          <Link className="account-button" to="/mypage">{user.name || "마이페이지"}</Link>
+        {signedIn ? (
+          <Link className="account-button" to="/mypage">{accountLabel}</Link>
         ) : (
           <Link className="account-button" to="/auth">로그인</Link>
         )}
