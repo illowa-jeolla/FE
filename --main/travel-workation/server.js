@@ -6,6 +6,7 @@ const { DatabaseSync } = require("node:sqlite");
 
 const port = Number(process.env.PORT || 8080);
 const root = __dirname;
+const reactRoot = path.join(root, "react-dist");
 const dbPath = process.env.WORKATION_DB_PATH || path.join(root, "data", "workation.db");
 
 const envPath = path.join(root, ".env");
@@ -1269,14 +1270,25 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/gatherings") {
     const currentUser = getAuthenticatedUser(request);
     const region = (url.searchParams.get("region") || "").trim();
+    const location = (url.searchParams.get("location") || "").trim();
     const date = (url.searchParams.get("date") || "").trim();
+    const startDate = (url.searchParams.get("startDate") || "").trim();
+    const endDate = (url.searchParams.get("endDate") || "").trim();
     const time = (url.searchParams.get("time") || "").trim();
     const dateScope = url.searchParams.get("dateScope") === "from" ? "from" : "exact";
     const concept = (url.searchParams.get("concept") || "").trim();
     const filters = ["datetime(event_time) >= datetime('now')"];
     const parameters = [currentUser?.id || 0, currentUser?.id || 0];
+    if (startDate && endDate && startDate > endDate) {
+      sendJson(response, 400, { message: "종료일은 시작일보다 빠를 수 없습니다." });
+      return true;
+    }
     if (region) { filters.push("gatherings.region = ?"); parameters.push(region); }
-    if (date) {
+    if (location) { filters.push("gatherings.location LIKE ?"); parameters.push(`%${location}%`); }
+    if (startDate || endDate) {
+      if (startDate) { filters.push("date(gatherings.event_time) >= date(?)"); parameters.push(startDate); }
+      if (endDate) { filters.push("date(gatherings.event_time) <= date(?)"); parameters.push(endDate); }
+    } else if (date) {
       filters.push(dateScope === "from" ? "date(gatherings.event_time) >= date(?)" : "date(gatherings.event_time) = date(?)");
       parameters.push(date);
     }
@@ -1617,9 +1629,23 @@ async function handleApi(request, response, url) {
 }
 
 function serveFile(request, response, pathname) {
-  const requested = pathname === "/" ? "/index.html" : pathname;
-  const filePath = path.resolve(root, `.${decodeURIComponent(requested)}`);
-  if (!filePath.startsWith(root) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+  const isReactRoute = pathname === "/app" || pathname.startsWith("/app/");
+  const reactIndex = path.join(reactRoot, "index.html");
+  let filePath;
+
+  if (isReactRoute && fs.existsSync(reactIndex)) {
+    const relativePath = pathname.slice("/app".length) || "/index.html";
+    const candidate = path.resolve(reactRoot, `.${decodeURIComponent(relativePath)}`);
+    filePath = candidate.startsWith(reactRoot) && fs.existsSync(candidate) && !fs.statSync(candidate).isDirectory()
+      ? candidate
+      : reactIndex;
+  } else {
+    const requested = pathname === "/" ? "/index.html" : pathname;
+    filePath = path.resolve(root, `.${decodeURIComponent(requested)}`);
+  }
+
+  const allowedRoot = isReactRoute ? reactRoot : root;
+  if (!filePath.startsWith(allowedRoot) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     sendJson(response, 404, { message: "페이지를 찾을 수 없습니다." });
     return;
   }
@@ -1631,7 +1657,9 @@ function serveFile(request, response, pathname) {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
-    ".webp": "image/webp"
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".json": "application/json"
   };
   const extension = path.extname(filePath);
   const contentType = types[extension] || "application/octet-stream";
@@ -1653,6 +1681,11 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   try {
     if (url.pathname.startsWith("/api/") && await handleApi(request, response, url)) return;
+    if ((url.pathname === "/" || url.pathname === "/index.html") && fs.existsSync(path.join(reactRoot, "index.html"))) {
+      response.writeHead(302, { Location: "/app/", "Cache-Control": "no-cache" });
+      response.end();
+      return;
+    }
     serveFile(request, response, url.pathname);
   } catch (error) {
     sendJson(response, 500, { message: error.message || "서버 오류가 발생했습니다." });
