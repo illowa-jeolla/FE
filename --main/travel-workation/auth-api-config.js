@@ -1,7 +1,7 @@
 (function () {
   window.AUTH_API_CONFIG = Object.freeze({
     // Set to true after the backend origin and CORS policy are ready.
-    enabled: false,
+ㅏ    enabled: false,
     origin: "",
     basePath: "/api/v1",
     endpoints: Object.freeze({

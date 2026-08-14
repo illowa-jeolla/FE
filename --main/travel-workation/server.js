@@ -6,6 +6,7 @@ const { DatabaseSync } = require("node:sqlite");
 
 const port = Number(process.env.PORT || 8080);
 const root = __dirname;
+const reactRoot = path.join(root, "react-dist");
 const dbPath = process.env.WORKATION_DB_PATH || path.join(root, "data", "workation.db");
 
 const envPath = path.join(root, ".env");
@@ -205,6 +206,15 @@ function ensureColumn(table, column, definition) {
 
 ensureColumn("destinations", "transport", "TEXT");
 ensureColumn("destinations", "companion", "TEXT");
+ensureColumn("destinations", "address", "TEXT");
+ensureColumn("destinations", "phone", "TEXT");
+ensureColumn("destinations", "opening_hours", "TEXT");
+ensureColumn("destinations", "homepage_url", "TEXT");
+ensureColumn("destinations", "parking", "TEXT");
+ensureColumn("destinations", "latitude", "REAL");
+ensureColumn("destinations", "longitude", "REAL");
+ensureColumn("destinations", "source_name", "TEXT");
+ensureColumn("destinations", "source_id", "TEXT");
 ensureColumn("jobs", "job_kind", "TEXT NOT NULL DEFAULT 'general'");
 ensureColumn("users", "nickname", "TEXT");
 ensureColumn("posts", "is_demo", "INTEGER NOT NULL DEFAULT 0");
@@ -631,7 +641,16 @@ function mapDestination(destination) {
     searchVolume: destination.search_volume,
     rating: destination.rating,
     transport: destination.transport,
-    companion: destination.companion
+    companion: destination.companion,
+    address: destination.address,
+    phone: destination.phone,
+    openingHours: destination.opening_hours,
+    homepageUrl: destination.homepage_url,
+    parking: destination.parking,
+    latitude: destination.latitude,
+    longitude: destination.longitude,
+    sourceName: destination.source_name,
+    sourceId: destination.source_id
   };
 }
 
@@ -714,6 +733,35 @@ async function handleApi(request, response, url) {
       regionCount: Math.max(jobStats.regionCount, destinationStats.regionCount),
       averageRating: destinationStats.averageRating ?? jobStats.averageRating
     });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/destinations") {
+    const region = String(url.searchParams.get("region") || "").trim();
+    const destinations = region
+      ? db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1 AND region = ?
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+        `).all(region)
+      : db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+        `).all();
+    sendJson(response, 200, destinations.map(mapDestination));
+    return true;
+  }
+
+  const destinationDetailMatch = url.pathname.match(/^\/api\/destinations\/(\d+)$/);
+  if (request.method === "GET" && destinationDetailMatch) {
+    const destination = db.prepare("SELECT * FROM destinations WHERE id = ? AND active = 1")
+      .get(Number(destinationDetailMatch[1]));
+    if (!destination) {
+      sendJson(response, 404, { message: "관광지를 찾을 수 없습니다." });
+      return true;
+    }
+    sendJson(response, 200, mapDestination(destination));
     return true;
   }
 
@@ -1268,15 +1316,33 @@ async function handleApi(request, response, url) {
 
   if (request.method === "GET" && url.pathname === "/api/gatherings") {
     const currentUser = getAuthenticatedUser(request);
+    const mine = url.searchParams.get("mine") === "true";
+    const includePast = mine && url.searchParams.get("includePast") === "true";
     const region = (url.searchParams.get("region") || "").trim();
+    const location = (url.searchParams.get("location") || "").trim();
     const date = (url.searchParams.get("date") || "").trim();
+    const startDate = (url.searchParams.get("startDate") || "").trim();
+    const endDate = (url.searchParams.get("endDate") || "").trim();
     const time = (url.searchParams.get("time") || "").trim();
     const dateScope = url.searchParams.get("dateScope") === "from" ? "from" : "exact";
     const concept = (url.searchParams.get("concept") || "").trim();
-    const filters = ["datetime(event_time) >= datetime('now')"];
+    if (mine && !currentUser) {
+      sendJson(response, 401, { message: "로그인이 필요합니다." });
+      return true;
+    }
+    const filters = includePast ? [] : ["datetime(event_time) >= datetime('now')"];
     const parameters = [currentUser?.id || 0, currentUser?.id || 0];
+    if (startDate && endDate && startDate > endDate) {
+      sendJson(response, 400, { message: "종료일은 시작일보다 빠를 수 없습니다." });
+      return true;
+    }
     if (region) { filters.push("gatherings.region = ?"); parameters.push(region); }
-    if (date) {
+    if (mine) { filters.push("gatherings.user_id = ?"); parameters.push(currentUser.id); }
+    if (location) { filters.push("gatherings.location LIKE ?"); parameters.push(`%${location}%`); }
+    if (startDate || endDate) {
+      if (startDate) { filters.push("date(gatherings.event_time) >= date(?)"); parameters.push(startDate); }
+      if (endDate) { filters.push("date(gatherings.event_time) <= date(?)"); parameters.push(endDate); }
+    } else if (date) {
       filters.push(dateScope === "from" ? "date(gatherings.event_time) >= date(?)" : "date(gatherings.event_time) = date(?)");
       parameters.push(date);
     }
@@ -1289,7 +1355,7 @@ async function handleApi(request, response, url) {
               WHERE gathering_id = gatherings.id AND user_id = ?) AS joined,
              CASE WHEN gatherings.user_id = ? THEN 1 ELSE 0 END AS owned
       FROM gatherings JOIN users ON users.id = gatherings.user_id
-      WHERE ${filters.join(" AND ")}
+      WHERE ${filters.length ? filters.join(" AND ") : "1 = 1"}
       ORDER BY event_time ASC
     `).all(...parameters);
     if (concept) gatherings = await selectGatheringsByConcept(concept, gatherings);
@@ -1617,9 +1683,23 @@ async function handleApi(request, response, url) {
 }
 
 function serveFile(request, response, pathname) {
-  const requested = pathname === "/" ? "/index.html" : pathname;
-  const filePath = path.resolve(root, `.${decodeURIComponent(requested)}`);
-  if (!filePath.startsWith(root) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+  const isReactRoute = pathname === "/app" || pathname.startsWith("/app/");
+  const reactIndex = path.join(reactRoot, "index.html");
+  let filePath;
+
+  if (isReactRoute && fs.existsSync(reactIndex)) {
+    const relativePath = pathname.slice("/app".length) || "/index.html";
+    const candidate = path.resolve(reactRoot, `.${decodeURIComponent(relativePath)}`);
+    filePath = candidate.startsWith(reactRoot) && fs.existsSync(candidate) && !fs.statSync(candidate).isDirectory()
+      ? candidate
+      : reactIndex;
+  } else {
+    const requested = pathname === "/" ? "/index.html" : pathname;
+    filePath = path.resolve(root, `.${decodeURIComponent(requested)}`);
+  }
+
+  const allowedRoot = isReactRoute ? reactRoot : root;
+  if (!filePath.startsWith(allowedRoot) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     sendJson(response, 404, { message: "페이지를 찾을 수 없습니다." });
     return;
   }
@@ -1631,7 +1711,9 @@ function serveFile(request, response, pathname) {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
-    ".webp": "image/webp"
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".json": "application/json"
   };
   const extension = path.extname(filePath);
   const contentType = types[extension] || "application/octet-stream";
@@ -1653,6 +1735,11 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   try {
     if (url.pathname.startsWith("/api/") && await handleApi(request, response, url)) return;
+    if ((url.pathname === "/" || url.pathname === "/index.html") && fs.existsSync(path.join(reactRoot, "index.html"))) {
+      response.writeHead(302, { Location: "/app/", "Cache-Control": "no-cache" });
+      response.end();
+      return;
+    }
     serveFile(request, response, url.pathname);
   } catch (error) {
     sendJson(response, 500, { message: error.message || "서버 오류가 발생했습니다." });
