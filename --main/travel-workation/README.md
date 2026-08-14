@@ -1,6 +1,6 @@
 # 일로와전라 관광·일자리 서비스
 
-전라도 관광 일자리 추천 서비스의 HTML/CSS/JavaScript 프로토타입입니다.
+전라도 관광 일자리 추천 서비스입니다. 사용자 화면은 React와 React Router로 구성하고, Node.js 서버가 API와 SQLite 데이터를 제공합니다.
 
 ## 실행
 
@@ -12,24 +12,40 @@ node server.js
 
 OpenAI 연동을 사용하려면 프로젝트의 `.env.example`을 `.env`로 복사한 뒤 새로 발급한 키를 `OPENAI_API_KEY`에 설정하세요. 키는 브라우저 코드나 Git에 포함되지 않습니다.
 
-브라우저에서 `http://localhost:8080`을 엽니다.
+React 앱을 빌드한 뒤 브라우저에서 `http://localhost:8080`을 열면 `/app/`으로 이동합니다.
 
-VS Code에서 Live Server 확장을 사용한다면 `index.html`을 우클릭하고 `Open with Live Server`를 선택해도 됩니다.
+## React 프론트 개발
+
+기존 Express API를 실행한 상태에서 별도 터미널로 React 개발 서버를 실행합니다.
+
+```bash
+cd react-app
+pnpm install
+pnpm dev
+```
+
+React 전체 화면은 `http://localhost:5173/app/`에서 확인합니다. `/api`와 `/assets` 요청은 Vite가 `http://localhost:8080`으로 전달합니다.
+
+프로덕션 빌드는 `react-dist`에 생성되며 기존 Node 서버의 `http://localhost:8080/app/`에서 제공됩니다.
+
+```bash
+cd react-app
+pnpm build
+```
+
+팀 로그인 API를 사용할 때는 `react-app/.env.example`을 `.env`로 복사하고 `VITE_AUTH_API_ORIGIN`을 설정한 뒤 `VITE_AUTH_API_ENABLED=true`로 변경합니다.
 
 ## 파일
 
-- `index.html`: 홈, 검색량 관광지, 체크박스 취향 추천, 지역 분석 화면
-- `map.html`, `map.js`: 별도 전라도 지도 선택 및 일자리 결과 화면
-- `local-fit.html`, `local-fit.js`: 여행 기록과 로컬 핏 점수 화면
-- `jobs.html`, `jobs.js`: 로컬 핏·지역 기반 단기 우선 일자리 추천
-- `community.html`, `community.js`: 최근 24시간 여행 사진 게시판과 댓글
-- `gatherings.html`, `gatherings.js`: 즉석 모임 생성·지역 필터·참여
-- `shared.js`, `feature-pages.css`: 전용 기능 화면의 공통 API와 UI
-- `styles.css`: 데스크톱 및 모바일 반응형 스타일
-- `app.js`: 검색량 추천, 맞춤 코스, 지역 분석, 일자리 API 연동
-- `auth.html`, `auth.js`: 로그인 및 회원가입
+- `react-app/src/App.jsx`: 전체 React 라우트
+- `react-app/src/pages`: 홈, 인증, 검색, 여행 추천, 지도·일자리, AI 매칭, 커뮤니티, 게더링, 마이페이지
+- `react-app/src/components`: 공통 헤더, 카드, 상태, 모달 UI
+- `react-app/src/api`: API 요청과 인증 헤더 처리
+- `react-app/src/styles/app.css`: 데스크톱 및 모바일 반응형 스타일
 - `server.js`: 정적 파일, 인증, 관광지, 지역 분석, 일자리 API와 SQLite DB
 - `assets/jeonnam-workation-hero.png`: 전남 워케이션 메인 이미지
+
+기존 HTML/CSS/JavaScript 파일은 전환 비교와 데이터 확인을 위해 남겨두었으며 기본 사용자 화면에는 사용하지 않습니다.
 
 ## 주요 동작
 
@@ -67,6 +83,7 @@ GET, POST /api/gatherings
 POST /api/gatherings/:id/join
 POST /api/auth/register
 POST /api/auth/login
+GET /api/search?q=여수
 ```
 
 ```text

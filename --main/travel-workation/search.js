@@ -33,25 +33,12 @@ async function runSearch(query) {
     results.innerHTML = [
       resultSection("관광지", data.destinations, (item) => `<a href="recommend.html?destination=${item.id}"><span>관광지 · ${escapeHtml(item.region)}</span><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.category || item.description || "")}</p></a>`),
       resultSection("일자리", data.jobs, (item) => `<a href="job-detail.html?id=${item.id}"><span>일자리 · ${escapeHtml(item.region)}</span><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.companyName || "지역 사업장")} · ${escapeHtml(item.pay || "급여 협의")}</p></a>`),
-      resultSection("여행 기록", data.posts, (item) => `<a href="community-detail.html?id=${item.id}"><span>여행 기록 · ${escapeHtml(item.region)}</span><strong>${escapeHtml(item.concept || `${item.region} 여행`)}</strong><p>${escapeHtml(item.content)}</p></a>`)
+      resultSection("여행 이야기", data.posts, (item) => `<a href="community-detail.html?id=${item.id}"><span>여행 이야기 · ${escapeHtml(item.region)}</span><strong>${escapeHtml(item.concept || `${item.region} 여행`)}</strong><p>${escapeHtml(item.content)}</p></a>`),
+      resultSection("게더링", data.gatherings, (item) => `<a href="gatherings.html"><span>게더링 · ${escapeHtml(item.region)}</span><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.concept || item.description || "")}</p></a>`)
     ].join("");
     results.hidden = false;
     setStatus(status);
   } catch (error) { setStatus(status, error.message, "error"); }
-}
-
-async function loadRecommendations() {
-  if (!sessionStorage.getItem("accessToken")) return;
-  try {
-    const data = await request("/api/me/recommendations");
-    const items = [
-      ...data.destinations.map((item) => ({ title: item.name, meta: `관광지 · ${item.region}`, link: `recommend.html?destination=${item.id}` })),
-      ...data.jobs.map((item) => ({ title: item.title, meta: `일자리 · ${item.region}`, link: `job-detail.html?id=${item.id}` }))
-    ];
-    document.querySelector("#preferred-region").textContent = data.preferredRegion ? `${data.preferredRegion} 관심 활동 기준` : "인기 항목 기준";
-    document.querySelector("#recommendation-grid").innerHTML = items.map((item) => `<a href="${item.link}"><span>${escapeHtml(item.meta)}</span><strong>${escapeHtml(item.title)}</strong></a>`).join("");
-    document.querySelector("#personal-recommendations").hidden = !items.length;
-  } catch { document.querySelector("#personal-recommendations").hidden = true; }
 }
 
 form.addEventListener("submit", (event) => { event.preventDefault(); runSearch(queryInput.value.trim()); });
@@ -60,4 +47,3 @@ document.querySelector("#clear-searches").addEventListener("click", () => { loca
 const initialQuery = new URLSearchParams(location.search).get("q");
 if (initialQuery) { queryInput.value = initialQuery; runSearch(initialQuery); }
 renderHistory();
-loadRecommendations();

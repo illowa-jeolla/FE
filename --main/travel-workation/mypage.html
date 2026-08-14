@@ -15,7 +15,7 @@
   <main class="mypage-main">
     <section class="mypage-profile-card">
       <div class="mypage-avatar" id="mypage-avatar">나</div>
-      <div class="mypage-profile-copy"><span>MY PAGE</span><h1 id="mypage-nickname">내 정보를 불러오는 중이에요</h1><p id="mypage-username"></p></div>
+      <div class="mypage-profile-copy"><span>MY PAGE</span><h1 id="mypage-nickname">내 정보를 불러오는 중이에요</h1><p id="mypage-email"></p></div>
       <div class="mypage-profile-actions"><button id="mypage-logout" type="button">로그아웃</button><button class="is-danger" id="mypage-delete" type="button">탈퇴하기</button></div>
     </section>
     <div class="page-status" id="mypage-status" role="status"></div>
@@ -30,7 +30,7 @@
         <button data-tab="gatherings" type="button"><span>07</span>내 게더링 <b id="gathering-count">0</b></button>
       </nav>
       <div class="mypage-panels">
-        <section class="mypage-panel is-active" data-panel="profile"><span class="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>서비스에서 사용할 닉네임을 변경할 수 있어요.</p><form id="nickname-form"><label>아이디<input id="profile-username" disabled></label><label>닉네임<input id="profile-nickname" minlength="2" maxlength="20" required></label><button type="submit">닉네임 저장</button></form></section>
+        <section class="mypage-panel is-active" data-panel="profile"><span class="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>가입 이메일을 확인하고 서비스에서 사용할 닉네임을 변경할 수 있어요.</p><form id="nickname-form"><label>이메일<input id="profile-email" type="email" disabled></label><label>닉네임<input id="profile-nickname" minlength="2" maxlength="20" required></label><button type="submit">닉네임 저장</button></form></section>
         <section class="mypage-panel" data-panel="trips"><span class="mypage-kicker">MY TRIPS</span><h2>내가 다닌 여행지</h2><div class="mypage-card-list" id="trip-list"></div></section>
         <section class="mypage-panel" data-panel="guides"><span class="mypage-kicker">SAVED GUIDES</span><h2>내가 저장한 여행 가이드</h2><div class="mypage-card-list" id="guide-list"></div></section>
         <section class="mypage-panel" data-panel="posts"><span class="mypage-kicker">MY STORIES</span><h2>내 여행 공유</h2><div class="mypage-card-list" id="post-list"></div></section>
@@ -66,6 +66,6 @@
       <button class="guide-review-submit" type="submit">리뷰 등록하기</button>
     </form>
   </div>
-  <script src="shared.js?v=20260809-1"></script><script src="mypage.js?v=20260810-8"></script>
+  <script src="shared.js?v=20260809-1"></script><script src="mypage.js?v=20260811-1"></script>
 </body>
 </html>
