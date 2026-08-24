@@ -1605,6 +1605,58 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/me/guides/trash") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const guides = db.prepare("SELECT id, title, region, hotel, guide_json AS guideJson, created_at AS createdAt, deleted_at AS deletedAt FROM saved_guides WHERE user_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC, id DESC").all(user.id)
+      .map((entry) => ({ ...entry, guide: JSON.parse(entry.guideJson || "{}"), guideJson: undefined }));
+    sendJson(response, 200, { guides });
+    return true;
+  }
+
+  const guideReviewMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/review$/);
+  if (request.method === "POST" && guideReviewMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const guideId = Number(guideReviewMatch[1]);
+    const saved = db.prepare("SELECT id, title, region, guide_json AS guideJson FROM saved_guides WHERE id = ? AND user_id = ? AND deleted_at IS NULL").get(guideId, user.id);
+    if (!saved) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
+    const body = await readJson(request);
+    const title = String(body.title || "").trim().slice(0, 100);
+    if (title.length < 2) { sendJson(response, 400, { message: "가이드 이름은 2자 이상 입력해 주세요." }); return true; }
+    const result = db.prepare("UPDATE saved_guides SET title = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL").run(title, Number(savedGuideMatch[1]), user.id);
+    if (!result.changes) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
+    sendJson(response, 200, { id: Number(savedGuideMatch[1]), title, message: "가이드 이름을 변경했습니다." });
+    return true;
+  }
+
+  const restoreGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/restore$/);
+  if (request.method === "PATCH" && restoreGuideMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const result = db.prepare("UPDATE saved_guides SET deleted_at = NULL WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL").run(Number(restoreGuideMatch[1]), user.id);
+    if (!result.changes) { sendJson(response, 404, { message: "휴지통에서 여행 가이드를 찾을 수 없습니다." }); return true; }
+    sendJson(response, 200, { message: "여행 가이드를 복원했습니다." });
+    return true;
+  }
+
+  const permanentGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/permanent$/);
+  if (request.method === "DELETE" && permanentGuideMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const guideId = Number(permanentGuideMatch[1]);
+    const saved = db.prepare("SELECT id FROM saved_guides WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL").get(guideId, user.id);
+    if (!saved) { sendJson(response, 404, { message: "휴지통에서 여행 가이드를 찾을 수 없습니다." }); return true; }
+    db.exec("BEGIN");
+    try {
+      db.prepare("DELETE FROM guide_reviews WHERE guide_id = ? AND user_id = ?").run(guideId, user.id);
+      db.prepare("DELETE FROM saved_guides WHERE id = ? AND user_id = ?").run(guideId, user.id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    sendJson(response, 200, { message: "여행 가이드를 영구 삭제했습니다." });
+    return true;
+  }
+
   const savedGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)$/);
   if (request.method === "PATCH" && savedGuideMatch) {
     const user = requireUser(request, response);
