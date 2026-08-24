@@ -1,6 +1,7 @@
 const trimSlash = (value = "") => String(value).replace(/\/+$/, "");
 
 export const API_BASE_URL = trimSlash(import.meta.env.VITE_API_BASE_URL || "");
+export const KAKAO_MAP_JAVASCRIPT_KEY = String(import.meta.env.VITE_KAKAO_MAP_JAVASCRIPT_KEY || "").trim();
 export const LEGACY_ORIGIN = trimSlash(
   import.meta.env.VITE_LEGACY_ORIGIN || (import.meta.env.DEV ? "http://localhost:8080" : window.location.origin)
 );
