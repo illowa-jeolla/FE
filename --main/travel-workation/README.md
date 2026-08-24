@@ -35,17 +35,6 @@ pnpm build
 
 팀 로그인 API를 사용할 때는 `react-app/.env.example`을 `.env`로 복사하고 `VITE_AUTH_API_ORIGIN`을 설정한 뒤 `VITE_AUTH_API_ENABLED=true`로 변경합니다.
 
-## Vercel 배포
-
-Vercel에서 저장소를 연결한 뒤 Root Directory를 `--main/travel-workation`으로 지정합니다. 환경변수에는 최소한 아래 값을 등록합니다.
-
-```text
-VITE_KAKAO_MAP_JAVASCRIPT_KEY=카카오 JavaScript 키
-VITE_API_BASE_URL=https://백엔드-배포-주소
-```
-
-로그인 API를 활성화할 때는 `VITE_AUTH_API_ENABLED=true`, `VITE_AUTH_API_ORIGIN`, `VITE_AUTH_API_BASE_PATH=/api/v1`도 등록합니다. 발급된 Vercel 도메인은 카카오 Developers의 JavaScript SDK 도메인과 백엔드 CORS 허용 목록에 추가합니다.
-
 ## 파일
 
 - `react-app/src/App.jsx`: 전체 React 라우트
