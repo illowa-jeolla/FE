@@ -7,6 +7,7 @@ import CommunityWritePage from "./pages/CommunityWritePage";
 import DestinationDetailPage from "./pages/DestinationDetailPage";
 import GatheringsPage from "./pages/GatheringsPage";
 import GatheringWritePage from "./pages/GatheringWritePage";
+import GuideTrashPage from "./pages/GuideTrashPage";
 import MyGatheringsPage from "./pages/MyGatheringsPage";
 import HomePage from "./pages/HomePage";
 import JobDetailPage from "./pages/JobDetailPage";
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="gatherings/write" element={<GatheringWritePage />} />
         <Route path="gatherings/mine" element={<MyGatheringsPage />} />
         <Route path="mypage" element={<MyPage />} />
+        <Route path="mypage/trash" element={<GuideTrashPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
