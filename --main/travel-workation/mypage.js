@@ -195,21 +195,37 @@ document.querySelector("#guide-list").addEventListener("click", async (event) =>
 document.querySelector("#guide-list").addEventListener("keydown", (event) => {
   if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-open-guide]")) event.target.click();
 });
-function openTripGuide(trip) {
-  if (!trip?.guide) return;
-  const savedItem = dashboard.guides.find((item) => String(item.id) === String(trip.guideId));
-  const savedConditions = trip.guide.conditions || { region: trip.region, hotel: trip.guide.hotel?.name || "", start: trip.guide.tripStart || "", end: trip.guide.tripEnd || "", themes: [], transport: "", companion: "" };
-  sessionStorage.setItem("travelGuideConditions", JSON.stringify(savedConditions));
-  sessionStorage.setItem("travelGuideResult", JSON.stringify({ guide: trip.guide, attempt: 1, excludedSpots: [], conditions: savedConditions, saved: Boolean(savedItem), savedGuideId: savedItem?.id || "" }));
-  location.href = savedItem ? `travel-guide.html?saved=1&guideId=${encodeURIComponent(savedItem.id)}` : "travel-guide.html";
+let tripReviewModal;
+function closeTripReview() {
+  if (!tripReviewModal) return;
+  tripReviewModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+function openTripReview(trip) {
+  if (!trip) return;
+  const images = trip.images?.length ? trip.images : trip.imageData ? [trip.imageData] : [];
+  const rating = Math.max(1, Math.min(5, Number(trip.rating) || 5));
+  if (!tripReviewModal) {
+    tripReviewModal = document.createElement("div");
+    tripReviewModal.className = "guide-review-modal trip-review-detail-modal";
+    tripReviewModal.hidden = true;
+    tripReviewModal.innerHTML = `<button class="guide-review-backdrop" type="button" aria-label="리뷰 상세 창 닫기" data-trip-review-close></button><section class="guide-review-dialog trip-review-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="trip-review-detail-title"><button class="guide-review-close" type="button" aria-label="닫기" data-trip-review-close>×</button><div id="trip-review-detail-content"></div></section>`;
+    document.body.appendChild(tripReviewModal);
+    tripReviewModal.addEventListener("click", (event) => { if (event.target.closest("[data-trip-review-close]")) closeTripReview(); });
+  }
+  tripReviewModal.querySelector("#trip-review-detail-content").innerHTML = `<span class="mypage-kicker">MY TRAVEL REVIEW</span><h2 id="trip-review-detail-title">${escapeHtml(trip.destinationName)}</h2><div class="trip-review-detail-meta"><span>${escapeHtml(trip.region)}</span><time>${date(trip.createdAt)}</time></div><div class="mypage-review-stars" aria-label="별점 ${rating}점">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</div>${images.length ? `<div class="trip-review-detail-images">${images.map((image, index) => `<img src="${escapeHtml(image)}" alt="${escapeHtml(trip.region)} 여행 리뷰 사진 ${index + 1}">`).join("")}</div>` : ""}<p class="trip-review-detail-content">${escapeHtml(trip.note || "작성한 리뷰 내용이 없습니다.")}</p>`;
+  tripReviewModal.hidden = false;
+  document.body.classList.add("modal-open");
+  tripReviewModal.querySelector(".guide-review-close").focus();
 }
 document.querySelector("#trip-list").addEventListener("click", (event) => {
   const card = event.target.closest("[data-open-trip]");
-  if (card) openTripGuide(dashboard.trips.find((trip) => String(trip.id) === card.dataset.openTrip));
+  if (card) openTripReview(dashboard.trips.find((trip) => String(trip.id) === card.dataset.openTrip));
 });
 document.querySelector("#trip-list").addEventListener("keydown", (event) => {
   if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-open-trip]")) event.target.click();
 });
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && tripReviewModal && !tripReviewModal.hidden) closeTripReview(); });
 document.querySelector("#nickname-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try { const profile = await request("/api/me", { method: "PATCH", body: JSON.stringify({ nickname: document.querySelector("#profile-nickname").value }) }); sessionStorage.setItem("nickname", profile.nickname); dashboard.profile = profile; render(); setStatus(statusElement, "닉네임을 변경했습니다."); }

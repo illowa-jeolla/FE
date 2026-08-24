@@ -833,6 +833,14 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
 .mypage-trip-review { cursor: pointer; transition: transform .15s, border-color .15s, box-shadow .15s; }
 .mypage-trip-review:hover { transform: translateY(-2px); border-color: #e4a9c6; box-shadow: 0 10px 24px rgba(113,57,84,.09); }
 .mypage-trip-review { padding: 0 !important; overflow: hidden; border-color: #ead9df !important; background: #fff !important; box-shadow: 0 9px 25px rgba(86,52,66,.07); }
+.trip-review-detail-dialog { max-height: min(760px, calc(100vh - 36px)); overflow-y: auto; }
+.trip-review-detail-dialog h2 { padding-right: 34px; }
+.trip-review-detail-meta { margin-top: -5px; display: flex; justify-content: space-between; gap: 14px; color: #9a7488; font-size: 11px; }
+.trip-review-detail-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.trip-review-detail-images img { width: 100%; height: 180px; border-radius: 13px; object-fit: cover; }
+.trip-review-detail-images img:only-child { height: 280px; grid-column: 1 / -1; }
+.trip-review-detail-content { margin: 0; padding: 17px; border-radius: 14px; color: #624756; background: #fff7fa; font-size: 13px; line-height: 1.75; white-space: pre-wrap; }
+@media(max-width:560px){.trip-review-detail-images img,.trip-review-detail-images img:only-child{height:180px}}
 .mypage-trip-cover { position: relative; height: 112px; overflow: hidden; background: linear-gradient(145deg,#f7b7d2,#e4d9ff); }
 .mypage-trip-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg,transparent 42%,rgba(41,22,33,.5)); }
 .mypage-trip-cover img { width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .3s ease; }

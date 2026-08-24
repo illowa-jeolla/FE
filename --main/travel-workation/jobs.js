@@ -1,4 +1,4 @@
-const { request, requireLogin, setStatus, escapeHtml } = Workation;
+const { request, requireLogin, setStatus, escapeHtml, comparedJobs, toggleJobComparison } = Workation;
 const form = document.querySelector("#job-recommend-form");
 const statusElement = document.querySelector("#job-page-status");
 const regionSelect = form.elements.region;
@@ -48,19 +48,28 @@ function renderJobs(data) {
       </div>
       <p>${escapeHtml(job.companyName || "")}</p>
       <div class="tag-row"><span>${escapeHtml(job.region)}</span><span>${escapeHtml(job.workType)}</span><span>${escapeHtml(job.duration)}</span></div>
-      <footer><span>${escapeHtml(job.location || job.region)}</span><a class="detail-link" href="job-detail.html?id=${job.id}">상세 보기 →</a></footer>
+      <footer><span>${escapeHtml(job.location || job.region)}</span><div class="job-card-tools"><button class="icon-action" type="button" data-compare-job="${job.id}" aria-pressed="${comparedJobs().some((entry) => Number(entry.id) === Number(job.id))}"><span aria-hidden="true">⇄</span><span>비교</span></button><a class="detail-link" href="job-detail.html?id=${job.id}">상세 보기 →</a></div></footer>
     </article>
   `).join("");
 
   list.querySelectorAll(".job-result-card").forEach((card) => {
     const open = () => { location.href = `job-detail.html?id=${card.dataset.jobId}`; };
     card.addEventListener("click", (event) => {
-      if (!event.target.closest("a")) open();
+      if (!event.target.closest("a, button")) open();
     });
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
     });
   });
+
+  list.querySelectorAll("[data-compare-job]").forEach((button) => button.addEventListener("click", () => {
+    const job = data.jobs.find((entry) => Number(entry.id) === Number(button.dataset.compareJob));
+    if (!job) return;
+    const selected = toggleJobComparison(job);
+    button.setAttribute("aria-pressed", String(selected));
+    button.classList.toggle("is-saved", selected);
+    button.querySelector("span:last-child").textContent = selected ? "비교 중" : "비교";
+  }));
 }
 
 form.addEventListener("submit", async (event) => {
