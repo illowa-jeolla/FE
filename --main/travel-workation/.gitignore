@@ -1,5 +1,6 @@
 .env
 react-app/node_modules/
+react-app/dist/
 react-dist/
 data/react-smoke.db
 

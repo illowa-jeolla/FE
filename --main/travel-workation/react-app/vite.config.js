@@ -2,11 +2,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
+const isVercel = process.env.VERCEL === "1";
+
 export default defineConfig({
-  base: "/app/",
+  base: isVercel ? "/" : "/app/",
   plugins: [react()],
+  publicDir: path.resolve("../assets"),
   build: {
-    outDir: path.resolve("../react-dist"),
+    outDir: isVercel ? "dist" : path.resolve("../react-dist"),
     emptyOutDir: true
   },
   server: {
