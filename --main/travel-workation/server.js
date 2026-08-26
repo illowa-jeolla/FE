@@ -325,6 +325,47 @@ function responseText(payload) {
   return "";
 }
 
+const placeImageCache = new Map();
+
+async function findPlaceImage(placeName) {
+  const name = String(placeName || "").trim();
+  if (!name) return "";
+  if (placeImageCache.has(name)) return placeImageCache.get(name);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7_000);
+  try {
+    const wikiEndpoint = new URL("https://ko.wikipedia.org/w/api.php");
+    wikiEndpoint.search = new URLSearchParams({ action: "query", format: "json", origin: "*", generator: "search", gsrsearch: name, gsrlimit: "5", prop: "pageimages", piprop: "thumbnail", pithumbsize: "320" }).toString();
+    const commonsEndpoint = new URL("https://commons.wikimedia.org/w/api.php");
+    commonsEndpoint.search = new URLSearchParams({ action: "query", format: "json", origin: "*", generator: "search", gsrsearch: name, gsrnamespace: "6", gsrlimit: "5", prop: "imageinfo", iiprop: "url", iiurlwidth: "320" }).toString();
+    const [wikiResponse, commonsResponse] = await Promise.all([
+      fetch(wikiEndpoint, { headers: { "User-Agent": "IllowaJeolla/1.0" }, signal: controller.signal }),
+      fetch(commonsEndpoint, { headers: { "User-Agent": "IllowaJeolla/1.0" }, signal: controller.signal })
+    ]);
+    const wikiPayload = wikiResponse.ok ? await wikiResponse.json() : {};
+    const commonsPayload = commonsResponse.ok ? await commonsResponse.json() : {};
+    const normalizedName = name.replace(/[\s·_-]+/g, "").toLowerCase();
+    const matchesName = (title) => {
+      const normalizedTitle = String(title || "").replace(/^file:/i, "").replace(/[\s·_-]+/g, "").toLowerCase();
+      const coreName = normalizedName.replace(/(관광지|유적지|기념관|거리|공원)$/u, "");
+      return normalizedTitle.includes(normalizedName) || normalizedTitle.includes(coreName) || normalizedName.includes(normalizedTitle);
+    };
+    const wikiPages = Object.values(wikiPayload.query?.pages || {});
+    const commonsPages = Object.values(commonsPayload.query?.pages || {});
+    const wikiMatch = wikiPages.find((page) => page.thumbnail?.source && matchesName(page.title));
+    const commonsMatch = commonsPages.find((page) => page.imageinfo?.[0]?.thumburl && matchesName(page.title));
+    const imageUrl = String(wikiMatch?.thumbnail?.source || commonsMatch?.imageinfo?.[0]?.thumburl || "");
+    const safeImageUrl = imageUrl.startsWith("https://") ? imageUrl : "";
+    placeImageCache.set(name, safeImageUrl);
+    return safeImageUrl;
+  } catch {
+    placeImageCache.set(name, "");
+    return "";
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function generateAiText({ instructions, input, fallback, maxOutputTokens = 220 }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { text: fallback, aiEnabled: false, error: "OPENAI_API_KEY가 설정되지 않았습니다." };
@@ -377,8 +418,6 @@ async function generateAiTravelGuide(conditions) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
   const model = process.env.OPENAI_MODEL || "gpt-5.6-terra";
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
   try {
     const apiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -425,8 +464,7 @@ async function generateAiTravelGuide(conditions) {
         },
         max_output_tokens: 3600,
         store: false
-      }),
-      signal: controller.signal
+      })
     });
     const payload = await apiResponse.json().catch(() => ({}));
     if (!apiResponse.ok) throw new Error(payload.error?.message || `OpenAI API 오류 (${apiResponse.status})`);
@@ -452,6 +490,10 @@ async function generateAiTravelGuide(conditions) {
     if (guide.spots.some((spot) => !spot.name || !Number.isFinite(spot.latitude) || !Number.isFinite(spot.longitude))) throw new Error("관광지 위치 정보를 확인하지 못했습니다.");
     guide.totalMinutes = guide.spots.reduce((total, spot) => total + spot.stayMinutes + spot.travelMinutes, 0);
     guide.totalDistanceKm = Number(guide.spots.reduce((total, spot) => total + spot.distanceFromPreviousKm, 0).toFixed(1));
+    guide.spots = await Promise.all(guide.spots.map(async (spot) => ({
+      ...spot,
+      imageUrl: spot.imageUrl || await findPlaceImage(spot.name)
+    })));
     guide.hotel = {
       name: String(guide.hotel?.name || conditions.hotel || "추천 출발지").trim(),
       address: String(guide.hotel?.address || "").trim(),
@@ -459,10 +501,7 @@ async function generateAiTravelGuide(conditions) {
     };
     return { ...guide, aiEnabled: true, model };
   } catch (error) {
-    if (error.name === "AbortError") throw new Error("여행지 검색 시간이 초과되었습니다. 다시 시도해 주세요.");
     throw error;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -778,6 +817,51 @@ async function handleApi(request, response, url) {
       LIMIT ?
     `).all(limit).map(mapDestination);
     sendJson(response, 200, destinations);
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/public-config") {
+    sendJson(response, 200, {
+      kakaoMapJavaScriptKey: String(process.env.KAKAO_MAP_JAVASCRIPT_KEY || "").trim()
+    });
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/travel-route") {
+    const body = await readJson(request);
+    const points = (Array.isArray(body.points) ? body.points : []).slice(0, 7).map((point) => ({
+      name: String(point?.name || "경유지").trim().slice(0, 80),
+      latitude: Number(point?.latitude),
+      longitude: Number(point?.longitude)
+    })).filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+    if (points.length < 2) { sendJson(response, 400, { message: "길찾기에 필요한 위치가 부족합니다." }); return true; }
+    const apiKey = String(process.env.KAKAO_REST_API_KEY || "").trim();
+    if (!apiKey) { sendJson(response, 503, { message: "카카오 길찾기 REST API 키가 설정되지 않았습니다." }); return true; }
+    const endpoint = new URL("https://apis-navi.kakaomobility.com/v1/directions");
+    const pointValue = (point) => `${point.longitude},${point.latitude},name=${point.name}`;
+    endpoint.searchParams.set("origin", pointValue(points[0]));
+    endpoint.searchParams.set("destination", pointValue(points.at(-1)));
+    if (points.length > 2) endpoint.searchParams.set("waypoints", points.slice(1, -1).map(pointValue).join("|"));
+    endpoint.searchParams.set("priority", "RECOMMEND");
+    endpoint.searchParams.set("summary", "false");
+    const routeResponse = await fetch(endpoint, { headers: { Authorization: `KakaoAK ${apiKey}`, "Content-Type": "application/json" } });
+    const payload = await routeResponse.json().catch(() => ({}));
+    if (!routeResponse.ok || payload.routes?.[0]?.result_code !== 0) {
+      sendJson(response, routeResponse.ok ? 502 : routeResponse.status, { message: payload.routes?.[0]?.result_msg || payload.msg || "도로 경로를 찾지 못했습니다." });
+      return true;
+    }
+    const route = payload.routes[0];
+    const routePoints = route.sections.flatMap((section) => section.roads.flatMap((road) => {
+      const values = road.vertexes || [];
+      const result = [];
+      for (let index = 0; index < values.length - 1; index += 2) result.push({ longitude: Number(values[index]), latitude: Number(values[index + 1]) });
+      return result;
+    }));
+    const legs = route.sections.map((section) => ({
+      distanceMeters: Number(section.distance) || 0,
+      durationSeconds: Number(section.duration) || 0
+    }));
+    sendJson(response, 200, { points: routePoints, legs, distanceMeters: route.summary?.distance || 0, durationSeconds: route.summary?.duration || 0, provider: "kakao-mobility" });
     return true;
   }
 
@@ -1605,58 +1689,6 @@ async function handleApi(request, response, url) {
     return true;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/me/guides/trash") {
-    const user = requireUser(request, response);
-    if (!user) return true;
-    const guides = db.prepare("SELECT id, title, region, hotel, guide_json AS guideJson, created_at AS createdAt, deleted_at AS deletedAt FROM saved_guides WHERE user_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC, id DESC").all(user.id)
-      .map((entry) => ({ ...entry, guide: JSON.parse(entry.guideJson || "{}"), guideJson: undefined }));
-    sendJson(response, 200, { guides });
-    return true;
-  }
-
-  const guideReviewMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/review$/);
-  if (request.method === "POST" && guideReviewMatch) {
-    const user = requireUser(request, response);
-    if (!user) return true;
-    const guideId = Number(guideReviewMatch[1]);
-    const saved = db.prepare("SELECT id, title, region, guide_json AS guideJson FROM saved_guides WHERE id = ? AND user_id = ? AND deleted_at IS NULL").get(guideId, user.id);
-    if (!saved) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
-    const body = await readJson(request);
-    const title = String(body.title || "").trim().slice(0, 100);
-    if (title.length < 2) { sendJson(response, 400, { message: "가이드 이름은 2자 이상 입력해 주세요." }); return true; }
-    const result = db.prepare("UPDATE saved_guides SET title = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL").run(title, Number(savedGuideMatch[1]), user.id);
-    if (!result.changes) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
-    sendJson(response, 200, { id: Number(savedGuideMatch[1]), title, message: "가이드 이름을 변경했습니다." });
-    return true;
-  }
-
-  const restoreGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/restore$/);
-  if (request.method === "PATCH" && restoreGuideMatch) {
-    const user = requireUser(request, response);
-    if (!user) return true;
-    const result = db.prepare("UPDATE saved_guides SET deleted_at = NULL WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL").run(Number(restoreGuideMatch[1]), user.id);
-    if (!result.changes) { sendJson(response, 404, { message: "휴지통에서 여행 가이드를 찾을 수 없습니다." }); return true; }
-    sendJson(response, 200, { message: "여행 가이드를 복원했습니다." });
-    return true;
-  }
-
-  const permanentGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/permanent$/);
-  if (request.method === "DELETE" && permanentGuideMatch) {
-    const user = requireUser(request, response);
-    if (!user) return true;
-    const guideId = Number(permanentGuideMatch[1]);
-    const saved = db.prepare("SELECT id FROM saved_guides WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL").get(guideId, user.id);
-    if (!saved) { sendJson(response, 404, { message: "휴지통에서 여행 가이드를 찾을 수 없습니다." }); return true; }
-    db.exec("BEGIN");
-    try {
-      db.prepare("DELETE FROM guide_reviews WHERE guide_id = ? AND user_id = ?").run(guideId, user.id);
-      db.prepare("DELETE FROM saved_guides WHERE id = ? AND user_id = ?").run(guideId, user.id);
-      db.exec("COMMIT");
-    } catch (error) { db.exec("ROLLBACK"); throw error; }
-    sendJson(response, 200, { message: "여행 가이드를 영구 삭제했습니다." });
-    return true;
-  }
-
   const savedGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)$/);
   if (request.method === "PATCH" && savedGuideMatch) {
     const user = requireUser(request, response);
@@ -1835,11 +1867,6 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   try {
     if (url.pathname.startsWith("/api/") && await handleApi(request, response, url)) return;
-    if ((url.pathname === "/" || url.pathname === "/index.html") && fs.existsSync(path.join(reactRoot, "index.html"))) {
-      response.writeHead(302, { Location: "/app/", "Cache-Control": "no-cache" });
-      response.end();
-      return;
-    }
     serveFile(request, response, url.pathname);
   } catch (error) {
     sendJson(response, 500, { message: error.message || "서버 오류가 발생했습니다." });
