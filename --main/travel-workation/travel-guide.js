@@ -13,10 +13,31 @@ let attempt = 1;
 let isSavedGuide = new URLSearchParams(location.search).get("saved") === "1";
 let savedGuideId = new URLSearchParams(location.search).get("guideId") || "";
 const excludedSpots = [];
-const fallbackImages = ["assets/JvLTt.jpeg", "assets/lX3GW.jpeg", "assets/J6aHjc.jpeg", "assets/u3OD9c.jpeg", "assets/bI7WI.jpeg"];
+let kakaoMap = null;
+let kakaoMarkers = [];
+let kakaoRoute = null;
+let kakaoSdkPromise = null;
+let kakaoGuideSignature = "";
+let kakaoRoadRouteSignature = "";
+let kakaoRoadPoints = [];
+let kakaoDrivingLegs = [];
+let kakaoDrivingSummary = null;
 
 function formatDate(value) { if (!value) return ""; const [y, m, d] = value.split("-"); return `${y}.${m}.${d}`; }
 function minutesLabel(value) { const minutes = Number(value) || 60; return minutes >= 60 ? `${Math.floor(minutes / 60)}시간${minutes % 60 ? ` ${minutes % 60}분` : ""}` : `${minutes}분`; }
+function drivingTimeLabel(seconds) { const minutes = Math.max(1, Math.round(Number(seconds || 0) / 60)); return minutes >= 60 ? `${Math.floor(minutes / 60)}시간${minutes % 60 ? ` ${minutes % 60}분` : ""}` : `${minutes}분`; }
+function drivingDistanceLabel(meters) { const distance = Number(meters) || 0; return distance >= 1000 ? `${(distance / 1000).toFixed(distance >= 10000 ? 0 : 1)}km` : `${Math.round(distance)}m`; }
+
+function updateDrivingInfo() {
+  if (!kakaoDrivingSummary) return;
+  document.querySelector("#travel-route-summary-detail").textContent = `자동차 총 ${drivingDistanceLabel(kakaoDrivingSummary.distanceMeters)} · 약 ${drivingTimeLabel(kakaoDrivingSummary.durationSeconds)}`;
+  document.querySelectorAll(".travel-place-card").forEach((card, index) => {
+    const leg = kakaoDrivingLegs[index];
+    const drivingInfo = card.querySelector(".travel-driving-info");
+    if (!leg || !drivingInfo) return;
+    drivingInfo.innerHTML = `<b>자동차 ${drivingTimeLabel(leg.durationSeconds)}</b><small>${drivingDistanceLabel(leg.distanceMeters)}</small>`;
+  });
+}
 
 function beginLoadingSteps() {
   let step = 0;
@@ -36,6 +57,122 @@ function mapPositions(data) {
   data.spots = data.spots.map((spot, index) => ({ ...spot, ...fixedPositions[index] }));
 }
 
+async function loadKakaoSdk() {
+  if (window.kakao?.maps) return window.kakao.maps;
+  if (kakaoSdkPromise) return kakaoSdkPromise;
+  kakaoSdkPromise = (async () => {
+    const config = await request("/api/public-config");
+    if (!config.kakaoMapJavaScriptKey) throw new Error("카카오맵 키가 설정되지 않았습니다.");
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(config.kakaoMapJavaScriptKey)}&autoload=false&libraries=services`;
+      script.onload = () => window.kakao.maps.load(resolve);
+      script.onerror = () => reject(new Error("카카오맵을 불러오지 못했습니다."));
+      document.head.appendChild(script);
+    });
+    return window.kakao.maps;
+  })();
+  return kakaoSdkPromise;
+}
+
+function resolveKakaoPosition(maps, item, region = "") {
+  const fallback = { latitude: Number(item?.latitude), longitude: Number(item?.longitude) };
+  const query = `${region} ${String(item?.name || "").trim()}`.trim();
+  return new Promise((resolve) => {
+    const finishWithAddress = () => {
+      const address = String(item?.address || "").trim();
+      if (!address || !maps.services?.Geocoder) { resolve(fallback); return; }
+      new maps.services.Geocoder().addressSearch(address, (results, status) => {
+        if (status === maps.services.Status.OK && results[0]) resolve({ latitude: Number(results[0].y), longitude: Number(results[0].x) });
+        else resolve(fallback);
+      });
+    };
+    if (!query || !maps.services?.Places) { finishWithAddress(); return; }
+    new maps.services.Places().keywordSearch(query, (results, status) => {
+      if (status !== maps.services.Status.OK || !results.length) { finishWithAddress(); return; }
+      const normalizedName = String(item?.name || "").replace(/\s+/g, "").toLowerCase();
+      const matched = results.find((result) => {
+        const placeName = String(result.place_name || "").replace(/\s+/g, "").toLowerCase();
+        return placeName.includes(normalizedName) || normalizedName.includes(placeName);
+      }) || results[0];
+      resolve({ latitude: Number(matched.y), longitude: Number(matched.x) });
+    });
+  });
+}
+
+async function renderKakaoMap() {
+  const container = document.querySelector("#travel-kakao-map");
+  const status = document.querySelector("#travel-kakao-map-status");
+  if (!container || !guide?.spots?.length) return;
+  try {
+    const maps = await loadKakaoSdk();
+    status.hidden = true;
+    const resolvedPositions = await Promise.all(guide.spots.map((spot) => resolveKakaoPosition(maps, spot, guide.region)));
+    const validSpots = guide.spots.map((spot, index) => ({ spot, index, latitude: resolvedPositions[index].latitude, longitude: resolvedPositions[index].longitude }))
+      .filter(({ latitude, longitude }) => Number.isFinite(latitude) && Number.isFinite(longitude));
+    if (!validSpots.length) throw new Error("관광지 위치 정보가 없습니다.");
+    const nextGuideSignature = validSpots.map(({ spot, latitude, longitude }) => `${spot.name}:${latitude}:${longitude}`).join("|");
+    const shouldFitBounds = nextGuideSignature !== kakaoGuideSignature;
+    kakaoGuideSignature = nextGuideSignature;
+    const center = new maps.LatLng(validSpots[0].latitude, validSpots[0].longitude);
+    if (!kakaoMap) kakaoMap = new maps.Map(container, { center, level: 7 });
+    kakaoMarkers.forEach((marker) => marker.setMap(null));
+    kakaoMarkers = [];
+    if (kakaoRoute) kakaoRoute.setMap(null);
+    const bounds = new maps.LatLngBounds();
+    const routePath = [];
+    const hotelPositionData = await resolveKakaoPosition(maps, guide.hotel, guide.region);
+    const hotelLatitude = hotelPositionData.latitude;
+    const hotelLongitude = hotelPositionData.longitude;
+    if (Number.isFinite(hotelLatitude) && Number.isFinite(hotelLongitude)) {
+      const hotelPosition = new maps.LatLng(hotelLatitude, hotelLongitude);
+      const hotelMarker = new maps.Marker({ map: kakaoMap, position: hotelPosition, title: guide.hotel.name || "숙소" });
+      kakaoMarkers.push(hotelMarker); bounds.extend(hotelPosition); routePath.push(hotelPosition);
+    }
+    validSpots.forEach(({ spot, index, latitude, longitude }) => {
+      const position = new maps.LatLng(latitude, longitude);
+      const markerContent = document.createElement("button");
+      const verifiedImage = /^https:\/\//.test(String(spot.imageUrl || "")) ? spot.imageUrl : "";
+      markerContent.className = `kakao-photo-marker${verifiedImage ? "" : " no-photo"}${activeSpot === index ? " is-active" : ""}`;
+      markerContent.type = "button";
+      markerContent.dataset.spot = String(index);
+      markerContent.title = `${index + 1}. ${spot.name}`;
+      markerContent.innerHTML = `${verifiedImage ? `<img src="${escapeHtml(verifiedImage)}" alt="${escapeHtml(spot.name)}">` : `<i aria-hidden="true">⌖</i>`}<b>${index + 1}</b><span>${escapeHtml(spot.name)}</span>`;
+      markerContent.querySelector("img")?.addEventListener("error", () => { markerContent.classList.add("no-photo"); markerContent.querySelector("img")?.remove(); markerContent.insertAdjacentHTML("afterbegin", '<i aria-hidden="true">⌖</i>'); }, { once: true });
+      markerContent.addEventListener("click", (event) => { event.stopPropagation(); activeSpot = index; detailOpen = true; render(); });
+      const marker = new maps.CustomOverlay({ map: kakaoMap, position, content: markerContent, yAnchor: 0 });
+      kakaoMarkers.push(marker); bounds.extend(position); routePath.push(position);
+    });
+    const routingPoints = [
+      ...(Number.isFinite(hotelLatitude) && Number.isFinite(hotelLongitude) ? [{ name: guide.hotel?.name || "숙소", latitude: hotelLatitude, longitude: hotelLongitude }] : []),
+      ...validSpots.map(({ spot, latitude, longitude }) => ({ name: spot.name, latitude, longitude }))
+    ];
+    const routeSignature = routingPoints.map((point) => `${point.name}:${point.latitude}:${point.longitude}`).join("|");
+    if (routeSignature !== kakaoRoadRouteSignature) {
+      kakaoRoadRouteSignature = routeSignature;
+      try {
+        const roadRoute = await request("/api/travel-route", { method: "POST", body: JSON.stringify({ points: routingPoints }) });
+        kakaoRoadPoints = Array.isArray(roadRoute.points) ? roadRoute.points : [];
+        kakaoDrivingLegs = Array.isArray(roadRoute.legs) ? roadRoute.legs : [];
+        kakaoDrivingSummary = { distanceMeters: Number(roadRoute.distanceMeters) || 0, durationSeconds: Number(roadRoute.durationSeconds) || 0 };
+        updateDrivingInfo();
+      } catch {
+        kakaoRoadPoints = [];
+        kakaoDrivingLegs = [];
+        kakaoDrivingSummary = null;
+      }
+    }
+    const roadPath = kakaoRoadPoints.map((point) => new maps.LatLng(Number(point.latitude), Number(point.longitude)))
+      .filter((point) => Number.isFinite(point.getLat()) && Number.isFinite(point.getLng()));
+    kakaoRoute = new maps.Polyline({ map: kakaoMap, path: roadPath.length > 1 ? roadPath : routePath, strokeWeight: 5, strokeColor: "#b74f81", strokeOpacity: .88, strokeStyle: "solid" });
+    kakaoMap.relayout();
+    if (shouldFitBounds) kakaoMap.setBounds(bounds, 60, 60, 60, 60);
+  } catch (error) {
+    status.hidden = false;
+    status.textContent = error.message;
+  }
+}
+
 function render() {
   document.querySelector("#guide-region-label").textContent = guide.region || "전라도";
   const supportedJobRegions = ["여수", "순천", "목포", "전주", "광주", "군산", "남원", "담양", "해남", "보성", "완도"];
@@ -44,7 +181,6 @@ function render() {
   document.querySelector("#nearby-jobs-cta").href = jobsUrl;
   document.querySelector("#nearby-jobs-title").textContent = `${jobRegion || "추천 지역"} 주변에서 일자리도 찾아보세요`;
   document.querySelector("#guide-hotel-label").textContent = guide.hotel.name;
-  document.querySelector("#map-hotel-label").textContent = guide.hotel.name;
   document.querySelector("#guide-date-label").textContent = conditions.start || conditions.end ? `${formatDate(conditions.start) || "미정"} — ${formatDate(conditions.end) || "미정"}` : "일정 미정";
   document.querySelector("#travel-tip").textContent = guide.tip;
   const calculatedMinutes = guide.spots.reduce((total, spot) => total + Number(spot.stayMinutes || 0) + Number(spot.travelMinutes || 0), 0);
@@ -52,20 +188,13 @@ function render() {
   document.querySelector("#travel-route-summary-detail").textContent = `관광지 5곳 · 약 ${minutesLabel(calculatedMinutes)} · ${calculatedDistance.toFixed(1)}km`;
   const preferences = [...(conditions.themes || []), conditions.transport, conditions.companion].filter(Boolean);
   document.querySelector("#guide-preference-label").innerHTML = preferences.map((value) => `<span># ${escapeHtml(value)}</span>`).join("");
-  document.querySelector("#travel-place-list").innerHTML = guide.spots.map((spot, index) => `<button class="travel-place-card ${index === activeSpot ? "is-active" : ""}" type="button" data-spot="${index}"><span class="travel-place-number">${index + 1}</span><span><b>${escapeHtml(spot.name)}</b><small>${escapeHtml(spot.category)} · ${Number(spot.distanceFromPreviousKm || 0).toFixed(1)}km</small></span><span><b>${escapeHtml(spot.time)}</b><small>${minutesLabel(spot.stayMinutes)}</small></span></button>`).join("");
-  document.querySelector("#travel-map-pins").innerHTML = guide.spots.map((spot, index) => {
-    const pinImage = spot.imageUrl || fallbackImages[index % fallbackImages.length];
-    return `<button class="travel-map-pin travel-photo-pin ${index === activeSpot ? "is-active" : ""}" style="--x:${spot.x}%;--y:${spot.y}%" type="button" data-spot="${index}" aria-label="${escapeHtml(spot.name)}"><img src="${escapeHtml(pinImage)}" alt="" onerror="this.src='${fallbackImages[index % fallbackImages.length]}'"><span>${index + 1}</span><small>${escapeHtml(spot.name)}</small></button>`;
-  }).join("");
+  document.querySelector("#travel-place-list").innerHTML = guide.spots.map((spot, index) => `<button class="travel-place-card ${index === activeSpot ? "is-active" : ""}" type="button" data-spot="${index}"><span class="travel-place-number">${index + 1}</span><span><b>${escapeHtml(spot.name)}</b><small>${escapeHtml(spot.category)}</small></span><span class="travel-driving-info"><b>${escapeHtml(spot.time)}</b><small>${minutesLabel(spot.stayMinutes)}</small></span></button>`).join("");
+  updateDrivingInfo();
   const spot = guide.spots[activeSpot];
   const detailCard = document.querySelector("#travel-map-card");
   detailCard.hidden = !detailOpen;
-  detailCard.innerHTML = `<span>${activeSpot + 1}</span><div><b>${escapeHtml(spot.name)}</b><small>${escapeHtml(spot.address)}</small><p>${escapeHtml(spot.description)}</p>${spot.sourceUrl ? `<a href="${escapeHtml(spot.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(spot.sourceTitle || "정보 출처")} ↗</a>` : ""}</div><button type="button" aria-label="장소 저장">♡</button>`;
-  detailCard.classList.add("is-pin-detail");
-  detailCard.dataset.side = spot.x > 58 ? "left" : "right";
-  detailCard.style.setProperty("--detail-x", `${spot.x}%`);
-  detailCard.style.setProperty("--detail-y", `${Math.max(14, Math.min(72, spot.y))}%`);
-  const hotelPin = document.querySelector("#travel-hotel-pin"); hotelPin.style.left = `${guide.hotel.x}%`; hotelPin.style.top = `${guide.hotel.y}%`;
+  detailCard.innerHTML = `<span>${activeSpot + 1}</span><div><b>${escapeHtml(spot.name)}</b><small>${escapeHtml(spot.address)}</small><p>${escapeHtml(spot.description)}</p>${spot.sourceUrl ? `<a href="${escapeHtml(spot.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(spot.sourceTitle || "정보 출처")} ↗</a>` : ""}</div>`;
+  detailCard.classList.remove("is-pin-detail");
   const againButton = document.querySelector("#recommend-again");
   againButton.hidden = attempt >= 3;
   againButton.textContent = "↻ 다른 코스 추천";
@@ -74,6 +203,7 @@ function render() {
   saveButton.dataset.saved = String(isSavedGuide);
   saveButton.disabled = false;
   saveButton.textContent = isSavedGuide ? "♥ 저장됨" : "♡ 일정 저장";
+  renderKakaoMap();
 }
 
 async function loadGuide(isRetry = false) {
@@ -85,6 +215,7 @@ async function loadGuide(isRetry = false) {
   clearInterval(stepTimer); loadingView.hidden = false; errorView.hidden = true; guideView.hidden = true; beginLoadingSteps();
   try {
     guide = await request("/api/travel-guide", { method: "POST", body: JSON.stringify({ ...conditions, attempt, excludedSpots }) });
+    kakaoRoadRouteSignature = ""; kakaoRoadPoints = []; kakaoDrivingLegs = []; kakaoDrivingSummary = null;
     if (!conditions.region) conditions.region = guide.region;
     mapPositions(guide); activeSpot = 0; detailOpen = true;
     sessionStorage.setItem("travelGuideResult", JSON.stringify({ guide, attempt, excludedSpots, conditions, saved: false }));
@@ -95,10 +226,9 @@ async function loadGuide(isRetry = false) {
 }
 
 document.querySelector("#travel-place-list").addEventListener("click", (event) => { const button = event.target.closest("[data-spot]"); if (button) { activeSpot = Number(button.dataset.spot); detailOpen = true; render(); } });
-document.querySelector("#travel-map-pins").addEventListener("click", (event) => { const button = event.target.closest("[data-spot]"); if (button) { activeSpot = Number(button.dataset.spot); detailOpen = true; render(); } });
 document.addEventListener("click", (event) => {
   if (!guide || !detailOpen) return;
-  if (event.target.closest("[data-spot], #travel-map-card, #travel-hotel-pin, .travel-map-controls")) return;
+  if (event.target.closest("[data-spot], .kakao-photo-marker, #travel-map-card, #travel-kakao-map")) return;
   detailOpen = false;
   document.querySelector("#travel-map-card").hidden = true;
 });

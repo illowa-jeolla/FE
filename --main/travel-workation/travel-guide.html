@@ -48,11 +48,10 @@
       </header>
       <div class="travel-route-layout">
         <aside class="travel-place-panel"><div class="travel-route-summary"><span>DAY 1 · 추천 동선</span><b id="travel-route-summary-detail"></b></div><div id="travel-place-list"></div></aside>
-        <section class="travel-route-map" aria-label="숙소 주변 추천 관광지와 여행 경로">
-          <div class="travel-map-sea">전라도 여행</div><div class="travel-map-land travel-map-land-a"></div><div class="travel-map-land travel-map-land-b"></div><div class="travel-map-road road-a"></div><div class="travel-map-road road-b"></div><div class="travel-route-line"></div>
-          <button class="travel-hotel-pin" id="travel-hotel-pin" type="button"><span>⌂</span><small id="map-hotel-label"></small></button>
-          <div id="travel-map-pins"></div><article class="travel-map-card" id="travel-map-card"></article>
-          <div class="travel-map-controls"><button type="button" aria-label="지도 확대">＋</button><button type="button" aria-label="지도 축소">−</button></div>
+        <section class="travel-route-map travel-kakao-map-wrap" aria-label="숙소 주변 추천 관광지와 여행 경로">
+          <div class="travel-kakao-map" id="travel-kakao-map"></div>
+          <p class="travel-kakao-map-status" id="travel-kakao-map-status">지도를 불러오고 있어요.</p>
+          <article class="travel-map-card" id="travel-map-card"></article>
         </section>
       </div>
       <aside class="travel-guide-tip"><span>AI 여행 TIP</span><p id="travel-tip"></p></aside>
@@ -60,6 +59,6 @@
     </section>
   </main>
   <script src="shared.js?v=20260809-1"></script>
-  <script src="travel-guide.js?v=20260809-19"></script>
+  <script src="travel-guide.js?v=20260824-1"></script>
 </body>
 </html>
