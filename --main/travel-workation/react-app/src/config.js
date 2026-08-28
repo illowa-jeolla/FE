@@ -7,7 +7,7 @@ export const LEGACY_ORIGIN = trimSlash(
 );
 
 export const AUTH_API = Object.freeze({
-  enabled: import.meta.env.VITE_AUTH_API_ENABLED === "true",
+  enabled: import.meta.env.VITE_AUTH_API_ENABLED !== "false",
   origin: trimSlash(import.meta.env.VITE_AUTH_API_ORIGIN || ""),
   basePath: `/${String(import.meta.env.VITE_AUTH_API_BASE_PATH || "/api/v1").replace(/^\/+|\/+$/g, "")}`,
   endpoints: Object.freeze({

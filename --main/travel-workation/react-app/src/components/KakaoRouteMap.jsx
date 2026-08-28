@@ -32,6 +32,8 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const polylineRef = useRef(null);
+  const activePolylineRef = useRef(null);
+  const routePositionsRef = useRef([]);
   const selectRef = useRef(onSelect);
   const [error, setError] = useState("");
   const spots = guide?.spots || [];
@@ -61,7 +63,9 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
         level: 7
       });
       const bounds = new maps.LatLngBounds();
-      const path = [];
+      const hotelLocation = coordinates(guide?.hotel);
+      const path = hotelLocation ? [new maps.LatLng(hotelLocation.latitude, hotelLocation.longitude)] : [];
+      if (hotelLocation) bounds.extend(path[0]);
       const markers = locatedSpots.map(({ spot, index, location }) => {
         const position = new maps.LatLng(location.latitude, location.longitude);
         bounds.extend(position);
@@ -73,15 +77,17 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
       const polyline = new maps.Polyline({
         map,
         path,
-        strokeWeight: 5,
-        strokeColor: "#e85d9e",
-        strokeOpacity: 0.85,
+        strokeWeight: 6,
+        strokeColor: "#aeb4b8",
+        strokeOpacity: 0.78,
         strokeStyle: "solid"
       });
       map.setBounds(bounds, 70, 70, 70, 70);
       mapRef.current = map;
       markersRef.current = markers;
       polylineRef.current = polyline;
+      routePositionsRef.current = path;
+      activePolylineRef.current = new maps.Polyline({ map, path: path.slice(active, active + 2), strokeWeight: 7, strokeColor: "#bd4f82", strokeOpacity: .96, strokeStyle: "solid" });
     }).catch((loadError) => {
       if (!cancelled) setError(loadError.message);
     });
@@ -90,8 +96,11 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
       cancelled = true;
       markersRef.current.forEach(({ marker }) => marker.setMap(null));
       polylineRef.current?.setMap(null);
+      activePolylineRef.current?.setMap(null);
       markersRef.current = [];
       polylineRef.current = null;
+      activePolylineRef.current = null;
+      routePositionsRef.current = [];
       mapRef.current = null;
     };
   }, [guide]);
@@ -99,6 +108,10 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
   useEffect(() => {
     const selected = markersRef.current.find((item) => item.index === active);
     if (selected && mapRef.current) mapRef.current.panTo(selected.position);
+    if (mapRef.current && window.kakao?.maps && routePositionsRef.current.length > 1) {
+      activePolylineRef.current?.setMap(null);
+      activePolylineRef.current = new window.kakao.maps.Polyline({ map: mapRef.current, path: routePositionsRef.current.slice(active, active + 2), strokeWeight: 7, strokeColor: "#bd4f82", strokeOpacity: .96, strokeStyle: "solid" });
+    }
   }, [active]);
 
   return <>

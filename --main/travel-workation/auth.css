@@ -20,7 +20,7 @@
 .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .social-button { width: 100%; min-height: 44px; border: 0; border-radius: 7px; font-weight: 800; }
 .social-button.kakao { color: #191919; background: #fee500; }
-.social-button.naver { color: #fff; background: #03c75a; }
+.social-button.google { color: #202124; background: #fff; border: 1px solid #dadce0; }
 .auth-message { min-height: 22px; margin: 15px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
 @media (max-width: 900px) {

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { JobCard, PageIntro, Status } from "../components/UI";
+import { Status } from "../components/UI";
 import { useApi } from "../hooks/useApi";
 
 function SearchSection({ title, items, render }) {
   if (!items?.length) return null;
-  return <section className="search-section-react"><div className="section-row-react"><h2>{title}</h2><b>{items.length}</b></div><div className="result-grid-react">{items.map(render)}</div></section>;
+  return <section><div className="search-result-title"><h2>{title}</h2><span>{items.length}건</span></div><div className="search-result-list">{items.map(render)}</div></section>;
 }
 
 export default function SearchPage() {
@@ -27,17 +27,17 @@ export default function SearchPage() {
     setParams({ q: value });
   }
 
-  return <main className="page-shell-react">
-    <PageIntro eyebrow="ALL IN ONE SEARCH" title="무엇을 찾고 있나요?" description="관광지, 일자리, 여행 이야기와 게더링을 한 번에 찾아보세요." />
-    <form className="wide-search-react" onSubmit={submit}><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} minLength="2" placeholder="지역, 장소, 직무를 입력하세요" required /><button>검색</button></form>
-    {recent.length > 0 && <div className="recent-react"><div><strong>최근 검색어</strong><button type="button" onClick={() => { setRecent([]); localStorage.removeItem("recentSearches"); }}>전체 삭제</button></div><div>{recent.map((item) => <button type="button" key={item} onClick={() => { setQuery(item); setParams({ q: item }); }}>{item}</button>)}</div></div>}
+  return <main className="search-main">
+    <section className="search-heading"><p className="eyebrow dark">ALL IN ONE SEARCH</p><h1>무엇을 찾고 있나요?</h1><p>관광지, 일자리, 여행 이야기와 게더링을 한 번에 찾아보세요.</p></section>
+    <form className="search-form" onSubmit={submit}><label className="sr-only" htmlFor="search-query">검색어</label><input id="search-query" value={query} onChange={(e) => setQuery(e.target.value)} type="search" minLength="2" placeholder="지역, 장소, 직무를 입력하세요" required /><button className="button button-primary">검색</button></form>
+    {recent.length > 0 && <section className="recent-searches"><div><h2>최근 검색어</h2><button type="button" onClick={() => { setRecent([]); localStorage.removeItem("recentSearches"); }}>전체 삭제</button></div><div>{recent.map((item) => <button type="button" data-search-query key={item} onClick={() => { setQuery(item); setParams({ q: item }); }}>{item}</button>)}</div></section>}
     <Status loading={loading} error={error} empty={initial && data && ![data.jobs, data.destinations, data.posts, data.gatherings].some((items) => items?.length)}>
-      {data && <div className="search-groups-react">
-        <SearchSection title="관광지" items={data.destinations} render={(item) => <article className="place-card-react" key={item.id}><img src={`/${item.imageUrl}`} alt="" /><div><span>{item.region} · {item.category}</span><h3>{item.name}</h3><p>{item.description}</p><strong>★ {item.rating}</strong></div></article>} />
-        <SearchSection title="일자리" items={data.jobs} render={(item) => <JobCard job={item} key={item.id} compact />} />
-        <SearchSection title="여행 이야기" items={data.posts} render={(item) => <Link className="text-result-react" to={`/community/${item.id}`} key={item.id}><span>{item.region}</span><strong>{item.concept}</strong><p>{item.content}</p></Link>} />
-        <SearchSection title="게더링" items={data.gatherings} render={(item) => <Link className="text-result-react" to="/gatherings" key={item.id}><span>{item.region}</span><strong>{item.title}</strong><p>{item.description}</p></Link>} />
-      </div>}
+      {data && <section className="search-results">
+        <SearchSection title="관광지" items={data.destinations} render={(item) => <Link to={`/recommend?destination=${item.id}`} key={item.id}><span>관광지 · {item.region}</span><strong>{item.name}</strong><p>{item.category || item.description}</p></Link>} />
+        <SearchSection title="일자리" items={data.jobs} render={(item) => <Link to={`/jobs/${item.id}`} key={item.id}><span>일자리 · {item.region}</span><strong>{item.title}</strong><p>{item.companyName} · {item.pay || "급여 협의"}</p></Link>} />
+        <SearchSection title="여행 이야기" items={data.posts} render={(item) => <Link to={`/community/${item.id}`} key={item.id}><span>여행 이야기 · {item.region}</span><strong>{item.concept}</strong><p>{item.content}</p></Link>} />
+        <SearchSection title="게더링" items={data.gatherings} render={(item) => <Link to="/gatherings" key={item.id}><span>게더링 · {item.region}</span><strong>{item.title}</strong><p>{item.description}</p></Link>} />
+      </section>}
     </Status>
   </main>;
 }

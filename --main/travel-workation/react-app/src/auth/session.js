@@ -12,7 +12,7 @@ export function hasSession() {
 }
 
 export function saveLoginSession(data) {
-  const accessToken = data.tokenResponse?.accessToken ?? data.token;
+  const accessToken = data.accessToken ?? data.tokenResponse?.accessToken ?? data.token;
   const refreshToken = data.tokenResponse?.refreshToken;
   const email = data.email ?? data.username ?? "";
   const name = data.name ?? data.nickname ?? "";

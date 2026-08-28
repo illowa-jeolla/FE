@@ -418,13 +418,14 @@ async function generateAiTravelGuide(conditions) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
   const model = process.env.OPENAI_MODEL || "gpt-5.6-terra";
+  const placeCount = Math.max(1, Math.min(5, Number(conditions.placeCount) || 3));
   try {
     const apiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        instructions: `당신은 대한민국 전라도 전문 여행 플래너입니다. 반드시 웹 검색으로 현재 실제 운영 중인 관광지와 숙소 위치를 확인하세요. 공식 관광 사이트, 지자체, 한국관광공사 등 신뢰할 수 있는 최신 출처를 우선 사용하세요. 사용자가 숙소를 입력하면 그 숙소의 실제 위치를 기준으로 가까운 관광지 5곳을 고르고, 이동 거리와 방향을 고려해 불필요한 왕복이 적은 순서로 배열하세요. 숙소가 없으면 입력 지역의 중심 관광 거점에서 시작하세요. excludedSpots에 장소가 있으면 가능한 한 제외해 이전 추천과 다른 코스를 만드세요. 폐업 여부나 위치를 확인할 수 없는 장소는 제외하세요. 각 장소의 imageUrl에는 공식 관광 사이트나 신뢰할 수 있는 공개 페이지에서 확인한 실제 장소 사진의 직접 HTTPS 이미지 주소를 넣고, 확인할 수 없으면 빈 문자열을 넣으세요. 거리와 시간은 합리적인 추정치임을 tip에 밝히세요. 정확히 5곳을 반환하고 위경도는 숫자로 반환하세요.`,
+        instructions: `당신은 대한민국 전라도 전문 여행 플래너입니다. 반드시 웹 검색으로 현재 실제 운영 중인 관광지와 숙소 위치를 확인하세요. 공식 관광 사이트, 지자체, 한국관광공사 등 신뢰할 수 있는 최신 출처를 우선 사용하세요. 사용자가 숙소를 입력하면 그 숙소의 실제 위치를 기준으로 요청된 placeCount만큼 관광지를 고르고, 이동 거리와 방향을 고려해 불필요한 왕복이 적은 순서로 배열하세요. 숙소가 없으면 입력 지역의 중심 관광 거점에서 시작하세요. dayIndex와 tripDays가 있으면 전체 여행 중 해당 날짜의 하루 코스를 만드세요. 날짜마다 서로 다른 권역과 장소가 되도록 구성하고 excludedSpots의 장소는 반드시 제외하세요. 폐업 여부나 위치를 확인할 수 없는 장소는 제외하세요. 각 장소의 imageUrl에는 공식 관광 사이트나 신뢰할 수 있는 공개 페이지에서 확인한 실제 장소 사진의 직접 HTTPS 이미지 주소를 넣고, 확인할 수 없으면 빈 문자열을 넣으세요. 거리와 시간은 합리적인 추정치임을 tip에 밝히세요. 정확히 ${placeCount}곳을 반환하고 위경도는 숫자로 반환하세요.`,
         input: JSON.stringify(conditions),
         tools: [{ type: "web_search" }],
         reasoning: { effort: "low" },
@@ -447,7 +448,7 @@ async function generateAiTravelGuide(conditions) {
                 },
                 summary: { type: "string" }, totalDistanceKm: { type: "number" }, totalMinutes: { type: "number" }, tip: { type: "string" },
                 spots: {
-                  type: "array", minItems: 5, maxItems: 5,
+                  type: "array", minItems: placeCount, maxItems: placeCount,
                   items: {
                     type: "object", additionalProperties: false,
                     required: ["name", "address", "category", "description", "time", "stayMinutes", "latitude", "longitude", "distanceFromPreviousKm", "travelMinutes", "sourceTitle", "sourceUrl", "imageUrl"],
@@ -472,7 +473,7 @@ async function generateAiTravelGuide(conditions) {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     const guide = JSON.parse(start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned);
-    if (!Array.isArray(guide.spots) || guide.spots.length !== 5) throw new Error("AI가 관광지 5곳을 반환하지 않았습니다.");
+    if (!Array.isArray(guide.spots) || guide.spots.length !== placeCount) throw new Error(`AI가 관광지 ${placeCount}곳을 반환하지 않았습니다.`);
     guide.spots = guide.spots.map((spot) => ({
       name: String(spot.name || "").trim(),
       address: String(spot.address || "").trim(),
@@ -778,7 +779,22 @@ async function handleApi(request, response, url) {
 
   if (request.method === "GET" && url.pathname === "/api/destinations") {
     const region = String(url.searchParams.get("region") || "").trim();
-    const destinations = region
+    const keyword = String(url.searchParams.get("q") || "").trim();
+    const destinations = region && keyword
+      ? db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1 AND region = ? AND (name LIKE ? OR category LIKE ? OR description LIKE ?)
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+          LIMIT 20
+        `).all(region, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`)
+      : keyword
+        ? db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1 AND (name LIKE ? OR region LIKE ? OR category LIKE ? OR description LIKE ?)
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+          LIMIT 20
+        `).all(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`)
+      : region
       ? db.prepare(`
           SELECT * FROM destinations
           WHERE active = 1 AND region = ?
@@ -789,7 +805,43 @@ async function handleApi(request, response, url) {
           WHERE active = 1
           ORDER BY search_volume DESC, rating DESC, created_at DESC
         `).all();
-    sendJson(response, 200, destinations.map(mapDestination));
+    const localResults = destinations.map(mapDestination);
+    const apiKey = String(process.env.KAKAO_REST_API_KEY || "").trim();
+    if (!keyword || !apiKey) { sendJson(response, 200, localResults); return true; }
+    try {
+      const searchKakao = async (categoryCode) => {
+        const endpoint = new URL("https://dapi.kakao.com/v2/local/search/keyword.json");
+        endpoint.searchParams.set("query", [region, keyword].filter(Boolean).join(" "));
+        endpoint.searchParams.set("category_group_code", categoryCode);
+        endpoint.searchParams.set("size", "15");
+        const kakaoResponse = await fetch(endpoint, { headers: { Authorization: `KakaoAK ${apiKey}` } });
+        const payload = await kakaoResponse.json().catch(() => ({}));
+        if (!kakaoResponse.ok) throw new Error(payload.message || "카카오 관광지 검색에 실패했습니다.");
+        return payload.documents || [];
+      };
+      const kakaoDocuments = (await Promise.all([searchKakao("AT4"), searchKakao("CT1")])).flat();
+      const kakaoResults = [...new Map(kakaoDocuments.map((place) => [place.id, place])).values()].map((place) => ({
+        id: `kakao:${place.id}`,
+        name: place.place_name,
+        region: region || String(place.address_name || "").split(" ").slice(0, 2).join(" "),
+        category: String(place.category_name || "관광명소").split(" > ").at(-1),
+        description: `${place.place_name} 관광 정보`,
+        imageUrl: "",
+        rating: 0,
+        address: place.road_address_name || place.address_name,
+        phone: place.phone || "",
+        homepageUrl: place.place_url || "",
+        latitude: Number(place.y),
+        longitude: Number(place.x),
+        sourceName: "카카오맵",
+        sourceId: place.id
+      }));
+      const kakaoNames = new Set(kakaoResults.map((item) => item.name));
+      sendJson(response, 200, [...kakaoResults, ...localResults.filter((item) => !kakaoNames.has(item.name))].slice(0, 30));
+    } catch (error) {
+      console.error("카카오 관광지 검색:", error.message);
+      sendJson(response, 200, localResults);
+    }
     return true;
   }
 
@@ -827,6 +879,52 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/hotels/search") {
+    const query = String(url.searchParams.get("q") || "").trim().slice(0, 80);
+    const region = String(url.searchParams.get("region") || "").trim().slice(0, 40);
+    if (!query) { sendJson(response, 200, { hotels: [] }); return true; }
+    const apiKey = String(process.env.KAKAO_REST_API_KEY || "").trim();
+    if (!apiKey) { sendJson(response, 503, { message: "숙소 검색 API 키가 설정되지 않았습니다." }); return true; }
+    try {
+      const jeollaRegions = ["전주", "군산", "남원", "목포", "광주", "순천", "여수", "보성", "완도", "담양"];
+      const selectedRegion = region && !region.includes("전체") ? region : "전라도";
+      const matchedRegions = jeollaRegions.filter((item) => item.includes(query) || query.includes(item));
+      const searchTerms = [...new Set([
+        `${selectedRegion} ${query}`,
+        `${selectedRegion} ${query} 숙소`,
+        ...matchedRegions.flatMap((item) => [`${item} 숙소`, `${item} 호텔`])
+      ])];
+      const payloads = await Promise.all(searchTerms.map(async (term) => {
+        const endpoint = new URL("https://dapi.kakao.com/v2/local/search/keyword.json");
+        endpoint.searchParams.set("query", term);
+        endpoint.searchParams.set("category_group_code", "AD5");
+        endpoint.searchParams.set("size", "15");
+        const searchResponse = await fetch(endpoint, { headers: { Authorization: `KakaoAK ${apiKey}` } });
+        const payload = await searchResponse.json().catch(() => ({}));
+        if (!searchResponse.ok) throw new Error(payload.message || "숙소를 검색하지 못했습니다.");
+        return payload.documents || [];
+      }));
+      const uniqueHotels = new Map();
+      payloads.flat().forEach((hotel) => {
+        if (!hotel.id || uniqueHotels.has(hotel.id)) return;
+        const searchable = `${hotel.place_name} ${hotel.road_address_name || hotel.address_name}`;
+        if (searchable.includes(query) || matchedRegions.some((item) => searchable.includes(item))) uniqueHotels.set(hotel.id, hotel);
+      });
+      const hotels = [...uniqueHotels.values()].slice(0, 30).map((hotel) => ({
+        name: hotel.place_name,
+        address: hotel.road_address_name || hotel.address_name,
+        phone: hotel.phone || "",
+        latitude: Number(hotel.y),
+        longitude: Number(hotel.x),
+        url: hotel.place_url || ""
+      }));
+      sendJson(response, 200, { hotels });
+    } catch (error) {
+      sendJson(response, 502, { message: error.message || "숙소 검색 서비스에 연결하지 못했습니다." });
+    }
+    return true;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/travel-route") {
     const body = await readJson(request);
     const points = (Array.isArray(body.points) ? body.points : []).slice(0, 7).map((point) => ({
@@ -851,15 +949,17 @@ async function handleApi(request, response, url) {
       return true;
     }
     const route = payload.routes[0];
-    const routePoints = route.sections.flatMap((section) => section.roads.flatMap((road) => {
+    const sectionPoints = (section) => section.roads.flatMap((road) => {
       const values = road.vertexes || [];
       const result = [];
       for (let index = 0; index < values.length - 1; index += 2) result.push({ longitude: Number(values[index]), latitude: Number(values[index + 1]) });
       return result;
-    }));
+    });
+    const routePoints = route.sections.flatMap(sectionPoints);
     const legs = route.sections.map((section) => ({
       distanceMeters: Number(section.distance) || 0,
-      durationSeconds: Number(section.duration) || 0
+      durationSeconds: Number(section.duration) || 0,
+      points: sectionPoints(section)
     }));
     sendJson(response, 200, { points: routePoints, legs, distanceMeters: route.summary?.distance || 0, durationSeconds: route.summary?.duration || 0, provider: "kakao-mobility" });
     return true;
@@ -880,8 +980,11 @@ async function handleApi(request, response, url) {
       themes: normalizedList(body.themes).slice(0, 6),
       transport: String(body.transport || "대중교통").trim().slice(0, 40),
       companion: String(body.companion || "친구").trim().slice(0, 40),
-      attempt: Math.max(1, Math.min(3, Number(body.attempt) || 1)),
-      excludedSpots: normalizedList(body.excludedSpots).slice(0, 10)
+      attempt: Math.max(1, Math.min(2, Number(body.attempt) || 1)),
+      excludedSpots: normalizedList(body.excludedSpots).slice(-35),
+      dayIndex: Math.max(1, Math.min(7, Number(body.dayIndex) || 1)),
+      tripDays: Math.max(1, Math.min(7, Number(body.tripDays) || 1)),
+      placeCount: Math.max(1, Math.min(5, Number(body.placeCount) || 3))
     };
     try {
       const guide = await generateAiTravelGuide(conditions);

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export function PageIntro({ eyebrow, title, description, action }) {
   return (
-    <header className="page-intro-react">
+    <header className="page-intro">
       <div>
         <span>{eyebrow}</span>
         <h1>{title}</h1>
@@ -14,9 +14,9 @@ export function PageIntro({ eyebrow, title, description, action }) {
 }
 
 export function Status({ loading, error, empty, children }) {
-  if (loading) return <div className="status-react">데이터를 불러오는 중입니다.</div>;
-  if (error) return <div className="status-react is-error">{error}</div>;
-  if (empty) return <div className="status-react">조건에 맞는 결과가 없습니다.</div>;
+  if (loading) return <div className="page-status is-visible">데이터를 불러오는 중입니다.</div>;
+  if (error) return <div className="page-status is-visible is-error">{error}</div>;
+  if (empty) return <div className="page-status is-visible">조건에 맞는 결과가 없습니다.</div>;
   return children;
 }
 
@@ -49,7 +49,7 @@ export function Modal({ open, title, onClose, children, actions }) {
 }
 
 export function EmptyCard({ title, description, action }) {
-  return <div className="empty-card-react"><strong>{title}</strong><p>{description}</p>{action}</div>;
+  return <div className="page-status is-visible"><strong>{title}</strong><p>{description}</p>{action}</div>;
 }
 
 export function FormMessage({ message, error }) {

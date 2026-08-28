@@ -1,52 +1,45 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { apiRequest } from "../api/client";
-import { clearSession, hasSession } from "../auth/session";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { logoutFromBackend } from "../api/client";
+import { clearSession, getSessionUser, hasSession } from "../auth/session";
 import { useApi } from "../hooks/useApi";
 import { EmptyCard, FormMessage, Status } from "../components/UI";
 
-const tabs = [
-  ["profile", "내 정보"], ["trips", "내가 다닌 여행지"], ["guides", "저장한 여행 가이드"], ["posts", "내 여행 공유"],
-  ["applications", "내가 지원한 공고"], ["favoriteJobs", "찜한 일자리"], ["gatherings", "내 게더링"]
-];
-const jobPhotos = ["/assets/J6aHjc.jpeg", "/assets/JvLTt.jpeg", "/assets/lX3GW.jpeg", "/assets/OZ3bs.jpeg"];
+const tabs = [["profile", "내 정보"], ["trips", "내가 다닌 여행지"], ["guides", "저장한 여행 가이드"], ["posts", "내 여행 공유"], ["applications", "내가 지원한 공고"], ["favoriteJobs", "찜한 일자리"], ["gatherings", "내 게더링"]];
 
-function ItemList({ items, empty, render }) {
-  return items?.length ? <div className="mypage-list-react">{items.map(render)}</div> : <EmptyCard title={empty} description="새로운 활동을 시작하면 이곳에서 한 번에 확인할 수 있어요." />;
+function PendingApi({ title }) {
+  return <div className="mypage-empty"><strong>{title} API 명세 대기</strong><p>백엔드 명세를 받는 대로 실제 데이터와 연결됩니다.</p></div>;
 }
 
 export default function MyPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState("profile");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(() => tabs.some(([key]) => key === searchParams.get("tab")) ? searchParams.get("tab") : "profile");
   const [message, setMessage] = useState("");
-  const [editingGuideId, setEditingGuideId] = useState(null);
-  const [editingGuideTitle, setEditingGuideTitle] = useState("");
-  const { data, loading, error, run } = useApi(hasSession() ? "/api/me" : "", { immediate: hasSession() });
-  if (!hasSession()) return <main className="page-shell-react"><EmptyCard title="로그인이 필요합니다" description="내 여행과 지원 내역은 로그인 후 확인할 수 있어요." action={<Link className="primary-action-react" to="/auth">로그인</Link>} /></main>;
-  const profile = data?.profile || {};
-  const displayName = profile.nickname || profile.email?.split("@")[0] || "여행자";
+  const { data: savedGuideData, loading, error } = useApi(hasSession() ? "/api/v1/travel-guides/saved" : "", { immediate: hasSession() });
 
-  async function updateProfile(event) { event.preventDefault(); try { const nickname = new FormData(event.currentTarget).get("nickname"); const next = await apiRequest("/api/me", { method: "PATCH", body: JSON.stringify({ nickname }) }); sessionStorage.setItem("nickname", next.nickname); setMessage("닉네임을 변경했습니다."); await run(); } catch (e) { setMessage(e.message); } }
-  function logout() { clearSession(); navigate("/"); window.location.reload(); }
-  async function deleteAccount() { if (!window.confirm("계정과 저장된 기록을 모두 삭제할까요?")) return; try { await apiRequest("/api/me", { method: "DELETE" }); clearSession(); navigate("/"); } catch (e) { setMessage(e.message); } }
-  async function renameGuide(event, id) {
-    event.preventDefault();
-    const title = editingGuideTitle.trim();
-    if (title.length < 2) { setMessage("가이드 이름은 2자 이상 입력해 주세요."); return; }
-    try {
-      await apiRequest(`/api/me/guides/${id}`, { method: "PATCH", body: JSON.stringify({ title }) });
-      setEditingGuideId(null); setEditingGuideTitle(""); setMessage("가이드 이름을 변경했습니다.");
-      await run();
-    } catch (error) { setMessage(error.message); }
+  if (!hasSession()) return <main className="mypage-main"><section className="page-panel"><EmptyCard title="로그인이 필요합니다" description="내 여행과 지원 내역은 로그인 후 확인할 수 있어요." action={<Link className="button button-primary" to="/auth">로그인</Link>} /></section></main>;
+
+  const user = getSessionUser();
+  const displayName = user.name || user.email.split("@")[0] || "여행자";
+  const savedGuides = Array.isArray(savedGuideData) ? savedGuideData : [];
+
+  async function logout() {
+    try { setMessage("로그아웃 중입니다."); await logoutFromBackend(); clearSession(); navigate("/"); }
+    catch (requestError) { setMessage(requestError.message); }
   }
 
-  return <main className="mypage-react"><Status loading={loading} error={error} empty={!data}>{data && <><header className="mypage-profile-react"><div className="mypage-avatar-react">{displayName.slice(0, 1)}</div><div><span>MY PAGE</span><h1>{displayName}님의 기록</h1><p>{profile.email || profile.username}</p></div><div><button onClick={logout}>로그아웃</button><button className="danger-react" onClick={deleteAccount}>탈퇴하기</button></div></header><FormMessage message={message} /><div className="mypage-layout-react"><nav>{tabs.map(([key, label], index) => <button className={tab === key ? "is-active" : ""} onClick={() => setTab(key)} key={key}><span>{String(index + 1).padStart(2, "0")}</span>{label}{key !== "profile" && <b>{data[key]?.length || 0}</b>}</button>)}</nav><section className="mypage-panel-react">
-    {tab === "profile" && <><span className="panel-kicker-react">PROFILE</span><h2>내 정보</h2><p>가입 이메일을 확인하고 서비스에서 사용할 닉네임을 변경할 수 있어요.</p><form className="profile-form-react" onSubmit={updateProfile}><label>이메일<input value={profile.email || profile.username || ""} disabled /></label><label>닉네임<input name="nickname" defaultValue={profile.nickname || displayName} minLength="2" maxLength="20" required /></label><button className="primary-action-react">닉네임 저장</button></form></>}
-    {tab === "trips" && <><span className="panel-kicker-react">MY TRIPS</span><h2>내가 다닌 여행지</h2><ItemList items={data.trips} empty="리뷰를 남긴 여행지가 아직 없어요" render={(item) => <article className="dashboard-card-react" key={item.id}><span>{item.region} · ★ {item.rating || 5}</span><h3>{item.destinationName || item.title}</h3><p>{item.note || "여행 리뷰"}</p><small>{item.createdAt?.slice?.(0, 10)}</small></article>} /></>}
-    {tab === "guides" && <><span className="panel-kicker-react">SAVED GUIDES</span><div className="mypage-panel-title-react"><h2>저장한 여행 가이드</h2><Link to="/mypage/trash">휴지통 보기</Link></div><ItemList items={data.guides} empty="저장한 여행 가이드가 없어요" render={(item) => <article className="dashboard-card-react" key={item.id}><span>{item.region} · SAVED GUIDE</span>{editingGuideId === item.id ? <form className="guide-title-edit-react" onSubmit={(event) => renameGuide(event, item.id)}><input value={editingGuideTitle} onChange={(event) => setEditingGuideTitle(event.target.value)} minLength="2" maxLength="100" aria-label="가이드 이름" autoFocus required /><button type="submit">저장</button><button type="button" onClick={() => { setEditingGuideId(null); setEditingGuideTitle(""); }}>취소</button></form> : <button className="guide-title-button-react" type="button" onClick={() => { setEditingGuideId(item.id); setEditingGuideTitle(item.title); }} title="이름 변경"><h3>{item.title}</h3></button>}<p>{item.hotel || "추천 출발지"} · {item.guide?.spots?.length || 0}곳 코스</p>{item.guide?.conditions?.selectedGuide?.name && <small>{item.guide.conditions.start} · {item.guide.conditions.selectedGuide.name}</small>}<div className="dashboard-card-actions-react"><Link to="/travel-guide" state={item.guide?.conditions || item.guide}>가이드 보기</Link><button onClick={async () => { if (!window.confirm("이 가이드를 휴지통으로 이동할까요?")) return; await apiRequest(`/api/me/guides/${item.id}`, { method: "DELETE" }); setMessage("가이드를 휴지통으로 이동했습니다."); run(); }}>휴지통으로 이동</button></div></article>} /></>}
-    {tab === "posts" && <><span className="panel-kicker-react">MY STORIES</span><h2>내 여행 공유</h2><ItemList items={data.posts} empty="공유한 여행 이야기가 없어요" render={(item) => <Link className="dashboard-card-react" to={`/community/${item.id}`} key={item.id}><span>{item.region}</span><h3>{item.concept}</h3><p>{item.content}</p><strong>이야기 보기 →</strong></Link>} /></>}
-    {tab === "applications" && <><span className="panel-kicker-react">APPLICATIONS</span><h2>내가 지원한 공고</h2><ItemList items={data.applications} empty="지원한 공고가 없어요" render={(item, index) => <Link className="dashboard-job-react" to={`/jobs/${item.jobId}`} key={item.id || item.jobId}><img src={jobPhotos[index % jobPhotos.length]} alt="" /><div><span>{item.category || "관광 일자리"}</span><h3>{item.title}</h3><p>{item.companyName}</p><strong>{item.pay}</strong></div></Link>} /></>}
-    {tab === "favoriteJobs" && <><span className="panel-kicker-react">FAVORITE JOBS</span><h2>찜한 일자리</h2><ItemList items={data.favoriteJobs} empty="찜한 일자리가 없어요" render={(item, index) => <Link className="dashboard-job-react" to={`/jobs/${item.jobId}`} key={item.id || item.jobId}><img src={jobPhotos[index % jobPhotos.length]} alt="" /><div><span>{item.region} · {item.category}</span><h3>{item.title}</h3><p>{item.companyName}</p><strong>{item.pay}</strong></div></Link>} /></>}
-    {tab === "gatherings" && <><span className="panel-kicker-react">MY GATHERINGS</span><h2>내 게더링</h2><ItemList items={data.gatherings} empty="만들거나 참여한 게더링이 없어요" render={(item) => <article className="dashboard-card-react" key={item.id}><span>{item.region} · {item.createdByMe ? "내가 만든 모임" : "참여 중"}</span><h3>{item.title}</h3><p>{item.location} · {item.participantCount}/{item.capacity}명</p><small>{item.eventTime && new Date(item.eventTime).toLocaleString("ko-KR")}</small></article>} /></>}
-  </section></div></>}</Status></main>;
+  return <main className="mypage-main"><Status loading={loading} error={error} empty={false}>
+    <section className="mypage-profile-card"><div className="mypage-avatar">{displayName.slice(0, 1)}</div><div className="mypage-profile-copy"><span>MY PAGE</span><h1>{displayName}님의 기록</h1><p>{user.email}</p></div><div className="mypage-profile-actions"><button onClick={logout}>로그아웃</button></div></section>
+    <FormMessage message={message} />
+    <section className="mypage-layout"><nav className="mypage-tabs">{tabs.map(([key, label], index) => <button className={tab === key ? "is-active" : ""} onClick={() => setTab(key)} key={key}><span>{String(index + 1).padStart(2, "0")}</span>{label}{key === "guides" && <b>{savedGuides.length}</b>}</button>)}</nav><div className="mypage-panels"><section className="mypage-panel is-active">
+      {tab === "profile" && <><span className="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>로그인한 계정 정보를 표시하고 있습니다.</p><div className="mypage-empty"><strong>{user.email}</strong><p>닉네임 수정과 회원 탈퇴는 사용자 정보 API 명세를 받은 뒤 연결됩니다.</p></div></>}
+      {tab === "guides" && <><span className="mypage-kicker">SAVED GUIDES</span><h2>내가 저장한 여행 가이드</h2><Link className="button" to="/mypage/drafts">임시 일정 보기</Link>{savedGuides.length ? <div className="mypage-card-list">{savedGuides.map((guide) => <Link className="mypage-guide-card" to={`/travel-guide/${guide.guideId}`} key={guide.guideId}><div className="mypage-guide-copy"><span>SAVED GUIDE · {guide.regionName}</span><h3>{guide.title}</h3><p>{guide.summary || "저장한 여행 일정"}</p><div className="mypage-guide-summary"><b>{guide.startsOn} — {guide.endsOn}</b><b>{guide.generatedByAi ? "AI 추천" : "직접 구성"}</b></div></div></Link>)}</div> : <div className="mypage-empty"><strong>저장한 여행 가이드가 없어요</strong><p>여행 가이드를 저장하면 이곳에서 확인할 수 있어요.</p></div>}</>}
+      {tab === "trips" && <PendingApi title="여행 기록" />}
+      {tab === "posts" && <PendingApi title="여행 공유" />}
+      {tab === "applications" && <PendingApi title="지원 공고" />}
+      {tab === "favoriteJobs" && <PendingApi title="찜한 일자리" />}
+      {tab === "gatherings" && <PendingApi title="내 게더링" />}
+    </section></div></section>
+  </Status></main>;
 }

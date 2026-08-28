@@ -231,7 +231,26 @@ document.querySelector("#nickname-form").addEventListener("submit", async (event
   try { const profile = await request("/api/me", { method: "PATCH", body: JSON.stringify({ nickname: document.querySelector("#profile-nickname").value }) }); sessionStorage.setItem("nickname", profile.nickname); dashboard.profile = profile; render(); setStatus(statusElement, "닉네임을 변경했습니다."); }
   catch (error) { setStatus(statusElement, error.message, "error"); }
 });
-document.querySelector("#mypage-logout").addEventListener("click", () => { sessionStorage.clear(); location.href = "index.html"; });
+document.querySelector("#mypage-logout").addEventListener("click", async () => {
+  const config = window.AUTH_API_CONFIG ?? {};
+  const origin = String(config.origin || "").replace(/\/+$/, "");
+  const basePath = `/${String(config.basePath || "/api/v1").replace(/^\/+|\/+$/g, "")}`;
+  const endpoint = config.endpoints?.logout || "/auth/logout";
+  const token = sessionStorage.getItem("accessToken");
+  try {
+    const response = await fetch(`${origin}${basePath}${endpoint}`, {
+      method: "POST",
+      headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      credentials: "include"
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "로그아웃하지 못했습니다.");
+    sessionStorage.clear();
+    location.href = "index.html";
+  } catch (error) {
+    setStatus(statusElement, error.message, "error");
+  }
+});
 document.querySelector("#mypage-delete").addEventListener("click", async () => { if (!confirm("정말 탈퇴할까요? 모든 기록이 삭제되며 되돌릴 수 없습니다.")) return; try { await request("/api/me", { method: "DELETE" }); sessionStorage.clear(); location.href = "index.html"; } catch (error) { setStatus(statusElement, error.message, "error"); } });
 
 (async function load() {
