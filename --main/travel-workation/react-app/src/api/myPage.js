@@ -20,4 +20,4 @@ export function getMyTravelGuides(params = {}) { return apiRequest(`${API_BASE}/
 export function getMyTravelPosts(params = {}) { return apiRequest(`${API_BASE}/travel-posts${queryString(params)}`); }
 export function getMyJobApplications(params = {}) { return apiRequest(`${API_BASE}/job-applications${queryString(params)}`); }
 export function getMyFavoriteJobs(params = {}) { return apiRequest(`${API_BASE}/favorite-jobs${queryString(params)}`); }
-export function getMyGatherings(params = {}) { return apiRequest(`${API_BASE}/gatherings${queryString(params)}`); }
+export function getMyGatherings(params = { type: "hosted" }) { return apiRequest(`/api/v1/gatherings/me${queryString(params)}`); }

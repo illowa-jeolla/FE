@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { apiRequest } from "../api/client";
-import { clearSession, getSessionUser, hasSession } from "../auth/session";
+import { getSessionUser, hasSession } from "../auth/session";
 
 const navigation = [
   ["관광지 추천", "/recommend"],
@@ -14,7 +13,7 @@ const navigation = [
 export default function SiteLayout() {
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState(() => ({
-    status: hasSession() ? "checking" : "guest",
+    status: hasSession() ? "authenticated" : "guest",
     user: getSessionUser()
   }));
   const location = useLocation();
@@ -37,32 +36,7 @@ export default function SiteLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!hasSession()) {
-      setSession({ status: "guest", user: getSessionUser() });
-      return () => { cancelled = true; };
-    }
-
-    apiRequest("/api/v1/me")
-      .then((data) => {
-        if (cancelled) return;
-        const profile = data.profile || data || {};
-        const email = profile.email || profile.username || "";
-        const name = profile.nickname || email.split("@")[0] || "";
-        if (email) sessionStorage.setItem("email", email);
-        if (name) sessionStorage.setItem("nickname", name);
-        setSession({ status: "authenticated", user: { ...profile, email, name } });
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        if (error.status === 401) clearSession();
-        setSession({
-          status: error.status === 401 ? "guest" : "authenticated",
-          user: getSessionUser()
-        });
-      });
-
-    return () => { cancelled = true; };
+    setSession({ status: hasSession() ? "authenticated" : "guest", user: getSessionUser() });
   }, [location.pathname]);
 
   return (

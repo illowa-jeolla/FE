@@ -31,6 +31,30 @@ export default defineConfig({
         headers: {
           "ngrok-skip-browser-warning": "1"
         }
+      },
+      "/uploads": {
+        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        changeOrigin: true,
+        secure: true,
+        headers: {
+          "ngrok-skip-browser-warning": "1"
+        }
+      },
+      "/files": {
+        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        changeOrigin: true,
+        secure: true,
+        headers: {
+          "ngrok-skip-browser-warning": "1"
+        }
+      },
+      "/local-images": {
+        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        changeOrigin: true,
+        secure: true,
+        headers: {
+          "ngrok-skip-browser-warning": "1"
+        }
       }
     }
   }

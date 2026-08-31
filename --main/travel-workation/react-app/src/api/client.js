@@ -21,7 +21,29 @@ function accessTokenFrom(payload = {}) {
   return token ? String(token).replace(/^Bearer\s+/i, "") : "";
 }
 
+function isAuthenticationFailure(response, payload = {}) {
+  const code = String(payload.code || payload.errorCode || "").toUpperCase();
+  const message = String(payload.message || "").toLowerCase();
+  return response.status === 401
+    || code.includes("AUTH_401")
+    || code.includes("INVALID_TOKEN")
+    || message.includes("유효하지 않은 토큰")
+    || message.includes("invalid token");
+}
+
 let refreshInFlight = null;
+
+function tokenNeedsRefresh(token) {
+  try {
+    const payloadPart = String(token).split(".")[1];
+    if (!payloadPart) return false;
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payloadPart.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(normalized));
+    return Number(payload.exp || 0) * 1000 <= Date.now() + 30000;
+  } catch {
+    return false;
+  }
+}
 
 async function performTokenRefresh() {
   if (!AUTH_API.enabled) throw new Error("토큰 재발급 API가 비활성화되어 있습니다.");
@@ -78,23 +100,27 @@ export async function logoutFromBackend() {
 }
 
 export async function apiRequest(path, options = {}, retry = true) {
-  const token = sessionStorage.getItem("accessToken");
+  let token = sessionStorage.getItem("accessToken");
+  if (token && retry && AUTH_API.enabled && tokenNeedsRefresh(token)) {
+    token = await refreshAccessToken();
+  }
   const url = /^https?:\/\//i.test(path) ? path : `${API_BASE_URL}${path}`;
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers = {
     Accept: "application/json",
     ...tunnelHeaders(url),
-    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(options.body && !isFormData ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
   const response = await fetch(url, { ...options, headers, credentials: "include" });
   const data = await parseResponse(response);
-  if (response.status === 401 && retry && AUTH_API.enabled) {
+  if (isAuthenticationFailure(response, data) && retry && AUTH_API.enabled) {
     await refreshAccessToken();
     return apiRequest(path, options, false);
   }
   if (!response.ok) {
-    const error = new Error(data.message || "요청을 처리하지 못했습니다.");
+    const error = new Error(data.message || `요청을 처리하지 못했습니다. (${response.status})`);
     error.status = response.status;
     throw error;
   }

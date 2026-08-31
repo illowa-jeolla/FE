@@ -11,7 +11,7 @@ function queryString(params = {}) {
   return serialized ? `?${serialized}` : "";
 }
 
-export function getRegions(params = { parentId: 1 }) {
+export function getRegions(params = {}) {
   return apiRequest(`${API_BASE}/regions${queryString(params)}`);
 }
 
