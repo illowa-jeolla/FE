@@ -10,11 +10,24 @@ async function parseResponse(response) {
   return response.json().catch(() => ({}));
 }
 
-export async function refreshAccessToken() {
+function tunnelHeaders(url) {
+  return String(url).includes("ngrok-free") ? { "ngrok-skip-browser-warning": "1" } : {};
+}
+
+function accessTokenFrom(payload = {}) {
+  const data = payload.data ?? payload;
+  const source = data.tokenResponse ?? data.tokens ?? data.auth ?? data;
+  const token = source.accessToken ?? source.access_token ?? source.token;
+  return token ? String(token).replace(/^Bearer\s+/i, "") : "";
+}
+
+let refreshInFlight = null;
+
+async function performTokenRefresh() {
   if (!AUTH_API.enabled) throw new Error("토큰 재발급 API가 비활성화되어 있습니다.");
 
   const csrfResponse = await fetch(authApiUrl(AUTH_API.endpoints.csrf), {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...tunnelHeaders(authApiUrl(AUTH_API.endpoints.csrf)) },
     credentials: "include"
   });
   const csrfPayload = await parseResponse(csrfResponse);
@@ -27,24 +40,31 @@ export async function refreshAccessToken() {
 
   const refreshResponse = await fetch(authApiUrl(AUTH_API.endpoints.refresh), {
     method: "POST",
-    headers: { Accept: "application/json", [headerName]: csrfToken },
+    headers: { Accept: "application/json", ...tunnelHeaders(authApiUrl(AUTH_API.endpoints.refresh)), [headerName]: csrfToken },
     credentials: "include"
   });
   const refreshPayload = await parseResponse(refreshResponse);
   if (!refreshResponse.ok) throw new Error(refreshPayload.message || "로그인 세션을 갱신하지 못했습니다.");
 
-  const accessToken = refreshPayload.data?.accessToken;
+  const accessToken = accessTokenFrom(refreshPayload);
   if (!accessToken) throw new Error("토큰 재발급 응답에 accessToken이 없습니다.");
   sessionStorage.setItem("accessToken", accessToken);
   return accessToken;
 }
 
+export function refreshAccessToken() {
+  if (!refreshInFlight) refreshInFlight = performTokenRefresh().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+
 export async function logoutFromBackend() {
   const token = sessionStorage.getItem("accessToken");
-  const response = await fetch(authApiUrl(AUTH_API.endpoints.logout), {
+  const url = authApiUrl(AUTH_API.endpoints.logout);
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",
+      ...tunnelHeaders(url),
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
     credentials: "include"
@@ -59,13 +79,14 @@ export async function logoutFromBackend() {
 
 export async function apiRequest(path, options = {}, retry = true) {
   const token = sessionStorage.getItem("accessToken");
+  const url = /^https?:\/\//i.test(path) ? path : `${API_BASE_URL}${path}`;
   const headers = {
     Accept: "application/json",
+    ...tunnelHeaders(url),
     ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
-  const url = /^https?:\/\//i.test(path) ? path : `${API_BASE_URL}${path}`;
   const response = await fetch(url, { ...options, headers, credentials: "include" });
   const data = await parseResponse(response);
   if (response.status === 401 && retry && AUTH_API.enabled) {
@@ -83,7 +104,7 @@ export async function apiRequest(path, options = {}, retry = true) {
 export async function postJson(url, body) {
   const response = await fetch(url, {
     method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    headers: { Accept: "application/json", "Content-Type": "application/json", ...tunnelHeaders(url) },
     credentials: "include",
     body: JSON.stringify(body)
   });

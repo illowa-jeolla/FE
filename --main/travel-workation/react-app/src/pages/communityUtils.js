@@ -1,4 +1,5 @@
 export function postImages(post) {
+  if (Array.isArray(post.imageUrls)) return post.imageUrls;
   if (Array.isArray(post.images)) return post.images;
   try { const parsed = JSON.parse(post.images_data || "[]"); if (parsed.length) return parsed; } catch {}
   return post.image_data ? [post.image_data] : [];

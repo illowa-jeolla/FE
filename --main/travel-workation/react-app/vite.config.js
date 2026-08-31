@@ -24,7 +24,14 @@ export default defineConfig({
           "ngrok-skip-browser-warning": "1"
         }
       },
-      "/assets": "http://localhost:8080"
+      "/assets": {
+        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        changeOrigin: true,
+        secure: true,
+        headers: {
+          "ngrok-skip-browser-warning": "1"
+        }
+      }
     }
   }
 });

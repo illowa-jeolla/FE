@@ -82,6 +82,57 @@
 .job-search-form .button { width: 100%; min-height: 44px; border-radius: 11px; font-size: 14px; font-weight: 800; }
 .job-search-form .button-primary { border: 0; color: #4b2038; background: #f3a1c9; }
 .job-search-form .button:not(.button-primary) { border: 1px solid #f0dce6; color: #4b2038; background: #fff; }
+.job-picker-field { position: relative; }
+.job-picker-trigger, .job-date-trigger, .job-time-trigger { width: 100%; min-height: 48px; padding: 0 13px; display: flex; align-items: center; justify-content: space-between; gap: 9px; border: 1px solid #f0dce6; border-radius: 11px; color: #654455; background: #fff9fc; font: inherit; font-size: 12px; font-weight: 750; text-align: left; cursor: pointer; transition: .16s ease; }
+.job-picker-trigger:hover, .job-date-trigger:hover, .job-time-trigger:hover, .job-picker-trigger[aria-expanded="true"] { border-color: #df8db4; background: #fff3f8; box-shadow: 0 0 0 3px rgba(243,161,201,.14); }
+.job-picker-trigger > span, .job-date-trigger > strong, .job-time-trigger > strong { flex: 1; font-weight: 750; }
+.job-picker-trigger > i, .job-date-trigger > i, .job-time-trigger > i { width: 7px; height: 7px; margin: -4px 3px 0 4px; border-right: 2px solid #a04d74; border-bottom: 2px solid #a04d74; transform: rotate(45deg); transition: transform .18s ease, margin .18s ease; }
+.job-picker-trigger[aria-expanded="true"] > i, .job-date-trigger[aria-expanded="true"] > i, .job-time-trigger[aria-expanded="true"] > i { margin-top: 4px; transform: rotate(225deg); }
+.job-picker-icon { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; color: #bb5d8a; background: #ffeaf4; font-size: 14px; }
+.job-option-popover { width: 100%; padding: 8px; position: absolute; left: 0; top: calc(100% + 5px); z-index: 45; box-sizing: border-box; border: 1px solid #efdce5; border-radius: 13px; background: rgba(255,255,255,.98); box-shadow: 0 16px 32px rgba(72,31,52,.16); }
+.job-option-popover > input { min-height: 38px; margin-bottom: 7px; background: #fff; }
+.job-option-popover > div { max-height: 210px; display: grid; gap: 5px; overflow-y: auto; }
+.map-page-main, .map-page-main *, .job-option-popover > div, .job-time-dialog { scrollbar-width: none; }
+.map-page-main::-webkit-scrollbar, .map-page-main *::-webkit-scrollbar, .job-option-popover > div::-webkit-scrollbar, .job-time-dialog::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.job-option-popover button { min-height: 36px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #eee0e7; border-radius: 9px; color: #513543; background: #fff; font-size: 12px; font-weight: 750; cursor: pointer; }
+.job-option-popover button:hover, .job-option-popover button.is-selected { border-color: #d783ac; color: #a23869; background: #fce8f2; }
+.job-option-popover button i { font-style: normal; }
+.job-work-popover { top: calc(100% + 5px); }
+.job-calendar-backdrop { display: grid; place-items: center; background: rgba(49,28,40,.42); }
+.job-calendar-dialog { width: min(620px, calc(100vw - 28px)); padding: 18px 20px; position: relative; left: auto; top: auto; transform: none; }
+.job-calendar-dialog h2 { font-size: 19px; }
+.job-calendar-dialog .travel-calendar-nav { left: 20px; right: 20px; top: 72px; }
+.job-calendar-dialog .travel-calendar-months { margin-top: 16px; gap: 34px; }
+.job-calendar-dialog .travel-calendar-month h3 { margin-bottom: 14px; font-size: 17px; }
+.job-calendar-dialog .travel-calendar-week span { padding: 6px 0 9px; }
+.job-calendar-dialog .travel-calendar-days { row-gap: 2px; }
+.job-calendar-dialog .travel-calendar-days button { height: 38px; }
+.job-calendar-dialog .travel-calendar-days button b { width: 31px; height: 31px; font-size: 11px; }
+.job-calendar-dialog footer { margin-top: 12px; padding-top: 12px; }
+.job-calendar-dialog footer button { min-height: 42px; }
+.job-time-backdrop { position: fixed; inset: 0; z-index: 120; padding: 18px; display: grid; place-items: center; background: rgba(49,28,40,.48); }
+.job-time-dialog { width: min(520px, calc(100vw - 28px)); padding: 24px; box-sizing: border-box; border: 1px solid #efdce5; border-radius: 20px; background: #fff; box-shadow: 0 24px 60px rgba(49,23,37,.24); }
+.job-time-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.job-time-dialog > header span { color: #ae507d; font-size: 9px; font-weight: 850; letter-spacing: .18em; }
+.job-time-dialog h2 { margin: 6px 0 0; font-size: 22px; }
+.job-time-dialog > header > button { width: 38px; height: 38px; border: 0; border-radius: 50%; color: #806975; background: #fff1f7; font-size: 22px; cursor: pointer; }
+.job-time-columns { margin-top: 24px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 12px; }
+.job-time-columns label { display: grid; gap: 9px; color: #684858; font-size: 11px; font-weight: 800; }
+.job-time-columns select { width: 100%; min-height: 54px; padding: 0 14px; border: 1px solid #eddae4; border-radius: 13px; color: #402331; background: #fff8fb; font-size: 16px; font-weight: 850; outline: none; }
+.job-time-line { padding-bottom: 17px; display: flex; align-items: center; gap: 5px; color: #b15a84; font-size: 9px; font-weight: 800; }
+.job-time-line i { width: 10px; height: 1px; background: #e6b8ce; }
+.job-time-presets { margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.job-time-presets button { min-height: 58px; display: grid; place-content: center; gap: 3px; border: 1px solid #eddbe4; border-radius: 12px; color: #593748; background: #fff; font-weight: 800; cursor: pointer; }
+.job-time-presets button:hover { border-color: #dc82ad; background: #fff1f7; }
+.job-time-presets small { color: #9b7b8b; font-size: 9px; font-weight: 650; }
+.job-time-dialog footer { margin-top: 20px; padding-top: 16px; display: flex; justify-content: flex-end; border-top: 1px solid #f0e4ea; }
+.job-time-dialog footer button { min-width: 128px; min-height: 44px; border: 0; border-radius: 12px; color: #4b2038; background: var(--primary); font-weight: 850; cursor: pointer; }
+@media (max-width: 640px) {
+  .job-calendar-dialog .travel-calendar-months { grid-template-columns: 1fr; }
+  .job-calendar-dialog .travel-calendar-month:nth-child(2) { display: none; }
+  .job-time-columns { grid-template-columns: 1fr; }
+  .job-time-line { display: none; }
+}
 .community-layout { grid-template-columns: minmax(320px, 0.62fr) minmax(0, 1.38fr); }
 .post-feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-height: 760px; overflow-y: auto; }
 .post-card { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
@@ -517,6 +568,7 @@ body.gathering-create-open { overflow: hidden; }
 .recommend-choice-group legend { width: 100%; padding: 0; display: flex; justify-content: space-between; color: var(--ink); }
 .recommend-choice-group legend strong { font-size: 17px; }
 .recommend-choice-group legend span { color: var(--muted); font-size: 12px; font-weight: 400; }
+.travel-preferences .recommend-choice-group--theme legend span { transform: translateY(4px); }
 .recommend-options { margin-top: 10px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .recommend-options--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .recommend-options label { position: relative; }
@@ -526,10 +578,12 @@ body.gathering-create-open { overflow: hidden; }
 .recommend-options input:focus-visible + span { outline: 3px solid rgba(243, 161, 201, .28); outline-offset: 2px; }
 .recommend-options input:checked + span { color: var(--ink); border: 2px solid var(--primary); background: var(--primary-soft); font-weight: 800; }
 .recommend-options input:checked + span::before { content: "✓"; display: grid; place-items: center; color: #4b2038; border-color: var(--primary); background: var(--primary); font-size: 12px; }
-.recommend-choice-group--theme label:first-child input:checked + span { border-color: var(--sky); background: #eaf8ff; }
-.recommend-choice-group--theme label:first-child input:checked + span::before { border-color: var(--sky); background: var(--sky); }
+.recommend-choice-group--theme input:checked + span { border-color: var(--primary); background: var(--primary-soft); }
+.recommend-choice-group--theme input:checked + span::before { border-color: var(--primary); background: var(--primary); }
 .recommend-choice-group--transport input:checked + span { border-color: var(--violet); background: #f1eeff; }
 .recommend-choice-group--transport input:checked + span::before { border-color: var(--violet); background: var(--violet); }
+.recommend-choice-group--companion input:checked + span { border-color: var(--sky); background: #eaf8ff; }
+.recommend-choice-group--companion input:checked + span::before { border-color: var(--sky); background: var(--sky); }
 .recommend-prompt-preview { min-height: 48px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-radius: 14px; color: var(--primary-strong); background: #fff7fa; font-size: 11px; }
 .recommend-prompt-preview > span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: #ffe5f0; font-size: 18px; }
 .recommend-submit { min-height: 56px; border: 0; border-radius: 16px; color: #4b2038; background: var(--primary); font-size: 15px; font-weight: 850; cursor: pointer; }
@@ -637,7 +691,11 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
 .travel-date-value { color: #4e2e3e; font-weight: 850; }
 .travel-date-trigger strong > i { color: #c16a92; font-style: normal; font-size: 12px; }
 .travel-date-trigger strong > em { padding: 5px 8px; border-radius: 999px; color: #a34370; background: #ffe9f3; font-size: 10px; font-style: normal; font-weight: 850; }
-.travel-date-arrow { width: 8px; height: 8px; border-right: 2px solid #a04d74; border-bottom: 2px solid #a04d74; transform: rotate(45deg); }
+.travel-date-arrow { flex: 0 0 34px; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #ecd8e2; border-radius: 50%; background: #fff; box-shadow: 0 3px 10px rgba(111,58,82,.08); transition: border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+.travel-date-arrow::after { width: 8px; height: 8px; margin-top: -4px; border-right: 2px solid #a04d74; border-bottom: 2px solid #a04d74; content: ""; transform: rotate(45deg); transition: transform .18s ease, margin .18s ease; }
+.travel-date-trigger:hover .travel-date-arrow { border-color: #d88aae; background: #fff3f8; box-shadow: 0 5px 14px rgba(172,70,116,.15); }
+.travel-date-trigger.is-open .travel-date-arrow { border-color: #d16f9d; background: #fceaf2; }
+.travel-date-trigger.is-open .travel-date-arrow::after { margin-top: 4px; transform: rotate(225deg); }
 .travel-daily-counts { grid-column: 1 / 3; margin: 3px 30px 5px 0; padding: 10px 12px; border: 1px solid #eedde5; border-radius: 13px; background: #fff; }
 .travel-daily-counts[hidden] { display: none; }
 .travel-daily-counts > header { margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
@@ -707,7 +765,7 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
 .travel-preferences h2 { margin: 7px 0 0; font-size: 27px; letter-spacing: -.03em; }
 .travel-preferences > header p { margin: 0; color: #8d7a84; font-size: 11px; }
 .travel-preference-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-.travel-preferences .recommend-choice-group { padding: 14px 16px; }
+.travel-preferences .recommend-choice-group { padding: 14px 0; border-radius: 0; background: transparent; }
 .travel-preferences .recommend-options label > span { min-height: 48px; }
 .travel-search-bar { min-height: 620px; grid-template-columns: 250px 250px minmax(0,1fr); grid-template-rows: 128px 102px 102px auto 102px; }
 .travel-search-side-heading { position: relative; margin-right: 30px; padding: 12px 4px 20px; border-bottom: 1px solid #f0e1e8; }
@@ -873,7 +931,7 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
 .hotel-search-loading p { margin: 0; font-size: 13px; font-weight: 750; }
 .hotel-search-loading small { color: #9c8490; font-size: 11px; }
 @keyframes hotel-search-spin { to { transform: rotate(360deg); } }
-.travel-calendar-popover { position: fixed; inset: 0; z-index: 110; pointer-events: none; }
+.travel-calendar-popover { position: fixed; inset: 0; z-index: 110; pointer-events: auto; }
 .travel-calendar-popover[hidden] { display: none; }
 .travel-calendar-dialog { padding: 22px 24px; position: fixed; overflow: visible; pointer-events: auto; border: 1px solid #efdce5; border-radius: 18px; background: #fff; box-shadow: 0 22px 55px rgba(49,23,37,.2); animation: travel-region-in .16s ease-out; }
 .travel-calendar-dialog > header { display: flex; justify-content: space-between; gap: 20px; }
@@ -897,6 +955,7 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
 .travel-calendar-days button.is-start, .travel-calendar-days button.is-end { background: linear-gradient(to right, transparent 50%, #fdebf3 50%); }
 .travel-calendar-days button.is-end { background: linear-gradient(to left, transparent 50%, #fdebf3 50%); }
 .travel-calendar-days button.is-start b, .travel-calendar-days button.is-end b { color: #fff; border-radius: 50%; background: #b94f80; box-shadow: 0 5px 13px rgba(173,65,116,.25); }
+.travel-calendar-days button.is-start:not(:disabled) b, .travel-calendar-days button.is-end:not(:disabled) b { color: #fff; }
 .travel-calendar-days button small { position: absolute; left: 0; right: 0; bottom: -2px; z-index: 3; color: #8e7883; font-size: 8px; }
 .travel-calendar-dialog footer { margin-top: 18px; padding-top: 16px; display: flex; justify-content: flex-end; border-top: 1px solid #f0e4ea; }
 .travel-calendar-dialog footer button { min-width: 130px; min-height: 48px; border: 0; border-radius: 13px; color: #4b2038; background: var(--primary); font-weight: 850; cursor: pointer; }

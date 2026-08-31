@@ -12,15 +12,18 @@ export function hasSession() {
 }
 
 export function saveLoginSession(data) {
-  const accessToken = data.accessToken ?? data.tokenResponse?.accessToken ?? data.token;
-  const refreshToken = data.tokenResponse?.refreshToken;
-  const email = data.email ?? data.username ?? "";
-  const name = data.name ?? data.nickname ?? "";
+  const tokenSource = data.tokenResponse ?? data.tokens ?? data.auth ?? data;
+  const accessToken = tokenSource.accessToken ?? tokenSource.access_token ?? tokenSource.token;
+  const refreshToken = tokenSource.refreshToken ?? tokenSource.refresh_token;
+  const user = data.user ?? data.member ?? {};
+  const email = data.email ?? data.username ?? user.email ?? user.username ?? "";
+  const name = data.name ?? data.nickname ?? user.name ?? user.nickname ?? "";
 
   if (!accessToken) throw new Error("로그인 응답에 accessToken이 없습니다.");
-  sessionStorage.setItem("accessToken", accessToken);
+  sessionStorage.setItem("accessToken", String(accessToken).replace(/^Bearer\s+/i, ""));
   if (refreshToken) sessionStorage.setItem("refreshToken", refreshToken);
-  if (data.userId != null) sessionStorage.setItem("userId", String(data.userId));
+  const userId = data.userId ?? data.memberId ?? user.id ?? user.userId;
+  if (userId != null) sessionStorage.setItem("userId", String(userId));
   if (email) {
     sessionStorage.setItem("email", email);
     sessionStorage.setItem("username", email);

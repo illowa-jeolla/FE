@@ -27,7 +27,7 @@ export default function AuthPage() {
   async function login(event) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    const url = AUTH_API.enabled ? authApiUrl(AUTH_API.endpoints.login) : "/api/auth/login";
+    const url = authApiUrl(AUTH_API.endpoints.login);
     try {
       setError(false); setMessage("로그인 중입니다.");
       const data = await postJson(url, { email: values.email.trim().toLowerCase(), password: values.password });
@@ -46,7 +46,7 @@ export default function AuthPage() {
     }
     try {
       setError(false); setMessage("계정을 만들고 있습니다.");
-      const url = AUTH_API.enabled ? authApiUrl(AUTH_API.endpoints.signup) : "/api/auth/register";
+      const url = authApiUrl(AUTH_API.endpoints.signup);
       const email = values.email.trim().toLowerCase();
       const data = await postJson(url, { email, password: values.password, nickname: values.nickname });
       saveLoginSession({ ...data, email, nickname: values.nickname });

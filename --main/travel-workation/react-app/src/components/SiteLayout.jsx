@@ -43,10 +43,10 @@ export default function SiteLayout() {
       return () => { cancelled = true; };
     }
 
-    apiRequest("/api/me")
+    apiRequest("/api/v1/me")
       .then((data) => {
         if (cancelled) return;
-        const profile = data.profile || {};
+        const profile = data.profile || data || {};
         const email = profile.email || profile.username || "";
         const name = profile.nickname || email.split("@")[0] || "";
         if (email) sessionStorage.setItem("email", email);

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiRequest } from "../api/client";
+import { getJobs } from "../api/jobs";
+import { getRegions } from "../api/regions";
+import { asList } from "../hooks/useApi";
 
 const features = [
   { icon: "⌖", tag: "여행 탐색", title: "관광지 지도", description: "전라도 지도를 보며 가고 싶은 지역을 고르고, 지역별 관광 정보와 일자리를 함께 살펴보세요.", label: "지도 열기", path: "/map", featured: true },
@@ -15,7 +17,11 @@ export default function HomePage() {
   const [stats, setStats] = useState({ regionCount: "-", jobCount: "-", averageRating: "-" });
 
   useEffect(() => {
-    apiRequest("/api/stats").then(setStats).catch(() => {});
+    Promise.all([getRegions({ parentId: 1 }), getJobs({ page: 0, size: 1 })]).then(([regionData, jobData]) => {
+      const regions = asList(regionData, "regions");
+      const ratings = regions.map((region) => Number(region.averageRating)).filter(Number.isFinite);
+      setStats({ regionCount: regions.length, jobCount: jobData.totalElements ?? asList(jobData, "jobs").length, averageRating: ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : "-" });
+    }).catch(() => {});
   }, []);
 
   return (

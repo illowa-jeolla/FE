@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Status } from "../components/UI";
-import { useApi } from "../hooks/useApi";
+import { getJobs } from "../api/jobs";
+import { getTravelPosts } from "../api/travelPosts";
+import { asList } from "../hooks/useApi";
 
 function SearchSection({ title, items, render }) {
   if (!items?.length) return null;
@@ -13,9 +15,9 @@ export default function SearchPage() {
   const initial = params.get("q") || "";
   const [query, setQuery] = useState(initial);
   const [recent, setRecent] = useState(() => JSON.parse(localStorage.getItem("recentSearches") || "[]"));
-  const { data, loading, error, run } = useApi("", { immediate: false });
+  const [data, setData] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
 
-  useEffect(() => { if (initial.length >= 2) run(`/api/search?q=${encodeURIComponent(initial)}`).catch(() => {}); }, [initial, run]);
+  useEffect(() => { if (initial.length < 2) return; let active = true; setLoading(true); setError(""); Promise.all([getJobs({ page: 0, size: 100 }), getTravelPosts({ page: 0, size: 100 })]).then(([jobData, postData]) => { if (!active) return; const keyword = initial.toLowerCase(); const jobs = (Array.isArray(jobData?.content) ? jobData.content : asList(jobData, "jobs")).filter((item) => [item.title, item.employerName, item.regionName].some((value) => String(value || "").toLowerCase().includes(keyword))); const posts = (Array.isArray(postData?.content) ? postData.content : asList(postData, "posts")).filter((item) => [item.title, item.concept, item.content, item.regionName].some((value) => String(value || "").toLowerCase().includes(keyword))); setData({ jobs, posts, destinations: [], gatherings: [] }); }).catch((requestError) => { if (active) setError(requestError.message); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [initial]);
 
   function submit(event) {
     event.preventDefault();
@@ -34,8 +36,8 @@ export default function SearchPage() {
     <Status loading={loading} error={error} empty={initial && data && ![data.jobs, data.destinations, data.posts, data.gatherings].some((items) => items?.length)}>
       {data && <section className="search-results">
         <SearchSection title="관광지" items={data.destinations} render={(item) => <Link to={`/recommend?destination=${item.id}`} key={item.id}><span>관광지 · {item.region}</span><strong>{item.name}</strong><p>{item.category || item.description}</p></Link>} />
-        <SearchSection title="일자리" items={data.jobs} render={(item) => <Link to={`/jobs/${item.id}`} key={item.id}><span>일자리 · {item.region}</span><strong>{item.title}</strong><p>{item.companyName} · {item.pay || "급여 협의"}</p></Link>} />
-        <SearchSection title="여행 이야기" items={data.posts} render={(item) => <Link to={`/community/${item.id}`} key={item.id}><span>여행 이야기 · {item.region}</span><strong>{item.concept}</strong><p>{item.content}</p></Link>} />
+        <SearchSection title="일자리" items={data.jobs} render={(item) => <Link to={`/jobs/${item.id}`} key={item.id}><span>일자리 · {item.regionName}</span><strong>{item.title}</strong><p>{item.employerName} · {item.salaryText || "급여 협의"}</p></Link>} />
+        <SearchSection title="여행 이야기" items={data.posts} render={(item) => <Link to={`/community/${item.id}`} key={item.id}><span>여행 이야기 · {item.regionName}</span><strong>{item.title || item.concept}</strong><p>{item.content}</p></Link>} />
         <SearchSection title="게더링" items={data.gatherings} render={(item) => <Link to="/gatherings" key={item.id}><span>게더링 · {item.region}</span><strong>{item.title}</strong><p>{item.description}</p></Link>} />
       </section>}
     </Status>

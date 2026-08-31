@@ -140,6 +140,46 @@ button { cursor: pointer; }
 .destination-info-grid-react dt { color: var(--muted); font-size: 13px; }
 .destination-info-grid-react dd { margin: 0; font-size: 14px; font-weight: 700; }
 .destination-homepage-react { min-height: 44px; margin-top: 20px; display: inline-flex; align-items: center; color: var(--primary-dark); font-weight: 800; }
+.place-action-message, .map-api-warning { padding: 11px 14px; border: 1px solid #f0d3e1; border-radius: 8px; color: #8b315f; background: #fff5fa; font-size: 13px; }
+.place-reviews-panel { margin-top: 18px; padding: 30px; }
+.place-reviews-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.place-reviews-heading span { color: var(--primary-dark); font: 800 12px Geist, sans-serif; }
+.place-reviews-heading h2 { margin: 7px 0 0; }
+.place-reviews-heading > strong { color: var(--primary-dark); font-size: 20px; }
+.place-review-form { margin-top: 24px; padding: 20px; display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; align-items: end; gap: 14px; border-radius: 10px; background: #fff7fb; }
+.place-review-form label { display: grid; gap: 7px; color: #624957; font-size: 13px; font-weight: 700; }
+.place-review-form select, .place-review-form textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #fff; font: inherit; resize: vertical; }
+.place-review-form > div { display: flex; gap: 8px; }
+.place-review-list { margin-top: 20px; display: grid; gap: 10px; }
+.place-review-list article { padding: 18px 20px; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+.place-review-list article header { display: flex; justify-content: space-between; gap: 16px; }
+.place-review-list article header div { display: flex; gap: 12px; }
+.place-review-list article header span { color: #e07a33; }
+.place-review-list article small { color: var(--muted); }
+.place-review-list article p { color: #624957; line-height: 1.65; }
+.place-review-list article footer { display: flex; justify-content: flex-end; gap: 8px; }
+.place-review-list article footer button { padding: 5px 9px; border: 1px solid var(--line); border-radius: 5px; color: var(--primary-dark); background: #fff; font-size: 12px; }
+.place-reviews-empty { padding: 28px; color: var(--muted); text-align: center; }
+.job-application-message { margin: 14px 0; display: grid; gap: 7px; color: #624957; font-size: 13px; font-weight: 700; text-align: left; }
+.job-application-message textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #fff; font: inherit; resize: vertical; }
+.mypage-job-card { display: flex !important; align-items: center; justify-content: space-between; gap: 18px; }
+.mypage-job-card > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.mypage-job-card .button { min-height: 38px; padding: 0 12px; }
+.ai-choice-box { min-width: 0; margin: 0; padding: 0; border: 0; }
+.ai-choice-box legend { margin-bottom: 9px; color: #624957; font-size: 13px; font-weight: 700; }
+.ai-vehicle-check { display: flex !important; align-items: center; grid-template-columns: auto 1fr; gap: 9px !important; }
+.ai-vehicle-check input { width: 18px !important; height: 18px; margin: 0; }
+.ai-match-result-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-match-result-tabs button { min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; color: #765466; background: #fff; font-size: 12px; font-weight: 700; }
+.ai-match-result-tabs button.is-active { border-color: var(--primary); color: #5e2745; background: var(--primary-soft); }
+.ai-detail-hint { color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.community-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.community-detail-toolbar .community-back { flex: 1; margin-bottom: 16px; }
+.community-detail-toolbar > div { margin-bottom: 16px; display: flex; gap: 7px; }
+.community-like-button { min-height: 42px; margin-top: 18px; padding: 0 15px; border: 1px solid var(--line); border-radius: 9px; color: #8d5872; background: #fff; font-weight: 800; }
+.community-like-button.is-liked { border-color: #ef9fc4; color: #b63f79; background: #fff0f7; }
+.community-comments article footer { margin-top: 8px; display: flex; gap: 6px; }
+.community-comments article footer button { padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; color: #8d5872; background: #fff; font-size: 11px; }
 
 @media (min-width: 1121px) {
   .react-map-page-main { height: calc(100vh - 76px); min-height: 0; overflow: hidden; }
@@ -277,12 +317,17 @@ select, input, textarea { color: var(--ink); }
 .save-guide-button-react.is-saved > span { color: #e12655; animation: saved-heart-pop .62s ease both; }
 @keyframes saved-heart-pop { 0% { transform: scale(.65); } 45% { transform: scale(1.45) rotate(-8deg); } 72% { transform: scale(.9) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
 .travel-search-bar.react-guide-search-react { min-height: 0; grid-template-rows: 128px 102px 102px minmax(112px, auto) 102px 98px; }
-.react-guide-search-react .travel-guide-submit { grid-row: 6; }
+.react-guide-search-react .travel-guide-submit { grid-row: 5; }
 .react-guide-search-react .travel-preferences { grid-row: 1 / 7; }
 @media (max-width: 980px) {
   .travel-search-bar.react-guide-search-react { grid-template-rows: auto; }
   .react-guide-search-react .travel-guide-submit,
   .react-guide-search-react .travel-preferences { grid-row: auto; }
+}
+
+@media (max-width: 760px) {
+  .place-review-form { grid-template-columns: 1fr; }
+  .place-review-form > div { flex-wrap: wrap; }
 }
 .travel-search-field select { min-width: 0; width: 100%; border: 0; outline: 0; color: #2b1824; background: transparent; font-size: 14px; font-weight: 750; }
 .travel-search-field select:disabled { color: #a9959f; cursor: not-allowed; }
