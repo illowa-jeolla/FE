@@ -44,15 +44,16 @@ async function request(url, body) {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
+    credentials: "include",
     body: JSON.stringify(body)
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || "요청을 처리하지 못했습니다.");
-  return data;
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || "요청을 처리하지 못했습니다.");
+  return payload.data ?? payload;
 }
 
 function saveLoginSession(data) {
-  const accessToken = data.tokenResponse?.accessToken ?? data.token;
+  const accessToken = data.accessToken ?? data.tokenResponse?.accessToken ?? data.token;
   const refreshToken = data.tokenResponse?.refreshToken;
   const email = data.email ?? data.username ?? "";
   const nickname = data.name ?? data.nickname ?? "";
@@ -75,7 +76,14 @@ document.querySelectorAll(".auth-tab").forEach((tab) => {
 
 document.querySelectorAll("[data-social-login]").forEach((button) => {
   button.addEventListener("click", () => {
-    showMessage(`${button.dataset.socialLogin} 간편 로그인은 연동 준비 중입니다.`);
+    const providerLabel = String(button.dataset.socialLogin || "");
+    const provider = ({ "카카오": "kakao", "구글": "google" })[providerLabel] || providerLabel.toLowerCase();
+    const endpoint = authApiConfig.endpoints?.[provider];
+    if (!authApiConfig.enabled || !endpoint) {
+      showMessage(`${providerLabel} 로그인을 사용할 수 없습니다.`, true);
+      return;
+    }
+    location.assign(authApiUrl(endpoint));
   });
 });
 
@@ -105,15 +113,16 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   try {
     showMessage("계정을 만들고 있습니다.");
     const email = values.email.trim().toLowerCase();
-    await request(`${localApiBaseUrl}/api/auth/register`, {
+    const signupApiUrl = authApiConfig.enabled
+      ? authApiUrl(authApiConfig.endpoints?.signup || "/auth/signup")
+      : `${localApiBaseUrl}/api/auth/register`;
+    const data = await request(signupApiUrl, {
       email,
       password: values.password,
       nickname: values.nickname
     });
-    event.currentTarget.reset();
-    showView("login");
-    document.querySelector("#login-form [name='email']").value = email;
-    showMessage("회원가입이 완료되었습니다. 로그인해 주세요.");
+    saveLoginSession({ ...data, email, nickname: values.nickname });
+    location.href = loginDestination();
   } catch (error) {
     showMessage(error.message, true);
   }

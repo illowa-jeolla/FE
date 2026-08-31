@@ -31,6 +31,7 @@ export function useApi(path, { immediate = true } = {}) {
 export function asList(data, key) {
   if (Array.isArray(data)) return data;
   if (key && Array.isArray(data?.[key])) return data[key];
+  if (Array.isArray(data?.content)) return data.content;
   if (Array.isArray(data?.items)) return data.items;
   return [];
 }

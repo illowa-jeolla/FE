@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20260805-2">
-  <link rel="stylesheet" href="feature-pages.css?v=20260809-3">
+  <link rel="stylesheet" href="feature-pages.css?v=20260826-24">
 </head>
 <body class="feature-page travel-guide-page travel-result-page">
   <header class="site-header">
@@ -44,13 +44,15 @@
       <a class="travel-guide-back" href="recommend.html">← 조건 다시 선택하기</a>
       <header class="travel-guide-heading">
         <div><span class="travel-guide-eyebrow">YOUR PERSONAL GUIDE</span><h2><strong id="guide-region-label"></strong>, 이렇게 둘러보세요</h2><p><b id="guide-hotel-label"></b>에서 출발하는 실제 위치 기반 추천 동선이에요.</p><div class="travel-selected-preferences" id="guide-preference-label"></div></div>
-        <div class="travel-guide-period"><span id="guide-date-label"></span><div class="travel-guide-actions"><button class="travel-save-guide" id="save-guide" type="button">♡ 일정 저장</button><button class="travel-recommend-again" id="recommend-again" type="button">↻ 다른 코스 추천</button><a class="travel-reset-conditions" id="reset-conditions" href="recommend.html" hidden>← 조건 다시 정하기</a></div></div>
+        <div class="travel-guide-period"><span id="guide-date-label"></span><div class="travel-guide-actions"><button class="travel-save-guide" id="save-guide" type="button">♡ 일정 저장</button><button class="travel-recommend-again" id="recommend-again" type="button">↻ 한 번 더 추천받기</button></div></div>
       </header>
-      <div class="travel-route-layout">
-        <aside class="travel-place-panel"><div class="travel-route-summary"><span>DAY 1 · 추천 동선</span><b id="travel-route-summary-detail"></b></div><div id="travel-place-list"></div></aside>
+      <nav class="travel-day-navigation" aria-label="여행 날짜별 일정"><div id="travel-day-tabs"></div></nav>
+      <div class="travel-route-layout" id="travel-route-layout">
+        <aside class="travel-place-panel"><div class="travel-route-summary"><span id="travel-day-label">DAY 1 · 추천 동선</span><b id="travel-route-summary-detail"></b></div><div id="travel-place-list"></div><button class="travel-add-place" id="travel-add-place" type="button"><b>＋</b> 관광지 추가하기</button><button class="travel-return-hotel" id="travel-return-hotel" type="button"><span>숙소로 복귀</span><small id="travel-return-info">경로 계산 중</small></button></aside>
         <section class="travel-route-map travel-kakao-map-wrap" aria-label="숙소 주변 추천 관광지와 여행 경로">
           <div class="travel-kakao-map" id="travel-kakao-map"></div>
           <p class="travel-kakao-map-status" id="travel-kakao-map-status">지도를 불러오고 있어요.</p>
+          <div class="travel-route-refresh" id="travel-route-refresh" hidden><i></i><strong>경로를 다시 만들고 있어요</strong></div>
           <article class="travel-map-card" id="travel-map-card"></article>
         </section>
       </div>
@@ -58,7 +60,9 @@
       <div class="travel-jobs-cta"><div><span>WORK NEARBY</span><strong id="nearby-jobs-title">추천 지역 주변에서 일자리도 찾아보세요</strong><p>관광·축제·팝업 등 지역에 등록된 일자리를 바로 확인할 수 있어요.</p></div><a id="nearby-jobs-cta" href="map.html?view=search">주변 일자리 찾아보기 <b>→</b></a></div>
     </section>
   </main>
+  <div class="travel-place-search-backdrop" id="travel-place-search-modal" hidden><section class="travel-place-search-dialog" role="dialog" aria-modal="true" aria-labelledby="travel-place-search-title"><header><div><span>ADD A PLACE</span><h2 id="travel-place-search-title">관광지 추가하기</h2></div><button id="travel-place-search-close" type="button" aria-label="닫기">×</button></header><label><span>⌕</span><input id="travel-place-search-input" type="search" placeholder="관광지 이름을 검색하세요" autocomplete="off"></label><div id="travel-place-search-results"></div></section></div>
+  <div class="travel-place-context" id="travel-place-context" hidden><button type="button" id="travel-place-remove"><span>관광지 제거</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" /></svg></button></div>
   <script src="shared.js?v=20260809-1"></script>
-  <script src="travel-guide.js?v=20260824-1"></script>
+  <script src="travel-guide.js?v=20260826-10"></script>
 </body>
 </html>

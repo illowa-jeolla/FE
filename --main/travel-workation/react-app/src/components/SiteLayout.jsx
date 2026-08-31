@@ -24,16 +24,29 @@ export default function SiteLayout() {
   const accountLabel = !storedName || /^[?\uFFFD]+$/.test(storedName) ? "마이페이지" : storedName;
 
   useEffect(() => {
+    const classes = ["feature-page", "auth-page", "map-page", "travel-guide-page", "travel-result-page", "mypage-page", "job-detail-page"];
+    classes.forEach((name) => document.body.classList.remove(name));
+    if (location.pathname === "/auth" || location.pathname === "/oauth/callback") document.body.classList.add("auth-page");
+    else if (location.pathname === "/map") document.body.classList.add("map-page");
+    else if (location.pathname === "/mypage" || location.pathname.startsWith("/mypage/")) document.body.classList.add("feature-page", "mypage-page");
+    else if (location.pathname.startsWith("/jobs/")) document.body.classList.add("feature-page", "job-detail-page");
+    else if (location.pathname === "/recommend") document.body.classList.add("feature-page", "travel-guide-page");
+    else if (location.pathname === "/travel-guide") document.body.classList.add("feature-page", "travel-guide-page", "travel-result-page");
+    else if (location.pathname !== "/") document.body.classList.add("feature-page");
+    return () => classes.forEach((name) => document.body.classList.remove(name));
+  }, [location.pathname]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!hasSession()) {
       setSession({ status: "guest", user: getSessionUser() });
       return () => { cancelled = true; };
     }
 
-    apiRequest("/api/me")
+    apiRequest("/api/v1/me")
       .then((data) => {
         if (cancelled) return;
-        const profile = data.profile || {};
+        const profile = data.profile || data || {};
         const email = profile.email || profile.username || "";
         const name = profile.nickname || email.split("@")[0] || "";
         if (email) sessionStorage.setItem("email", email);
@@ -53,30 +66,26 @@ export default function SiteLayout() {
   }, [location.pathname]);
 
   return (
-    <div className={`app-shell${isMapPage ? " is-map-page-react" : ""}`}>
-      <header className="site-header-react">
-        <Link className="brand-react" to="/" aria-label="일로와전라 홈">
-          <span className="brand-mark-react">일</span>
+    <div className="app-shell">
+      <header className="site-header">
+        <Link className="brand" to="/" aria-label="일로와전라 홈">
+          <span className="brand-mark">일</span>
           <span>일로와전라</span>
         </Link>
         <button className="mobile-menu-button" type="button" onClick={() => setOpen((value) => !value)} aria-label="메뉴 열기" aria-expanded={open}>
           <span aria-hidden="true">{open ? "×" : "☰"}</span>
         </button>
-        <nav className={`main-nav-react${open ? " is-open" : ""}`} aria-label="주요 메뉴">
+        <nav className={`main-nav${open ? " is-open" : ""}`} aria-label="주요 메뉴">
           <Link to="/" onClick={() => setOpen(false)}>홈</Link>
           {navigation.map(([label, path]) => <NavLink key={path} to={path} onClick={() => setOpen(false)}>{label}</NavLink>)}
         </nav>
         {signedIn ? (
-          <Link className="account-button" to="/mypage">{accountLabel}</Link>
+          <Link className="button button-small button-ghost header-nickname-link" to="/mypage">{accountLabel}</Link>
         ) : (
-          <Link className="account-button" to="/auth">로그인</Link>
+          <Link className="button button-small button-ghost" to="/auth">로그인</Link>
         )}
       </header>
       <Outlet />
-      {!isMapPage && <footer className="site-footer-react">
-        <div className="brand-react"><span className="brand-mark-react">일</span><span>일로와전라</span></div>
-        <p>전라도의 여행과 로컬 일자리를 연결합니다.</p>
-      </footer>}
     </div>
   );
 }
