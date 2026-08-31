@@ -1,31 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { KAKAO_MAP_JAVASCRIPT_KEY } from "../config";
-
-let kakaoMapsPromise;
-
-function loadKakaoMaps(appKey) {
-  if (window.kakao?.maps) {
-    return new Promise((resolve) => window.kakao.maps.load(resolve));
-  }
-  if (kakaoMapsPromise) return kakaoMapsPromise;
-
-  kakaoMapsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
-    script.async = true;
-    script.addEventListener("load", () => window.kakao.maps.load(resolve), { once: true });
-    script.addEventListener("error", () => reject(new Error("카카오 지도 SDK를 불러오지 못했습니다.")), { once: true });
-    document.head.appendChild(script);
-  });
-
-  return kakaoMapsPromise;
-}
-
-function coordinates(item) {
-  const latitude = Number(item?.latitude);
-  const longitude = Number(item?.longitude);
-  return Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null;
-}
+import { kakaoCoordinates as coordinates, loadKakaoMaps } from "./kakaoMaps";
 
 export default function KakaoRouteMap({ guide, active, onSelect }) {
   const containerRef = useRef(null);
