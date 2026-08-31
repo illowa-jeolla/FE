@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { addPlaceVisit, createPlaceReview, deletePlaceReview, deletePlaceVisit, getPlace, getPlaceReviews, updatePlaceReview } from "../api/regions";
 import { asList } from "../hooks/useApi";
+import KakaoMarkerMap from "../components/KakaoMarkerMap";
 
 function imagePath(place) {
   const value = place?.imageUrl || place?.image || place?.thumbnailUrl || place?.firstImage;
@@ -94,7 +95,7 @@ export default function DestinationDetailPage() {
     <section className="destination-hero-react"><img src={imagePath(place)} alt={`${name} 전경`} /><div><span>관광지 상세 정보</span><h2>{name}</h2><p>{valueOf(place, "description", "overview", "summary")}</p><div className="destination-score-react"><strong>★ {averageRating.toFixed(1)}</strong><span>리뷰 {place.reviewCount ?? reviews.length}개</span></div></div></section>
     <section className="destination-info-grid-react">
       <article><span>이용 안내</span><h2>방문 전에 확인하세요</h2><dl><div><dt>주소</dt><dd>{valueOf(place, "address", "roadAddress")}</dd></div><div><dt>운영 시간</dt><dd>{valueOf(place, "openingHours", "businessHours", "useTime")}</dd></div><div><dt>전화</dt><dd>{valueOf(place, "phone", "telephone", "tel")}</dd></div><div><dt>주차</dt><dd>{valueOf(place, "parking", "parkingInfo")}</dd></div></dl></article>
-      <article><span>위치 정보</span><h2>관광지 좌표</h2><dl><div><dt>지역</dt><dd>{regionName}</dd></div><div><dt>위도</dt><dd>{valueOf(place, "latitude", "lat")}</dd></div><div><dt>경도</dt><dd>{valueOf(place, "longitude", "lng")}</dd></div><div><dt>분류</dt><dd>{valueOf(place, "category", "placeType", "type")}</dd></div></dl></article>
+      <article><span>위치 정보</span><h2>관광지 위치</h2><KakaoMarkerMap items={[place]} label={`${name} 위치 카카오 지도`} /><dl><div><dt>지역</dt><dd>{regionName}</dd></div><div><dt>위도</dt><dd>{valueOf(place, "latitude", "lat")}</dd></div><div><dt>경도</dt><dd>{valueOf(place, "longitude", "lng")}</dd></div><div><dt>분류</dt><dd>{valueOf(place, "category", "placeType", "type")}</dd></div></dl></article>
     </section>
     <section className="place-reviews-panel page-panel">
       <div className="place-reviews-heading"><div><span>PLACE REVIEWS</span><h2>관광지 리뷰</h2></div><strong>{reviews.length}개</strong></div>
