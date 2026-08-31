@@ -17,7 +17,7 @@ export default function HomePage() {
   const [stats, setStats] = useState({ regionCount: "-", jobCount: "-", averageRating: "-" });
 
   useEffect(() => {
-    Promise.all([getRegions({ parentId: 1 }), getJobs({ page: 0, size: 1 })]).then(([regionData, jobData]) => {
+    Promise.all([getRegions(), getJobs({ page: 0, size: 1 })]).then(([regionData, jobData]) => {
       const regions = asList(regionData, "regions");
       const ratings = regions.map((region) => Number(region.averageRating)).filter(Number.isFinite);
       setStats({ regionCount: regions.length, jobCount: jobData.totalElements ?? asList(jobData, "jobs").length, averageRating: ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : "-" });

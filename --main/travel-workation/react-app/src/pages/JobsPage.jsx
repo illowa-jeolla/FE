@@ -17,7 +17,8 @@ function preferredTime(value = "") {
 export function jobsPath(filters = {}, regionRecords = []) {
   const query = new URLSearchParams({ page: "0", size: "20" });
   const region = regionRecords.find((item) => item.name === filters.region);
-  if (region?.id) query.set("regionId", region.id);
+  const regionId = region?.regionId || region?.id;
+  if (regionId) query.set("regionId", regionId);
   if (filters.workType) query.set("workType", workTypeValues[filters.workType] || filters.workType);
   if (filters.time) query.set("preferredTime", preferredTime(filters.time));
   if (filters.tripStart) query.set("startsOn", filters.tripStart);
@@ -70,7 +71,7 @@ export default function JobsPage() {
     function closePicker(event) { if (!filterRef.current?.contains(event.target)) setOpenPicker(""); }
     document.addEventListener("pointerdown", closePicker); return () => document.removeEventListener("pointerdown", closePicker);
   }, []);
-  useEffect(() => { getRegions({ parentId: 1 }).then((result) => { const list = asList(result, "regions"); setRegionRecords(list); if (initialRegion) run(jobsPath({ ...filters, region: initialRegion }, list)).catch(() => {}); }).catch(() => {}); }, []);
+  useEffect(() => { getRegions().then((result) => { const list = asList(result, "regions"); setRegionRecords(list); if (initialRegion) run(jobsPath({ ...filters, region: initialRegion }, list)).catch(() => {}); }).catch(() => {}); }, []);
   function openDatePicker() {
     const start = filters.tripStart ? new Date(`${filters.tripStart}T00:00:00`) : null; const end = filters.tripEnd ? new Date(`${filters.tripEnd}T00:00:00`) : null;
     setDraftStart(start); setDraftEnd(end); setCalendarCursor(start ? new Date(start.getFullYear(), start.getMonth(), 1) : new Date(todayRef.current.getFullYear(), todayRef.current.getMonth(), 1)); setDateOpen(true);

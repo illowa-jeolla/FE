@@ -48,7 +48,7 @@ export default function LocalFitPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getRegions({ parentId: 1 }).then((data) => setRegions(asList(data, "regions"))).catch(() => {});
+    getRegions().then((data) => setRegions(asList(data, "regions"))).catch(() => {});
     return () => { pollGeneration.current += 1; };
   }, []);
 
@@ -124,7 +124,7 @@ export default function LocalFitPage() {
     <section className="ai-match-intro"><div><p className="eyebrow dark">AI 전라도 라이프 매칭</p><h1>AI가 전라도에서<br />살 곳·일·여행을 함께 찾아드려요</h1></div></section>
     <div className="ai-match-workspace">
       <section className="ai-match-panel ai-match-form-panel"><h2>AI 매칭 조건</h2><form className="stack-form" ref={formRef} onSubmit={startRequest}>
-        <div className="form-row"><label>희망 생활권<input name="desiredLifestyle" placeholder="예: 바다 가까운 중소도시" required /></label><label>선호 지역<select name="preferredRegionId" defaultValue=""><option value="">전남·전북 전체</option>{regions.map((region) => <option value={region.id} key={region.id}>{region.name}</option>)}</select></label></div>
+        <div className="form-row"><label>희망 생활권<input name="desiredLifestyle" placeholder="예: 바다 가까운 중소도시" required /></label><label>선호 지역<select name="preferredRegionId" defaultValue=""><option value="">전남·전북 전체</option>{regions.map((region) => { const regionId = region.regionId || region.id; return <option value={regionId} key={regionId || region.name}>{region.name}</option>; })}</select></label></div>
         <fieldset className="ai-choice-box"><legend>관심 일자리</legend><div className="ai-priority-tags">{jobOptions.map(([value, label]) => <label key={value}><input type="checkbox" name="jobInterests" value={value} checked={jobInterests.includes(value)} onChange={() => setJobInterests((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><span>{label}</span></label>)}</div></fieldset>
         <div className="ai-priority-box"><div className="ai-priority-head"><strong>생활 우선순위</strong><span>{priorities.length} / 4 선택</span></div><div className="ai-priority-tags">{priorityOptions.map(([value, label]) => <label key={value}><input type="checkbox" name="priorities" value={value} checked={priorities.includes(value)} onChange={() => setPriorities((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><span>{label}</span></label>)}</div></div>
         <div className="form-row"><label>희망 월급<input name="desiredSalary" type="number" min="0" step="10000" defaultValue="2500000" /></label><label>희망 체류 기간<input name="stayPeriod" defaultValue="3개월" placeholder="예: 3개월" /></label></div>

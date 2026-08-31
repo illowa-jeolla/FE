@@ -14,14 +14,13 @@ export function hasSession() {
 export function saveLoginSession(data) {
   const tokenSource = data.tokenResponse ?? data.tokens ?? data.auth ?? data;
   const accessToken = tokenSource.accessToken ?? tokenSource.access_token ?? tokenSource.token;
-  const refreshToken = tokenSource.refreshToken ?? tokenSource.refresh_token;
   const user = data.user ?? data.member ?? {};
   const email = data.email ?? data.username ?? user.email ?? user.username ?? "";
   const name = data.name ?? data.nickname ?? user.name ?? user.nickname ?? "";
 
   if (!accessToken) throw new Error("로그인 응답에 accessToken이 없습니다.");
+  ["accessToken", "refreshToken", "userId", "email", "username", "nickname"].forEach((key) => sessionStorage.removeItem(key));
   sessionStorage.setItem("accessToken", String(accessToken).replace(/^Bearer\s+/i, ""));
-  if (refreshToken) sessionStorage.setItem("refreshToken", refreshToken);
   const userId = data.userId ?? data.memberId ?? user.id ?? user.userId;
   if (userId != null) sessionStorage.setItem("userId", String(userId));
   if (email) {

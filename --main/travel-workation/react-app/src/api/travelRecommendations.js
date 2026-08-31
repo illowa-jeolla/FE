@@ -48,16 +48,16 @@ function searchParams({ regionId, query, size = 10 }) {
   });
 }
 
-export async function searchAccommodations({ regionId, query, size = 10 }) {
+export async function searchAccommodations({ regionId, query, size = 10, signal }) {
   const params = searchParams({ regionId, query, size });
-  const data = await apiRequest(`${API_BASE}/locations/search?${params}`);
-  return data.items || [];
+  const data = await apiRequest(`${API_BASE}/locations/search?${params}`, { signal });
+  return Array.isArray(data.items) ? data.items : [];
 }
 
-export async function searchRoutePoints({ regionId, query, size = 10 }) {
+export async function searchRoutePoints({ regionId, query, size = 10, signal }) {
   const params = searchParams({ regionId, query, size });
-  const data = await apiRequest(`${API_BASE}/locations/route-points/search?${params}`);
-  return data.items || [];
+  const data = await apiRequest(`${API_BASE}/locations/route-points/search?${params}`, { signal });
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 export async function getNearbyManualPlaces({ latitude, longitude, pageNo = 1 }) {
@@ -70,6 +70,13 @@ export async function getNearbyManualPlaces({ latitude, longitude, pageNo = 1 })
 
   const params = new URLSearchParams({ latitude: String(lat), longitude: String(lng), pageNo: String(page) });
   return apiRequest(`${API_BASE}/travel-guides/manual/places/nearby?${params}`);
+}
+
+export async function createManualTravelGuide(payload) {
+  return apiRequest(`${API_BASE}/travel-guides/manual`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
 }
 
 export async function requestTravelRecommendation(payload) {
