@@ -173,6 +173,10 @@ button { cursor: pointer; }
 .ai-match-result-tabs button { min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; color: #765466; background: #fff; font-size: 12px; font-weight: 700; }
 .ai-match-result-tabs button.is-active { border-color: var(--primary); color: #5e2745; background: var(--primary-soft); }
 .ai-detail-hint { color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 18px; }
+.pagination button { min-width: 68px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; color: var(--primary-dark); background: #fff; font-weight: 700; cursor: pointer; }
+.pagination button:disabled { opacity: .45; cursor: default; }
+.pagination span { color: var(--muted); font-size: 13px; font-weight: 700; }
 .community-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .community-detail-toolbar .community-back { flex: 1; margin-bottom: 16px; }
 .community-detail-toolbar > div { margin-bottom: 16px; display: flex; gap: 7px; }
@@ -180,6 +184,26 @@ button { cursor: pointer; }
 .community-like-button.is-liked { border-color: #ef9fc4; color: #b63f79; background: #fff0f7; }
 .community-comments article footer { margin-top: 8px; display: flex; gap: 6px; }
 .community-comments article footer button { padding: 4px 8px; border: 1px solid var(--line); border-radius: 5px; color: #8d5872; background: #fff; font-size: 11px; }
+.community-comment-form { margin-top: 22px; padding: 16px; display: grid; gap: 12px; border: 1px solid #eddbe4; border-radius: 14px; background: linear-gradient(145deg, #fff 0%, #fff8fb 100%); box-shadow: 0 10px 30px rgba(93, 46, 70, .06); }
+.community-comment-form textarea, .community-comment-edit-form textarea { width: 100%; min-height: 96px; padding: 13px 14px; border: 1px solid #e5d2dc; border-radius: 10px; color: #412d37; background: rgba(255,255,255,.92); font: inherit; line-height: 1.6; resize: vertical; transition: border-color .18s ease, box-shadow .18s ease; }
+.community-comment-form textarea:focus, .community-comment-edit-form textarea:focus { outline: 0; border-color: #c96b98; box-shadow: 0 0 0 3px rgba(201,107,152,.12); }
+.community-comment-edit-form { margin-top: 10px; display: grid; gap: 9px; }
+.community-comment-compose-actions { display: flex; align-items: stretch; justify-content: space-between; gap: 12px; }
+.community-secret-option { min-width: 0; flex: 1; padding: 10px 12px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 38px; align-items: center; gap: 10px; border: 1px solid #ead8e1; border-radius: 11px; color: #725364; background: rgba(255,255,255,.78); cursor: pointer; transition: .18s ease; }
+.community-secret-option:hover { border-color: #d89ab8; background: #fff; transform: translateY(-1px); }
+.community-secret-option.is-active, .community-secret-option:has(input:checked) { border-color: #c96696; color: #783354; background: #fff0f7; box-shadow: 0 7px 18px rgba(174,68,119,.10); }
+.community-secret-option > input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.community-secret-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: #a94d78; background: #fce4ef; font-size: 22px; font-weight: 900; transform: rotate(-18deg); }
+.community-secret-copy { min-width: 0; display: grid; gap: 2px; }
+.community-secret-copy strong { font-size: 12px; }
+.community-secret-copy small { overflow: hidden; color: #a08090; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.community-secret-switch { width: 38px; height: 22px; padding: 3px; display: flex; align-items: center; border-radius: 999px; background: #ddcbd4; transition: .18s ease; }
+.community-secret-switch b { width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(69,35,52,.22); transition: transform .18s ease; }
+.community-secret-option.is-active .community-secret-switch, .community-secret-option:has(input:checked) .community-secret-switch { background: #c65f91; }
+.community-secret-option.is-active .community-secret-switch b, .community-secret-option:has(input:checked) .community-secret-switch b { transform: translateX(16px); }
+.community-comment-submit { min-width: 104px; border-radius: 11px; }
+.community-comment-action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+@media (max-width: 620px) { .community-comment-compose-actions { flex-direction: column; } .community-comment-submit { width: 100%; min-height: 44px; } .community-comment-action-buttons { width: 100%; } .community-comment-action-buttons .button { flex: 1; } }
 
 @media (min-width: 1121px) {
   .react-map-page-main { height: calc(100vh - 76px); min-height: 0; overflow: hidden; }
@@ -646,6 +670,66 @@ select, input, textarea { color: var(--ink); }
 .map-page-main.is-job-search-mode .job-view-switch { grid-column: 1 / -1; }
 .map-page-main.is-job-search-mode .job-search-panel { grid-column: 1; }
 .map-page-main.is-job-search-mode .map-results-panel { width: auto; max-width: none; grid-column: 2; }
+.job-search-form .job-region-search-trigger input { width: 100%; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; outline: 0; box-shadow: none; color: inherit; background: transparent; font: inherit; font-weight: 700; }
+.job-search-form .job-region-search-trigger input:focus { border: 0; box-shadow: none; }
+.job-region-search-trigger input::placeholder { color: inherit; opacity: 1; }
+.job-search-api-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.job-title-search-field { width: 100%; display: grid; gap: 7px; box-sizing: border-box; color: #4b2038; font-size: 12px; font-weight: 800; }
+.job-search-panel form > .job-title-search-field { grid-column: 1 / -1; }
+.job-search-panel form.map-job-search-form { min-height: calc(100% - 48px); display: flex; flex-direction: column; }
+.job-search-panel form.map-job-search-form > .button:last-child { margin-top: auto; }
+.job-title-search-field > div { width: 100%; min-height: 48px; padding: 0 12px; display: flex; align-items: center; gap: 9px; box-sizing: border-box; border: 1px solid #eadde4; border-radius: 11px; background: #fff; transition: border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+.job-title-search-field > div:focus-within { border-color: #df8db4; background: #fff7fb; box-shadow: 0 0 0 4px rgba(243,161,201,.18); }
+.job-title-search-field span { color: #a04d74; font-size: 20px; line-height: 1; }
+.job-search-form .job-title-search-field input { min-width: 0; min-height: 0; padding: 0; flex: 1; border: 0 !important; border-radius: 0; outline: 0; box-shadow: none !important; background: transparent !important; }
+.job-search-form .job-title-search-field input:focus { border: 0 !important; box-shadow: none !important; }
+.job-title-search-field button { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; color: #9b657f; background: #ffeaf4; cursor: pointer; }
+.map-jobs-more-button { width: 100%; min-height: 52px; margin-top: 14px; border: 1px solid #efcddd; border-radius: 12px; color: #7a3658; background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.map-jobs-more-button:hover, .map-jobs-more-button:focus-visible { border-color: #e689b5; background: #fff2f8; outline: none; }
+.map-results-panel .jobs-status.is-error p { margin: 0 0 14px; }
+.map-results-panel .jobs-status.is-error .button { display: inline-flex; }
+.map-page-main:not(.is-job-search-mode) .map-job-item { height: 154px; min-height: 154px; padding: 14px 15px; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; }
+.map-page-main .map-job-item h3 { height: 44px; min-height: 44px; margin: 3px 0 5px; overflow: hidden; font-size: 15px; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.map-page-main .map-job-item footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; border-top: 0; }
+.map-page-main .map-job-item footer::before { content: ""; height: 1px; grid-column: 1 / -1; grid-row: 2; background: var(--line); }
+.map-page-main .map-job-location { width: auto; min-width: 0; margin: 0; grid-column: 1 / -1; grid-row: 1; overflow: hidden; color: #5c3349; font-size: 11px; font-weight: 800; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.map-page-main .map-job-item footer strong { min-width: 0; grid-column: 1; grid-row: 3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-page-main .map-job-item footer b { margin-left: 0; grid-column: 2; grid-row: 3; white-space: nowrap; }
+.map-page-main:not(.is-job-search-mode) .map-job-employer,
+.map-page-main:not(.is-job-search-mode) .job-meta { display: none; }
+.map-page-main:not(.is-job-search-mode) .map-job-item footer { margin-top: auto; }
+.map-page-main.is-job-search-mode .map-job-item { height: 168px; min-height: 168px; box-sizing: border-box; overflow: hidden; }
+.map-page-main.is-job-search-mode .map-job-employer { margin: 4px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-page-main.is-job-search-mode .map-job-item .job-meta { max-height: 23px; overflow: hidden; flex-wrap: nowrap; }
+.jobs-loading-state { min-height: 320px; padding: 38px 20px; display: flex; align-items: center; flex-direction: column; justify-content: center; color: #806b76; text-align: center; }
+.map-page-main.is-job-search-mode .map-results-panel { display: flex; flex-direction: column; }
+.map-page-main.is-job-search-mode .map-results-heading { order: -2; flex: 0 0 auto; }
+.map-page-main.is-job-search-mode .jobs-loading-state { order: -1; }
+.jobs-loading-state .travel-loading-orbit { width: 68px; height: 68px; margin-bottom: 22px; font-size: 18px; }
+.jobs-loading-state .travel-loading-orbit span { width: 40px; height: 40px; }
+.jobs-loading-state h3 { margin: 0 0 8px; color: #4b2038; font-size: 22px; }
+.jobs-loading-state p { margin: 0; font-size: 12px; }
+.map-results-panel:has(.jobs-loading-state) > .jobs-status { display: none; }
+.jobs-progress-note { margin: 14px 0 0; padding: 12px; border-radius: 10px; color: #895d73; background: #fff5fa; font-size: 11px; text-align: center; }
+.region-illustration-map { position: relative; width: min(100%, 620px); aspect-ratio: 8 / 9; margin: 0 auto; overflow: hidden; border-radius: 24px; background: #eaf8fd; box-shadow: inset 0 0 0 1px rgba(150, 205, 224, .5); }
+.region-boundary-map { display: block; width: 100%; height: 100%; touch-action: none; overscroll-behavior: contain; user-select: none; outline: none; }
+.region-boundary-map.is-zoomed { cursor: grab; }
+.region-boundary-map.is-zoomed:active { cursor: grabbing; }
+.region-map-sea { fill: #eaf8fd; }
+.region-map-shape, .region-map-shape-group path { fill: #fff7fb; stroke: #d88ab2; stroke-width: 1.7; vector-effect: non-scaling-stroke; cursor: pointer; outline: none !important; transition: fill .16s ease, filter .16s ease, stroke .16s ease; }
+.region-map-area, .region-map-area:focus, .region-map-area:focus-visible, .gwangju-map-shape, .gwangju-map-shape:focus, .gwangju-map-shape:focus-visible { outline: none !important; }
+.region-map-shape:hover, .region-map-shape:focus-visible, .region-map-shape-group:hover path, .gwangju-map-shape:focus-visible .region-map-shape-group path { fill: #f4a9cf; stroke: #ad477d; filter: drop-shadow(0 3px 4px rgba(103, 40, 73, .25)); outline: none; }
+.region-map-shape.is-selected, .region-map-shape-group.is-selected path { fill: #d85f9b; stroke: #8f315f; filter: drop-shadow(0 4px 5px rgba(103, 40, 73, .32)); }
+.region-map-label { fill: #713a58; font-size: 17px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: rgba(255,255,255,.92); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+.region-map-area:has(.region-map-shape:hover) .region-map-label, .region-map-area:has(.region-map-shape.is-selected) .region-map-label { fill: #fff; stroke: rgba(116,47,82,.72); }
+.region-map-label-gwangju { font-size: 115px; stroke-width: 26px; }
+.gwangju-map-shape { overflow: visible; outline: none; }
+.region-map-toolbar { position: absolute; z-index: 4; right: 18px; bottom: 18px; display: flex; gap: 6px; }
+.region-map-toolbar button { min-width: 34px; height: 34px; padding: 0 9px; border: 1px solid #efb1d0; border-radius: 10px; color: #8e3b68; background: rgba(255,255,255,.94); box-shadow: 0 4px 14px rgba(84,36,62,.1); font-size: 19px; font-weight: 800; cursor: pointer; }
+.region-map-toolbar button:hover, .region-map-toolbar button:focus-visible { color: #fff; background: #d85f9b; outline: none; }
+.region-map-toolbar .region-map-reset { font-size: 11px; }
+.region-map-current { position: absolute; z-index: 4; top: 22px; right: 24px; color: #df5f9f; font-size: 20px; font-weight: 900; text-shadow: 0 2px 10px rgba(255,255,255,.95); pointer-events: none; }
+.region-map-help { position: absolute; z-index: 3; right: 14px; bottom: 12px; margin: 0; padding: 7px 10px; border-radius: 9px; color: #755568; background: rgba(255,255,255,.84); font-size: 10px; pointer-events: none; }
 @media (max-width: 760px) {
   .map-page-main.is-job-search-mode { width: 100%; grid-template-columns: 1fr; }
   .map-page-main.is-job-search-mode .job-search-panel,

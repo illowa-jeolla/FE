@@ -14,7 +14,7 @@ export async function getExternalTourJobs({ pageNo = 1, numOfRows = 12, arrange 
 export async function getExternalTourJob(employmentInfoNo) {
   const id = String(employmentInfoNo || "").trim();
   if (!id) throw new Error("일자리 식별자가 없습니다.");
-  return apiRequest(`${API_BASE}/jobs/external/tour/${encodeURIComponent(id)}`);
+  return apiRequest(`${API_BASE}/jobs/external/tour/jeonnam-gwangju/${encodeURIComponent(id)}`);
 }
 
 export async function getExternalJunnamJobs({ startPage = 1, pageSize = 12, numOfRows = 12, region = "" } = {}) {
@@ -70,6 +70,20 @@ export async function getNearbyManualPlaces({ latitude, longitude, pageNo = 1 })
 
   const params = new URLSearchParams({ latitude: String(lat), longitude: String(lng), pageNo: String(page) });
   return apiRequest(`${API_BASE}/travel-guides/manual/places/nearby?${params}`);
+}
+
+const tourPlaceDetailCache = new Map();
+
+export function getTourPlaceDetail(contentId) {
+  const id = String(contentId || "").trim();
+  if (!id) return Promise.reject(new Error("관광지 식별 정보가 없습니다."));
+  if (!tourPlaceDetailCache.has(id)) {
+    tourPlaceDetailCache.set(id, apiRequest(`${API_BASE}/tour/places/${encodeURIComponent(id)}`).catch((error) => {
+      tourPlaceDetailCache.delete(id);
+      throw error;
+    }));
+  }
+  return tourPlaceDetailCache.get(id);
 }
 
 export async function createManualTravelGuide(payload) {

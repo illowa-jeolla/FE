@@ -53,38 +53,75 @@ export function deleteTravelPost(postId) {
   return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}`, { method: "DELETE" });
 }
 
-export function createTravelComment(postId, content) {
+export function uploadTravelPostImage(postId, file) {
+  if (!postId) throw new Error("이미지를 추가할 게시글 ID가 필요합니다.");
+  if (!(file instanceof File)) throw new Error("업로드할 이미지 파일이 필요합니다.");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("JPEG, PNG, WEBP 이미지만 업로드할 수 있습니다.");
+  if (file.size > 10 * 1024 * 1024) throw new Error("이미지 파일은 10MB 이하여야 합니다.");
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/images`, {
+    method: "POST",
+    body: formData
+  });
+}
+
+export function deleteTravelPostImage(postId, imageId) {
+  if (!postId) throw new Error("이미지를 삭제할 게시글 ID가 필요합니다.");
+  if (!imageId) throw new Error("삭제할 이미지 ID가 필요합니다.");
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/images/${encodeURIComponent(imageId)}`, {
+    method: "DELETE"
+  });
+}
+
+export function createTravelComment(postId, content, secret = false) {
+  if (!postId) throw new Error("댓글을 작성할 게시글 ID가 필요합니다.");
   const normalizedContent = String(content || "").trim();
   if (!normalizedContent) throw new Error("댓글 내용을 입력해 주세요.");
+  if (normalizedContent.length > 2000) throw new Error("댓글은 2000자 이하로 입력해 주세요.");
   return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/comments`, {
     method: "POST",
-    body: JSON.stringify({ content: normalizedContent, secret: false })
+    body: JSON.stringify({ content: normalizedContent, secret: Boolean(secret) })
   });
 }
 
 export function getTravelComments(postId, params = {}) {
   if (!postId) throw new Error("댓글을 조회할 게시글 ID가 필요합니다.");
-  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/comments${queryString({ page: 0, size: 50, ...params })}`);
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/comments${queryString(params)}`);
 }
 
-export function updateTravelComment(commentId, content) {
-  return apiRequest(`${COMMUNITY_BASE}/travel-comments/${encodeURIComponent(commentId)}`, { method: "PUT", body: JSON.stringify({ content }) });
+export function updateTravelComment(postId, commentId, content, secret = false) {
+  if (!postId) throw new Error("댓글이 속한 게시글 ID가 필요합니다.");
+  if (!commentId) throw new Error("수정할 댓글 ID가 필요합니다.");
+  const normalizedContent = String(content || "").trim();
+  if (!normalizedContent) throw new Error("댓글 내용을 입력해 주세요.");
+  if (normalizedContent.length > 2000) throw new Error("댓글은 2000자 이하로 입력해 주세요.");
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ content: normalizedContent, secret: Boolean(secret) })
+  });
 }
 
-export function deleteTravelComment(commentId) {
-  return apiRequest(`${COMMUNITY_BASE}/travel-comments/${encodeURIComponent(commentId)}`, { method: "DELETE" });
+export function deleteTravelComment(postId, commentId) {
+  if (!postId) throw new Error("댓글이 속한 게시글 ID가 필요합니다.");
+  if (!commentId) throw new Error("삭제할 댓글 ID가 필요합니다.");
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, {
+    method: "DELETE"
+  });
 }
 
 export function likeTravelPost(postId) {
-  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/like`, { method: "POST" });
+  if (!postId) throw new Error("좋아요를 등록할 게시글 ID가 필요합니다.");
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/likes`, { method: "POST" });
 }
 
 export function unlikeTravelPost(postId) {
-  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/like`, { method: "DELETE" });
+  if (!postId) throw new Error("좋아요를 취소할 게시글 ID가 필요합니다.");
+  return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/likes`, { method: "DELETE" });
 }
 
 export function getMyTravelPosts(params = {}) {
-  return apiRequest(`${API_BASE}/me/travel-posts${queryString(params)}`);
+  return apiRequest(`${API_BASE}/community/travel-posts/me${queryString(params)}`);
 }
 
 export function saveTravelPostDraft(draftId, draft) {

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { externalJobDetailPath } from "../api/jobs";
 
 export function PageIntro({ eyebrow, title, description, action }) {
   return (
@@ -29,7 +30,7 @@ export function JobCard({ job, compact = false }) {
       <div className="chip-row">
         {[job.workType, job.workTime, job.duration].filter(Boolean).map((item) => <span key={item}>{item}</span>)}
       </div>
-      <footer><strong>{job.pay || "급여 협의"}</strong><Link to={`/jobs/${job.id}`}>상세 보기 →</Link></footer>
+      <footer><strong>{job.pay || "상세 조건 확인"}</strong><Link to={externalJobDetailPath(job)}>상세 보기 →</Link></footer>
     </article>
   );
 }

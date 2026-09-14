@@ -1,16 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createAiMatch, getAiMatch, getAiMatchResult, getAiMatchResults, retryAiMatch } from "../api/aiMatches";
+import { createAiMatch, getAiMatch } from "../api/aiMatches";
+import { externalJobDetailPath } from "../api/jobs";
 import { getRegions } from "../api/regions";
 import { hasSession } from "../auth/session";
 import { asList } from "../hooks/useApi";
 
 const priorityOptions = [
-  ["NATURE_ACCESS", "자연 접근"], ["HOUSING_COST", "주거비"], ["COMMUTE", "출퇴근"], ["TOURISM_LIFE", "관광 생활"]
+  ["JOB", "커리어·일"], ["HOUSING", "주거·생활비"], ["TOURISM", "환경·여가"], ["COMMUNITY", "관계·정착"]
 ];
-const jobOptions = [
-  ["TOURISM_OPERATION", "관광 운영"], ["CONTENT", "콘텐츠"], ["CAFE", "카페"], ["OFFICE", "사무"]
-];
+const jobGroups = {
+  "외식·음료": ["외식·음료 전체", "서빙", "주방장·조리사", "주방보조·설거지", "바리스타", "제과제빵사", "일반음식점", "레스토랑", "패밀리레스토랑", "패스트푸드점", "치킨·피자전문점", "커피전문점", "아이스크림·디저트", "베이커리·도넛·떡", "호프·일반주점", "바(bar)", "급식·푸드시스템", "도시락·반찬"],
+  "매장관리·판매": ["매장관리·판매 전체", "매장관리·판매", "캐셔·카운터", "판촉도우미", "MD·쇼핑몰운영", "백화점·쇼핑몰", "유통점·마트", "도소매·전통시장", "편의점", "의류·잡화·쥬얼리매장", "뷰티·헬스스토어", "휴대폰·전자기기매장", "가구·침구·인테리어", "생활용품샵", "서점·문구·팬시", "약국", "농수산·청과·축산", "화훼·꽃집", "스터디룸·독서실·고시원", "PC방", "노래방", "볼링·당구장", "스크린 골프·야구", "DVD·멀티방·만화카페", "오락실·게임장", "이색테마카페", "키즈카페", "찜질방·사우나·스파", "피트니스·스포츠", "고속도로휴게소", "매장관리·판매 기타"],
+  "서비스": ["서비스 전체", "놀이공원·테마파크", "호텔·리조트·숙박", "여행·캠프·레포츠", "영화관·공연장", "전시·컨벤션·세미나", "안내데스크·리셉션", "주차유도·안내", "보안·경비·경호", "주유·세차", "렌터카·차량관리", "전단지배포", "청소·미화", "렌탈관리·A/S", "골프캐디", "헤어·미용·네일샵", "피부관리·마사지", "반려동물케어", "베이비시터·가사도우미", "결혼·연회·장례도우미", "이벤트·행사스텝", "나레이터모델", "피팅모델", "공인중개", "서비스 기타"],
+  "사무직": ["사무직 전체", "사무보조", "문서작성·자료조사", "데이터수집·가공", "비서", "경리·회계보조", "인사·총무", "마케팅·광고·홍보", "바이럴·SNS마케팅", "번역·통역", "복사·출력·제본", "편집·교정·교열", "공공기관·공기업·협회", "학교·도서관·교육기관"],
+  "고객상담·리서치·영업": ["고객상담·리서치·영업 전체", "고객상담·인바운드", "텔레마케팅·아웃바운드", "쇼핑몰인바운드", "금융·보험영업", "오프라인영업·판매", "설문조사·리서치", "콜센터관리·모니터링", "영업관리·지원"],
+  "생산·건설·노무": ["생산·건설·노무 전체", "제조·가공·조립", "포장·품질검사", "입출고·창고관리", "상하차·소화물 분류", "물류피킹·포장·전산", "지게차운전", "금형·사출·프레스·사상", "반도체·전자부품생산", "기계조작·오퍼레이터", "정비·수리·설치·A/S", "전기·시설물관리", "운반·설치·철거", "공사·건설현장", "전기·칸막이·배관공사", "인테리어·보수공사", "조선소", "재단·재봉", "생산·건설·노무 기타"],
+  "IT·기술": ["IT·기술 전체", "웹·콘텐츠기획", "사이트관리·기술지원", "프로그래머", "HTML코딩", "QA·테스터·검증", "시스템·네트워크·보안", "PC·디지털기기 설치·관리"],
+  "디자인": ["디자인 전체", "웹·모바일디자인", "그래픽·영상·편집디자인", "제품·산업디자인", "CAD·CAM·인테리어디자인", "캐릭터·애니메이션디자인", "패션·잡화디자인", "디자인 기타"],
+  "미디어": ["미디어 전체", "보조출연·방청", "방송스텝·촬영보조", "동영상촬영·편집", "사진촬영·편집", "조명·음향", "방송사·프로덕션", "신문·잡지·출판", "미디어 기타"],
+  "운전·배달": ["운전·배달 전체", "화물·운송·이사", "택배·배송기사", "납품기사", "중장비·특수차", "발렛파킹", "택시·대리·수행기사", "버스·셔틀운전", "퀵서비스", "배달대행·음식배달", "도보배달"],
+  "병원·간호·연구": ["병원·간호·연구 전체", "간호조무사·간호사", "의료기사", "간병·요양보호사", "원무·코디네이터", "외래보조·병동보조", "수의테크니션·동물보건사", "실험·연구보조", "생동성·임상시험"],
+  "교육·강사": ["교육·강사 전체", "입시·보습학원", "외국어·어학원", "독서·논술·스피치학원", "컴퓨터·정보통신", "요가·필라테스 강사", "피트니스 트레이너", "레져스포츠 강사", "예체능 강사", "유아·유치원", "등하원·승하차도우미", "방문·학습지", "보조교사", "자격증·기술학원", "국비교육기관", "학원운영지원", "교재·교육콘텐츠제작", "교육·강사 기타"]
+};
+const jobOptions = Object.keys(jobGroups);
+const requiredPriorities = priorityOptions.map(([value]) => value);
 
 function resultsOf(data) {
   if (Array.isArray(data)) return data;
@@ -19,32 +33,40 @@ function resultsOf(data) {
   return [];
 }
 
-function formConditions(form) {
+function completedMessage(status) {
+  return status === "REPLACED"
+    ? "선택한 지역의 일부 결과를 다른 지역 정보로 대체했습니다."
+    : "맞춤 생활권을 찾았습니다.";
+}
+
+function formConditions(form, preferredRegionId, priorities, jobInterests) {
   const values = new FormData(form);
   return {
-    desiredLifestyle: String(values.get("desiredLifestyle") || "").trim(),
-    preferredRegionId: values.get("preferredRegionId") ? Number(values.get("preferredRegionId")) : null,
-    jobInterests: values.getAll("jobInterests"),
-    priorities: values.getAll("priorities"),
-    desiredSalary: values.get("desiredSalary") ? Number(values.get("desiredSalary")) : null,
-    stayPeriod: String(values.get("stayPeriod") || "").trim(),
-    hasVehicle: values.get("hasVehicle") === "on",
-    extraConditions: String(values.get("extraConditions") || "").trim()
+    preferredRegionId: Number(preferredRegionId),
+    desiredJobs: [...jobInterests],
+    priorities: [...priorities],
+    thought: String(values.get("thought") || "").trim()
   };
 }
 
 export default function LocalFitPage() {
-  const formRef = useRef(null);
   const pollGeneration = useRef(0);
   const [regions, setRegions] = useState([]);
-  const [requestId, setRequestId] = useState(null);
   const [status, setStatus] = useState("");
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState(0);
   const [priorities, setPriorities] = useState([]);
+  const [priorityPickerOpen, setPriorityPickerOpen] = useState(false);
   const [jobInterests, setJobInterests] = useState([]);
+  const [jobQuery, setJobQuery] = useState("");
+  const [jobPickerOpen, setJobPickerOpen] = useState(false);
+  const [activeJobGroup, setActiveJobGroup] = useState(jobOptions[0]);
+  const [preferredRegionId, setPreferredRegionId] = useState("");
+  const [regionPickerOpen, setRegionPickerOpen] = useState(false);
+  const [regionQuery, setRegionQuery] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,26 +74,32 @@ export default function LocalFitPage() {
     return () => { pollGeneration.current += 1; };
   }, []);
 
+  useEffect(() => {
+    if (!loading) return undefined;
+    setAnalysisStep(0);
+    const timer = window.setInterval(() => {
+      setAnalysisStep((current) => Math.min(current + 1, 3));
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
   async function finishRequest(id, initial = {}) {
     const generation = ++pollGeneration.current;
     let current = initial;
-    for (let attempt = 0; attempt < 30; attempt += 1) {
+    const pollDelays = [3000, 5000, 8000, 10000, 10000, 10000, 10000, 10000, 10000, 10000];
+    for (const delay of pollDelays) {
       if (generation !== pollGeneration.current) return;
       const currentStatus = String(current.status || "").toUpperCase();
       setStatus(currentStatus || "PROCESSING");
       if (currentStatus === "FAILED") throw new Error(current.message || "AI 매칭에 실패했습니다.");
-      if (currentStatus === "COMPLETED" || resultsOf(current).length) {
-        const resultData = resultsOf(current).length ? current : await getAiMatchResults(id);
-        const list = resultsOf(resultData);
+      if (currentStatus === "COMPLETED" || currentStatus === "REPLACED") {
+        const list = resultsOf(current);
         setResults(list);
-        if (list[0]) {
-          const resultId = list[0].resultId || list[0].id;
-          try { setSelected(await getAiMatchResult(resultId)); } catch { setSelected(list[0]); }
-        }
-        setStatus("COMPLETED"); setMessage("맞춤 생활권을 찾았습니다.");
+        if (list[0]) setSelected(list[0]);
+        setStatus(currentStatus); setMessage(completedMessage(currentStatus));
         return;
       }
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      await new Promise((resolve) => window.setTimeout(resolve, delay));
       current = await getAiMatch(id);
     }
     throw new Error("AI 분석이 계속 진행 중입니다. 잠시 후 다시 확인해 주세요.");
@@ -80,65 +108,85 @@ export default function LocalFitPage() {
   async function startRequest(event) {
     event.preventDefault();
     if (!hasSession()) { navigate("/auth"); return; }
-    const conditions = formConditions(event.currentTarget);
-    if (!conditions.jobInterests.length || !conditions.priorities.length) { setMessage("관심 일자리와 생활 우선순위를 하나 이상 선택해 주세요."); return; }
+    const conditions = formConditions(event.currentTarget, preferredRegionId, priorities, jobInterests);
+    if (!conditions.preferredRegionId) { setMessage("선호 지역을 선택해 주세요."); return; }
+    if (conditions.desiredJobs.length < 1 || conditions.desiredJobs.length > 10) { setMessage("희망 직무를 1개 이상 10개 이하로 선택해 주세요."); return; }
+    if (conditions.desiredJobs.some((job) => !job.trim() || job.length > 100)) { setMessage("희망 직무는 공백 없이 100자 이하로 입력해 주세요."); return; }
+    if (conditions.priorities.length !== 4 || new Set(conditions.priorities).size !== 4
+      || requiredPriorities.some((priority) => !conditions.priorities.includes(priority))) {
+      setMessage("생활 우선순위를 중복 없이 모두 입력해 주세요."); return;
+    }
+    if (conditions.thought.length > 100) { setMessage("생각과 추가 조건을 100자 이하로 입력해 주세요."); return; }
+    setRegionPickerOpen(false); setJobPickerOpen(false); setPriorityPickerOpen(false);
     setLoading(true); setResults([]); setSelected(null); setMessage("AI가 지역과 일자리를 분석하고 있어요.");
     try {
       const created = await createAiMatch(conditions);
       const id = created.requestId || created.id;
       if (!id) throw new Error("매칭 응답에 requestId가 없습니다.");
-      setRequestId(id);
       await finishRequest(id, created);
     } catch (error) { setMessage(error.message); }
     finally { setLoading(false); }
   }
 
-  async function retry() {
-    if (!requestId || !formRef.current) return;
-    setLoading(true); setMessage("변경한 조건으로 다시 추천하고 있어요."); setSelected(null);
-    try {
-      const response = await retryAiMatch(requestId, formConditions(formRef.current));
-      const nextId = response.requestId || response.id || requestId;
-      setRequestId(nextId); setResults([]);
-      await finishRequest(nextId, response);
-    } catch (error) { setMessage(error.message); }
-    finally { setLoading(false); }
+  function selectResult(result) { setSelected(result); }
+
+  function toggleJob(value) {
+    setJobInterests((current) => {
+      if (current.includes(value)) return current.filter((item) => item !== value);
+      const group = Object.values(jobGroups).find((jobs) => jobs.includes(value));
+      const groupAll = group?.[0];
+      const isGroupAll = value === groupAll;
+      const withoutConflict = group
+        ? current.filter((item) => isGroupAll ? !group.includes(item) : item !== groupAll)
+        : current;
+      if (withoutConflict.length >= 10) { setMessage("희망 직무는 최대 10개까지 선택할 수 있습니다."); return current; }
+      setMessage("");
+      return [...withoutConflict, value];
+    });
   }
 
-  async function selectResult(result) {
-    const resultId = result.resultId || result.id;
-    setMessage("매칭 상세 정보를 불러오고 있어요.");
-    try { setSelected(await getAiMatchResult(resultId)); setMessage(""); }
-    catch (error) { setSelected(result); setMessage(error.message); }
+  function togglePriority(value) {
+    setPriorities((current) => current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value]);
+    setMessage("");
   }
 
   const item = selected || results[0] || {};
-  const score = Number(item.overallScore || item.score || 0);
+  const score = Math.min(100, Math.max(0, Number(item.scores?.overall) || 0));
+  const primaryJob = item.jobs?.[0];
+  const primaryPlace = item.places?.[0];
+  const selectedRegion = regions.find((region) => String(region.regionId || region.id) === String(preferredRegionId));
+  const filteredRegions = regions.filter((region) => String(region.name || "").includes(regionQuery.trim()));
+  const visibleJobs = jobQuery.trim()
+    ? Object.values(jobGroups).flat().filter((job, index, all) => job.includes(jobQuery.trim()) && all.indexOf(job) === index)
+    : jobGroups[activeJobGroup];
   const cards = [
-    ["추천 거주지", item.region?.name || "결과를 기다리는 중", `${item.region?.score ?? score}%`, item.summary || "생활 조건과 지역 데이터를 분석합니다."],
-    ["추천 일자리", item.job?.title || "결과를 기다리는 중", `${item.job?.score ?? 0}%`, "관심 직무와 생활권을 함께 고려한 일자리입니다."],
-    ["주변 관광지", item.places?.map?.((place) => place.name).join(" · ") || "결과를 기다리는 중", `${item.places?.length || 0}곳`, "일상과 여행을 함께 누릴 수 있는 주변 관광지입니다."]
+    ["추천 거주지", item.region?.name || "지역 정보 없음", `${item.scores?.region ?? score}%`, item.regionStatus?.message || item.summary || "추천 지역 정보가 없습니다."],
+    ["추천 일자리", primaryJob?.title || "추천 결과 없음", `${primaryJob?.matchScore ?? item.scores?.job ?? 0}%`, item.jobStatus?.message || primaryJob?.reason || "추천 가능한 일자리 정보가 없습니다."],
+    ["주변 관광지", item.places?.map?.((place) => place.name).join(" · ") || "추천 결과 없음", `${item.places?.length || 0}곳`, item.tourismStatus?.message || primaryPlace?.reason || "추천 가능한 관광지 정보가 없습니다."]
   ];
 
   return <main className={`ai-match-main${results.length ? " ai-result-ready" : ""}`}>
-    <section className="ai-match-intro"><div><p className="eyebrow dark">AI 전라도 라이프 매칭</p><h1>AI가 전라도에서<br />살 곳·일·여행을 함께 찾아드려요</h1></div></section>
+    <section className="ai-match-intro"><div><p className="eyebrow dark">AI 전라도 라이프 매칭</p><h1>전라도에서 살 곳과<br />일을 함께 찾아보세요</h1></div></section>
     <div className="ai-match-workspace">
-      <section className="ai-match-panel ai-match-form-panel"><h2>AI 매칭 조건</h2><form className="stack-form" ref={formRef} onSubmit={startRequest}>
-        <div className="form-row"><label>희망 생활권<input name="desiredLifestyle" placeholder="예: 바다 가까운 중소도시" required /></label><label>선호 지역<select name="preferredRegionId" defaultValue=""><option value="">전남·전북 전체</option>{regions.map((region) => { const regionId = region.regionId || region.id; return <option value={regionId} key={regionId || region.name}>{region.name}</option>; })}</select></label></div>
-        <fieldset className="ai-choice-box"><legend>관심 일자리</legend><div className="ai-priority-tags">{jobOptions.map(([value, label]) => <label key={value}><input type="checkbox" name="jobInterests" value={value} checked={jobInterests.includes(value)} onChange={() => setJobInterests((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><span>{label}</span></label>)}</div></fieldset>
-        <div className="ai-priority-box"><div className="ai-priority-head"><strong>생활 우선순위</strong><span>{priorities.length} / 4 선택</span></div><div className="ai-priority-tags">{priorityOptions.map(([value, label]) => <label key={value}><input type="checkbox" name="priorities" value={value} checked={priorities.includes(value)} onChange={() => setPriorities((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} /><span>{label}</span></label>)}</div></div>
-        <div className="form-row"><label>희망 월급<input name="desiredSalary" type="number" min="0" step="10000" defaultValue="2500000" /></label><label>희망 체류 기간<input name="stayPeriod" defaultValue="3개월" placeholder="예: 3개월" /></label></div>
-        <label className="ai-vehicle-check"><input name="hasVehicle" type="checkbox" /><span>자가용을 보유하고 있어요</span></label>
-        <label>추가 조건<textarea name="extraConditions" placeholder="예: 바다와 가까운 곳을 선호합니다." /></label>
+      <section className="ai-match-panel ai-match-form-panel"><h2>AI 매칭 조건</h2><form className="stack-form" onSubmit={startRequest}>
+        <div className="ai-select-field"><span>선호 지역</span><button className="ai-select-trigger" type="button" onClick={() => setRegionPickerOpen(true)}><span className={selectedRegion ? "" : "is-placeholder"}>{selectedRegion?.name || "지역을 선택해 주세요"}</span><i className="ai-open-chevron" aria-hidden="true" /></button></div>
+        <div className="ai-job-field"><span>희망 직무 <small>{jobInterests.length ? `${jobInterests.length}개 선택됨` : "최대 10개"}</small></span><button className="ai-select-trigger" type="button" onClick={() => setJobPickerOpen(true)}>{jobInterests.length ? <span className="ai-job-summary">{jobInterests.map((job) => <b key={job}>{job}</b>)}</span> : <span className="ai-job-placeholder">희망 직무를 선택해 주세요</span>}<i className="ai-open-chevron" aria-hidden="true" /></button></div>
+        <div className="ai-select-field"><span>생활 우선순위</span><button className="ai-select-trigger" type="button" onClick={() => setPriorityPickerOpen(true)}>{priorities.length ? <span className="ai-priority-summary">{priorities.map((value, index) => <b key={value}>{index + 1}. {priorityOptions.find(([key]) => key === value)?.[1]}</b>)}</span> : <span className="is-placeholder">생활 우선순위를 선택해 주세요</span>}<i className="ai-open-chevron" aria-hidden="true" /></button></div>
+        <label><span>생각과 추가 조건 <small>선택사항</small></span><textarea name="thought" maxLength="100" placeholder="예: 관광 분야에서 일하면서 바다와 가까운 곳에서 살고 싶어요." /></label>
         <button className="ai-match-submit" type="submit" disabled={loading}>{loading ? "AI가 분석하고 있어요" : "AI 전라도 라이프 매칭 시작"}</button><div className={`page-status${message ? " is-visible" : ""}`}>{message}{status && status !== "COMPLETED" ? ` (${status})` : ""}</div>
       </form></section>
-      <section className="ai-match-panel ai-match-result-panel">
+      {!results.length ? <section className="ai-match-panel ai-match-empty"><div className="score-overview"><div className="score-ring" style={{ "--score": "0%" }}><div><strong>0</strong><span>%</span></div></div><div className="score-copy"><p className="eyebrow dark">AI 지역·일자리 매칭</p><h3>조건을 입력해 주세요</h3><p>입력한 조건을 바탕으로 맞춤 결과를 추천해 드려요.</p></div></div></section> : <section className="ai-match-panel ai-match-result-panel">
         <div className="score-overview"><div className="score-ring" style={{ "--score": `${score}%` }}><div><strong>{score}</strong><span>%</span></div></div><div className="score-copy"><p className="eyebrow dark">AI 지역·일자리 매칭 결과</p><h3>{item.region?.name ? `${item.region.name} ${score}% 매칭` : "조건을 입력해 주세요"}</h3><p>{item.summary || "생활 조건을 입력하면 지역과 일자리를 함께 추천합니다."}</p></div></div>
-        {requestId && <button className="ai-package-button" type="button" disabled={loading} onClick={retry}>조건 바꿔 다시 추천</button>}
-        <img className="ai-match-photo" src="/assets/JvLTt.jpeg" alt="전라도 바다 생활권 풍경" />
-        {results.length > 1 && <div className="ai-match-result-tabs">{results.map((result) => <button className={(item.resultId || item.id) === (result.resultId || result.id) ? "is-active" : ""} type="button" key={result.resultId || result.id} onClick={() => selectResult(result)}>#{result.rank || "-"} {result.region?.name} · {result.overallScore || result.score}점</button>)}</div>}
-        <div className="record-list">{cards.map(([label, value, badge, copy], index) => <article className="record-item ai-detail-card" key={label}><div className="record-head"><div><span>{label}</span><h3>{value}</h3></div><strong className="record-score">{badge}</strong></div><p>{copy}</p>{index === 1 && item.job?.id ? <Link className="ai-detail-hint" to={`/jobs/${item.job.id}`}>공고 상세 보기 →</Link> : index === 2 && item.places?.[0]?.id ? <Link className="ai-detail-hint" to={`/destinations/${item.places[0].id}`}>관광지 상세 보기 →</Link> : <small className="ai-detail-hint">정보 보기 →</small>}</article>)}</div>
-      </section>
+        <img className="ai-match-photo" src={primaryPlace?.imageUrl || "/assets/JvLTt.jpeg"} alt={primaryPlace?.name || "전라도 바다 생활권 풍경"} />
+        {results.length > 1 && <div className="ai-match-result-tabs">{results.map((result) => <button className={item.rank === result.rank ? "is-active" : ""} type="button" key={result.rank} onClick={() => selectResult(result)}>#{result.rank} {result.region?.name} · {result.scores?.overall || 0}점</button>)}</div>}
+        <div className="record-list">{cards.map(([label, value, badge, copy], index) => <article className="record-item ai-detail-card" key={label}><div className="record-head"><div><span>{label}</span><h3>{value}</h3></div><strong className="record-score">{badge}</strong></div><p>{copy}</p>{index === 1 && primaryJob?.region?.name && primaryJob.region.regionId !== item.region?.regionId && <p>대체 추천 지역: {primaryJob.region.name}</p>}{index === 1 && primaryJob?.externalId ? <Link className="ai-detail-hint" to={externalJobDetailPath({ externalSource: primaryJob.source === "JUNNAM_PUBLIC_JOB" ? "junnam" : "tour", externalId: primaryJob.externalId })}>공고 상세 보기 →</Link> : <small className="ai-detail-hint">정보 보기 →</small>}</article>)}</div>
+      </section>}
     </div>
+    {loading && <div className="ai-processing"><div className="ai-analysis-modal" role="dialog" aria-modal="true" aria-labelledby="ai-analysis-title"><div className="ai-model-badge">AI · 관광데이터 × 지역 일자리</div><span className="ai-analysis-spinner" aria-hidden="true" /><h2 id="ai-analysis-title">전라도 생활권을 매칭하고 있어요</h2><p>관광데이터와 채용정보를 결합해 살 곳·일자리·주변 관광지를 찾고 있어요.</p><div className="ai-analysis-steps">{["희망 생활 조건 분석", "지역 관광데이터 매칭", "일자리·생활권 결합", "최종 추천 결과 생성"].map((label, index) => <div className={`ai-analysis-step${index < analysisStep ? " is-complete" : index === analysisStep ? " is-active" : ""}`} key={label}><span>{index + 1}</span><strong>{label}</strong><i>{index < analysisStep ? "✓" : index === analysisStep ? "●" : "○"}</i></div>)}</div><div className="ai-analysis-progress"><span style={{ width: `${(analysisStep + 1) * 25}%` }} /></div><small>{analysisStep === 3 ? "추천 결과를 정리하고 있어요" : "잠시만 기다려 주세요"} · {analysisStep + 1} / 4 단계</small></div></div>}
+    {regionPickerOpen && <div className="ai-picker-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setRegionPickerOpen(false); }}><section className="ai-region-dialog" role="dialog" aria-modal="true" aria-labelledby="region-picker-title"><div className="ai-picker-title"><div><small>지역 선택</small><h2 id="region-picker-title">어디에서 살아보고 싶나요?</h2></div><button type="button" aria-label="닫기" onClick={() => setRegionPickerOpen(false)}>×</button></div><div className="ai-modal-search"><span aria-hidden="true">⌕</span><input autoFocus value={regionQuery} onChange={(event) => setRegionQuery(event.target.value)} placeholder="지역명 검색" /></div><div className="ai-region-options">{filteredRegions.map((region) => { const regionId = region.regionId || region.id; return <button className={String(regionId) === String(preferredRegionId) ? "is-selected" : ""} type="button" key={regionId || region.name} onClick={() => { setPreferredRegionId(String(regionId)); setRegionPickerOpen(false); }}>{region.name}</button>; })}</div>{!filteredRegions.length && <p className="ai-picker-empty">검색 결과가 없습니다.</p>}</section></div>}
+    {jobPickerOpen && <div className="ai-picker-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setJobPickerOpen(false); }}><section className="ai-job-dialog" role="dialog" aria-modal="true" aria-labelledby="job-picker-title"><div className="ai-picker-title"><div><small>희망 직무 선택</small><h2 id="job-picker-title">원하는 업·직종을 선택해 주세요</h2></div><button type="button" aria-label="닫기" onClick={() => setJobPickerOpen(false)}>×</button></div><div className="ai-modal-search"><span aria-hidden="true">⌕</span><input autoFocus value={jobQuery} onChange={(event) => setJobQuery(event.target.value)} placeholder="업·직종 키워드 검색" /></div><div className="ai-job-browser"><nav>{jobOptions.map((group) => <button className={!jobQuery && activeJobGroup === group ? "is-active" : ""} type="button" key={group} onClick={() => { setActiveJobGroup(group); setJobQuery(""); }}>{group}</button>)}</nav><div><h3>{jobQuery ? "검색 결과" : activeJobGroup}</h3><div className="ai-job-detail-options">{visibleJobs.map((job) => <button className={jobInterests.includes(job) ? "is-selected" : ""} type="button" key={job} onClick={() => toggleJob(job)}>{job}{jobInterests.includes(job) && <span>✓</span>}</button>)}</div></div></div><div className="ai-job-selection-status"><div>{jobInterests.length ? jobInterests.map((job) => <button type="button" key={job} onClick={() => toggleJob(job)}>{job}<span aria-hidden="true">×</span></button>) : <span>선택한 직무가 없습니다.</span>}</div><strong>{jobInterests.length}개 선택됨</strong></div><div className="ai-job-dialog-footer"><span /><button type="button" disabled={!jobInterests.length} onClick={() => setJobPickerOpen(false)}>선택 완료</button></div></section></div>}
+    {priorityPickerOpen && <div className="ai-picker-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPriorityPickerOpen(false); }}><section className="ai-priority-dialog" role="dialog" aria-modal="true" aria-labelledby="priority-picker-title"><div className="ai-picker-title"><div><small>생활 우선순위 선택</small><h2 id="priority-picker-title">중요한 순서대로 선택해 주세요</h2><p>선택한 항목이 1번부터 차례대로 들어갑니다.</p></div><button type="button" aria-label="닫기" onClick={() => setPriorityPickerOpen(false)}>×</button></div><div className="ai-priority-slots">{[0, 1, 2, 3].map((index) => { const value = priorities[index]; const label = priorityOptions.find(([key]) => key === value)?.[1]; return <div className={value ? "is-filled" : ""} key={index}><b>{index + 1}</b>{label && <span>{label}</span>}</div>; })}</div><div className="ai-priority-choices">{priorityOptions.map(([value, label]) => { const rank = priorities.indexOf(value); return <button className={rank >= 0 ? "is-selected" : ""} type="button" key={value} onClick={() => togglePriority(value)}><span>{label}</span>{rank >= 0 && <b>{rank + 1}순위 ✓</b>}</button>; })}</div><div className="ai-job-dialog-footer"><button className="ai-priority-reset" type="button" disabled={!priorities.length} onClick={() => setPriorities([])}>다시 선택</button><button type="button" disabled={priorities.length !== 4} onClick={() => setPriorityPickerOpen(false)}>선택 완료</button></div></section></div>}
   </main>;
 }

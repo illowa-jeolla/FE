@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { logoutFromBackend } from "../api/client";
-import { cancelJobApplication, unfavoriteJob } from "../api/jobs";
+import { cancelJobApplication, externalJobDetailPath, unfavoriteJob } from "../api/jobs";
 import { deleteTravelPost } from "../api/travelPosts";
+import { updateMyNickname } from "../api/myPage";
+import { getSavedTravelGuide, removeSavedTravelGuide } from "../api/travelRecommendations";
 import { clearSession, getSessionUser, hasSession } from "../auth/session";
 import { useApi } from "../hooks/useApi";
 import { EmptyCard, FormMessage } from "../components/UI";
+import AuthenticatedImage from "../components/AuthenticatedImage";
+import { postImages } from "./communityUtils";
 
-const tabs = [["profile", "내 정보"], ["trips", "내가 다닌 여행지"], ["guides", "저장한 여행 가이드"], ["posts", "내 여행 공유"], ["applications", "내가 지원한 공고"], ["favoriteJobs", "찜한 일자리"], ["gatherings", "내 게더링"]];
+const tabs = [["profile", "내 정보"], ["guides", "저장한 여행 가이드"], ["posts", "내 여행 공유"], ["applications", "내가 지원한 공고"], ["favoriteJobs", "찜한 일자리"], ["gatherings", "내 게더링"]];
 
 function pageItems(data, key) {
   if (Array.isArray(data)) return data;
@@ -16,37 +20,84 @@ function pageItems(data, key) {
   return [];
 }
 
+function guidePlaces(detail = {}) {
+  return (detail.days || []).flatMap((day) => day.items || day.places || []).map((item) => item.title || item.name).filter(Boolean).slice(0, 6);
+}
+
+function formatGatheringDate(value) {
+  if (!value) return "일정 미정";
+  return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function isPastGathering(item = {}) {
+  const timing = String(item.timing || "").toUpperCase();
+  const status = String(item.status || "").toUpperCase();
+  const startsAt = item.startsAt || item.eventTime || item.event_time;
+  return timing === "PAST" || ["COMPLETED", "FINISHED", "ENDED"].includes(status) || (startsAt && new Date(startsAt).getTime() < Date.now());
+}
+
+function gatheringStatus(item) {
+  if (isPastGathering(item)) return "종료됨";
+  if (String(item.status || "").toUpperCase() === "CANCELLED") return "취소됨";
+  if (item.status === "CLOSED" || item.participantCount >= item.capacity) return "모집 확정";
+  return "참여 중";
+}
+
 export default function MyPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(() => tabs.some(([key]) => key === searchParams.get("tab")) ? searchParams.get("tab") : "profile");
   const [message, setMessage] = useState("");
+  const [guideDetails, setGuideDetails] = useState({});
+  const [gatheringFilter, setGatheringFilter] = useState("joined");
+  const { data: profileData, loading: profileLoading, error: profileError, setData: setProfileData } = useApi(hasSession() ? "/api/v1/users/me" : "", { immediate: hasSession() });
   const { data: summary } = useApi(hasSession() ? "/api/v1/me/summary" : "", { immediate: hasSession() });
-  const { data: visitedData, loading: visitedLoading, error: visitedError } = useApi(hasSession() ? "/api/v1/me/visited-places?page=0&size=20" : "", { immediate: hasSession() });
-  const { data: savedGuideData, loading: guidesLoading, error: guidesError } = useApi(hasSession() ? "/api/v1/travel-guides/saved" : "", { immediate: hasSession() });
-  const { data: applicationData, loading: applicationsLoading, error: applicationsError, run: reloadApplications, setData: setApplicationData } = useApi(hasSession() ? "/api/v1/me/job-applications" : "", { immediate: hasSession() });
-  const { data: favoriteJobData, loading: favoritesLoading, error: favoritesError, run: reloadFavorites, setData: setFavoriteJobData } = useApi(hasSession() ? "/api/v1/me/favorite-jobs" : "", { immediate: hasSession() });
-  const { data: myPostData, loading: postsLoading, error: postsError, run: reloadPosts, setData: setMyPostData } = useApi(hasSession() ? "/api/v1/me/travel-posts?page=0&size=20" : "", { immediate: hasSession() });
+  const { data: savedGuideData, loading: guidesLoading, error: guidesError, run: reloadGuides, setData: setSavedGuideData } = useApi(hasSession() ? "/api/v1/travel-guides/saved" : "", { immediate: hasSession() });
+  const { data: applicationData, loading: applicationsLoading, error: applicationsError, run: reloadApplications, setData: setApplicationData } = useApi(hasSession() ? "/api/v1/jobs/applications?page=0&size=20" : "", { immediate: hasSession() });
+  const { data: favoriteJobData, loading: favoritesLoading, error: favoritesError, run: reloadFavorites, setData: setFavoriteJobData } = useApi(hasSession() ? "/api/v1/jobs/favorites?page=0&size=20" : "", { immediate: hasSession() });
+  const { data: myPostData, loading: postsLoading, error: postsError, run: reloadPosts, setData: setMyPostData } = useApi(hasSession() ? "/api/v1/community/travel-posts/me?page=0&size=20" : "", { immediate: hasSession() });
   const { data: hostedGatheringData, loading: hostedGatheringsLoading, error: hostedGatheringsError } = useApi(hasSession() ? "/api/v1/gatherings/me?type=hosted&page=0&size=20" : "", { immediate: hasSession() });
   const { data: joinedGatheringData, loading: joinedGatheringsLoading, error: joinedGatheringsError } = useApi(hasSession() ? "/api/v1/gatherings/me?type=joined&page=0&size=20" : "", { immediate: hasSession() });
 
-  if (!hasSession()) return <main className="mypage-main"><section className="page-panel"><EmptyCard title="로그인이 필요합니다" description="내 여행과 지원 내역은 로그인 후 확인할 수 있어요." action={<Link className="button button-primary" to="/auth">로그인</Link>} /></section></main>;
-
   const sessionUser = getSessionUser();
-  const user = sessionUser;
-  const email = user.email || user.username || sessionUser.email;
+  const user = profileData || sessionUser;
+  const email = user.email || user.username || sessionUser.email || "";
   const displayName = user.nickname || user.name || sessionUser.name || email.split("@")[0] || "여행자";
-  const visitedPlaces = pageItems(visitedData, "places");
+  const avatarUrl = user.avatarUrl || "";
   const savedGuides = pageItems(savedGuideData, "guides");
   const applications = pageItems(applicationData, "applications");
   const favoriteJobs = pageItems(favoriteJobData, "jobs");
   const myPosts = pageItems(myPostData, "posts");
-  const gatherings = [
-    ...pageItems(hostedGatheringData, "gatherings").map((item) => ({ ...item, relationshipType: "hosted" })),
-    ...pageItems(joinedGatheringData, "gatherings").map((item) => ({ ...item, relationshipType: "joined" }))
-  ];
+  const hostedGatherings = pageItems(hostedGatheringData, "gatherings").map((item) => ({ ...item, relationshipType: "hosted" }));
+  const joinedGatherings = pageItems(joinedGatheringData, "gatherings").map((item) => ({ ...item, relationshipType: "joined" }));
+  const gatherings = Array.from(new Map([...joinedGatherings, ...hostedGatherings].map((item) => [String(item.id || item.gatheringId), item])).values());
   const gatheringsLoading = hostedGatheringsLoading || joinedGatheringsLoading;
-  const gatheringsError = hostedGatheringsError || joinedGatheringsError;
+  const gatheringsError = hostedGatheringsError && joinedGatheringsError ? hostedGatheringsError : "";
+  const filteredGatherings = (gatheringFilter === "hosted" ? hostedGatherings : gatheringFilter === "joined" ? gatherings.filter((item) => !isPastGathering(item)) : gatherings)
+    .sort((left, right) => Number(isPastGathering(left)) - Number(isPastGathering(right)) || new Date(left.startsAt || left.eventTime || left.event_time || 0) - new Date(right.startsAt || right.eventTime || right.event_time || 0));
+
+  useEffect(() => {
+    let cancelled = false;
+    const ids = savedGuides.map((guide) => guide.guideId || guide.id).filter(Boolean);
+    if (!ids.length) return () => { cancelled = true; };
+    Promise.all(ids.map(async (id) => {
+      try { return [id, await getSavedTravelGuide(id)]; }
+      catch { return [id, null]; }
+    })).then((entries) => { if (!cancelled) setGuideDetails(Object.fromEntries(entries)); });
+    return () => { cancelled = true; };
+  }, [savedGuideData]);
+
+  if (!hasSession()) return <main className="mypage-main"><section className="page-panel"><EmptyCard title="로그인이 필요합니다" description="내 여행과 지원 내역은 로그인 후 확인할 수 있어요." action={<Link className="button button-primary" to="/auth">로그인</Link>} /></section></main>;
+
+  async function removeGuide(guide) {
+    const guideId = guide.guideId || guide.id;
+    if (!window.confirm("이 여행 가이드를 삭제할까요?")) return;
+    try {
+      await removeSavedTravelGuide(guideId);
+      setSavedGuideData((current) => Array.isArray(current) ? current.filter((item) => (item.guideId || item.id) !== guideId) : { ...current, content: pageItems(current, "guides").filter((item) => (item.guideId || item.id) !== guideId) });
+      setMessage("저장한 여행 가이드를 삭제했습니다.");
+    } catch (requestError) { setMessage(requestError.message); reloadGuides().catch(() => {}); }
+  }
 
   async function removeMyPost(post) {
     const postId = post.id || post.postId;
@@ -81,19 +132,32 @@ export default function MyPage() {
     catch (requestError) { setMessage(requestError.message); }
   }
 
-  const tabCounts = { trips: summary?.visitedPlaceCount, guides: summary?.savedGuideCount, posts: summary?.travelPostCount, applications: summary?.jobApplicationCount, favoriteJobs: summary?.favoriteJobCount, gatherings: summary?.gatheringCount };
+  async function changeNickname(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const nickname = String(new FormData(form).get("nickname") || "").trim();
+    if (!nickname || nickname.length > 10) { setMessage("닉네임은 공백 없이 1자 이상 10자 이하로 입력해 주세요."); return; }
+    try {
+      setMessage("닉네임을 변경하고 있습니다.");
+      const updatedUser = await updateMyNickname(nickname);
+      setProfileData(updatedUser);
+      sessionStorage.setItem("nickname", updatedUser.nickname || nickname);
+      setMessage("닉네임을 변경했습니다.");
+    } catch (requestError) { setMessage(requestError.message); }
+  }
+
+  const tabCounts = { guides: summary?.savedGuideCount, posts: summary?.travelPostCount, applications: summary?.jobApplicationCount, favoriteJobs: summary?.favoriteJobCount, gatherings: summary?.gatheringCount };
 
   return <main className="mypage-main">
-    <section className="mypage-profile-card"><div className="mypage-avatar">{displayName.slice(0, 1)}</div><div className="mypage-profile-copy"><span>MY PAGE</span><h1>{displayName}님의 기록</h1><p>{email}</p></div><div className="mypage-profile-actions"><button onClick={logout}>로그아웃</button></div></section>
+    <section className="mypage-profile-card"><div className="mypage-avatar">{avatarUrl ? <img src={avatarUrl} alt={`${displayName} 프로필`} /> : displayName.slice(0, 1)}</div><div className="mypage-profile-copy"><span>MY PAGE</span><h1>{displayName}님의 기록</h1><p>{email || "이메일 정보 없음"}</p></div><div className="mypage-profile-actions"><button onClick={logout}>로그아웃</button></div></section>
     <FormMessage message={message} />
     <section className="mypage-layout"><nav className="mypage-tabs">{tabs.map(([key, label], index) => <button className={tab === key ? "is-active" : ""} onClick={() => setTab(key)} key={key}><span>{String(index + 1).padStart(2, "0")}</span>{label}{tabCounts[key] != null && <b>{tabCounts[key]}</b>}</button>)}</nav><div className="mypage-panels"><section className="mypage-panel is-active">
-      {tab === "profile" && <><span className="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>로그인 세션에 저장된 사용자 정보입니다.</p><div className="mypage-empty"><strong>{displayName}</strong><p>{email}</p></div></>}
-      {tab === "guides" && <><span className="mypage-kicker">SAVED GUIDES</span><h2>내가 저장한 여행 가이드</h2><Link className="button" to="/mypage/drafts">임시 일정 보기</Link>{guidesLoading ? <div className="mypage-empty">저장한 가이드를 불러오는 중입니다.</div> : guidesError ? <div className="mypage-empty"><strong>가이드를 불러오지 못했습니다.</strong><p>{guidesError}</p></div> : savedGuides.length ? <div className="mypage-card-list">{savedGuides.map((guide) => <Link className="mypage-guide-card" to={`/travel-guide/${guide.guideId || guide.id}`} key={guide.guideId || guide.id}><div className="mypage-guide-copy"><span>SAVED GUIDE · {guide.regionName}</span><h3>{guide.title}</h3><p>{guide.summary || "저장한 여행 일정"}</p><div className="mypage-guide-summary"><b>{guide.startsOn} — {guide.endsOn}</b><b>{guide.generatedByAi ? "AI 추천" : "직접 구성"}</b></div></div></Link>)}</div> : <div className="mypage-empty"><strong>저장한 여행 가이드가 없어요</strong><p>여행 가이드를 저장하면 이곳에서 확인할 수 있어요.</p></div>}</>}
-      {tab === "trips" && <><span className="mypage-kicker">VISITED PLACES</span><h2>내가 다녀온 관광지</h2>{visitedLoading ? <div className="mypage-empty">방문 기록을 불러오는 중입니다.</div> : visitedError ? <div className="mypage-empty"><strong>방문 기록을 불러오지 못했습니다.</strong><p>{visitedError}</p></div> : visitedPlaces.length ? <div className="mypage-card-list">{visitedPlaces.map((visit) => { const place = visit.place || visit; const placeId = place.id || visit.placeId; return <Link className="mypage-guide-card" to={`/destinations/${placeId}`} key={placeId}><div className="mypage-guide-copy"><span>VISITED · {place.regionName || "전라도"}</span><h3>{place.name || visit.placeName}</h3><p>{place.address || visit.visitedAt?.slice?.(0, 10) || "방문한 관광지"}</p></div></Link>; })}</div> : <div className="mypage-empty"><strong>방문한 관광지가 없어요</strong><p>관광지 상세에서 방문 등록을 하면 이곳에 표시됩니다.</p></div>}</>}
-      {tab === "posts" && <><span className="mypage-kicker">MY TRAVEL POSTS</span><h2>내 여행 공유</h2>{postsLoading ? <div className="mypage-empty">여행 글을 불러오는 중입니다.</div> : postsError ? <div className="mypage-empty"><strong>여행 글을 불러오지 못했습니다.</strong><p>{postsError}</p></div> : myPosts.length ? <div className="mypage-card-list">{myPosts.map((post) => { const postId = post.id || post.postId; return <article className="mypage-job-card" key={postId}><div><span>{post.regionName || post.region?.name || "전라도"} · ♥ {post.likeCount || 0}</span><h3>{post.title || post.concept}</h3><p>{post.content}</p></div><div><Link className="button" to={`/community/${postId}`}>글 보기</Link><button className="button" type="button" onClick={() => removeMyPost(post)}>삭제</button></div></article>; })}</div> : <div className="mypage-empty"><strong>작성한 여행 글이 없어요</strong><p>여행의 순간을 공유하면 이곳에서 관리할 수 있어요.</p></div>}</>}
-      {tab === "applications" && <><span className="mypage-kicker">JOB APPLICATIONS</span><h2>내가 지원한 공고</h2>{applicationsLoading ? <div className="mypage-empty">지원 내역을 불러오는 중입니다.</div> : applicationsError ? <div className="mypage-empty"><strong>지원 내역을 불러오지 못했습니다.</strong><p>{applicationsError}</p></div> : applications.length ? <div className="mypage-card-list">{applications.map((application) => { const job = application.job || application; const applicationId = application.id || application.applicationId; return <article className="mypage-job-card" key={applicationId}><div><span>{application.status || "지원 완료"} · {job.regionName || "관광 일자리"}</span><h3>{job.title || application.jobTitle}</h3><p>{job.employerName || application.employerName}</p></div><div><Link className="button" to={`/jobs/${job.id || application.jobId}`}>공고 보기</Link><button className="button" type="button" onClick={() => cancelApplication(application)}>지원 취소</button></div></article>; })}</div> : <div className="mypage-empty"><strong>지원한 공고가 없어요</strong><p>관광 일자리에 지원하면 이곳에서 확인할 수 있어요.</p></div>}</>}
-      {tab === "favoriteJobs" && <><span className="mypage-kicker">FAVORITE JOBS</span><h2>찜한 일자리</h2>{favoritesLoading ? <div className="mypage-empty">찜 목록을 불러오는 중입니다.</div> : favoritesError ? <div className="mypage-empty"><strong>찜 목록을 불러오지 못했습니다.</strong><p>{favoritesError}</p></div> : favoriteJobs.length ? <div className="mypage-card-list">{favoriteJobs.map((favorite) => { const job = favorite.job || favorite; const jobId = job.id || favorite.jobId; return <article className="mypage-job-card" key={jobId}><div><span>{job.category || "관광 일자리"} · {job.regionName}</span><h3>{job.title}</h3><p>{job.employerName} · {job.salaryText || "급여 협의"}</p></div><div><Link className="button" to={`/jobs/${jobId}`}>공고 보기</Link><button className="button" type="button" onClick={() => removeFavorite(favorite)}>찜 취소</button></div></article>; })}</div> : <div className="mypage-empty"><strong>찜한 일자리가 없어요</strong><p>관심 있는 관광 일자리를 찜하면 이곳에서 확인할 수 있어요.</p></div>}</>}
-      {tab === "gatherings" && <><span className="mypage-kicker">MY GATHERINGS</span><h2>내 게더링</h2>{gatheringsLoading ? <div className="mypage-empty">게더링을 불러오는 중입니다.</div> : gatheringsError ? <div className="mypage-empty"><strong>게더링을 불러오지 못했습니다.</strong><p>{gatheringsError}</p></div> : gatherings.length ? <div className="mypage-card-list">{gatherings.map((gathering) => { const item = gathering.gathering || gathering; return <Link className="mypage-guide-card" to="/gatherings" key={`${gathering.relationshipType}-${item.id || item.gatheringId}`}><div className="mypage-guide-copy"><span>{gathering.relationshipType === "hosted" ? "주최" : "참여"} · {item.region?.name || item.regionName || item.region || "전라도"}</span><h3>{item.title}</h3><p>{item.meetingPlace || item.location || item.concept || "게더링 상세 보기"}</p><div className="mypage-guide-summary"><b>{item.startsAt?.slice?.(0, 10) || item.eventTime?.slice?.(0, 10) || item.event_time?.slice?.(0, 10)}</b><b>{item.participantCount || item.participant_count || 0}/{item.capacity || "-"}명 · {item.timing || item.status}</b></div></div></Link>; })}</div> : <div className="mypage-empty"><strong>참여한 게더링이 없어요</strong><p>게더링을 만들거나 참여하면 이곳에서 확인할 수 있어요.</p></div>}</>}
+      {tab === "profile" && <><span className="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>서비스에서 사용할 닉네임을 변경할 수 있어요.</p>{profileLoading ? <div className="mypage-empty">내 정보를 불러오는 중입니다.</div> : profileError ? <div className="mypage-empty"><strong>내 정보를 불러오지 못했습니다.</strong><p>{profileError}</p></div> : <form id="nickname-form" onSubmit={changeNickname}><label>아이디<input value={email || "이메일 정보 없음"} readOnly /></label><label htmlFor="mypage-nickname">닉네임<input id="mypage-nickname" name="nickname" defaultValue={displayName} maxLength="10" autoComplete="nickname" required /></label><button type="submit">닉네임 저장</button></form>}</>}
+      {tab === "guides" && <><span className="mypage-kicker">SAVED GUIDES</span><h2>내가 저장한 여행 가이드</h2><p>저장한 코스와 여행 일정을 확인할 수 있어요.</p>{guidesLoading ? <div className="mypage-empty">저장한 가이드를 불러오는 중입니다.</div> : guidesError ? <div className="mypage-empty"><strong>가이드를 불러오지 못했습니다.</strong><p>{guidesError}</p></div> : savedGuides.length ? <div className="mypage-card-list mypage-saved-guides">{savedGuides.map((guide) => { const guideId = guide.guideId || guide.id; const detail = guideDetails[guideId] || {}; const places = guidePlaces(detail); const lodging = detail.accommodation?.name || guide.summary || "저장한 여행 일정"; return <article className="mypage-guide-card" key={guideId}><Link className="mypage-guide-copy" to={`/travel-guide/${guideId}`}><span>SAVED GUIDE · {guide.regionName || detail.regionName || "전라도"}</span><h3>{guide.title}</h3><p>{lodging}</p><div className="mypage-guide-summary"><b>{places.length ? `${places.length}곳 코스` : "저장한 코스"}</b><b>{guide.endsOn ? `${guide.endsOn}까지` : guide.startsOn || "날짜 확인"}</b></div><div className="mypage-guide-spots">{places.length ? places.map((place, index) => <div key={`${place}-${index}`}><span>{index + 1}</span><b>{place}</b></div>) : <div className="is-empty"><b>{guide.summary || "가이드에서 상세 코스를 확인해 주세요."}</b></div>}</div><small>{guide.savedAt ? `${new Date(guide.savedAt).toLocaleDateString("ko-KR")} 저장` : "저장한 여행 가이드"}</small></Link><div className="mypage-guide-actions"><Link to={`/travel-guide/${guideId}`}>가이드 보기</Link><button className="guide-delete-button" type="button" onClick={() => removeGuide(guide)}>삭제</button></div></article>; })}</div> : <div className="mypage-empty"><strong>저장한 여행 가이드가 없어요</strong><p>여행 가이드를 저장하면 이곳에서 확인할 수 있어요.</p></div>}</>}
+      {tab === "posts" && <><span className="mypage-kicker">MY STORIES</span><h2>내 여행 공유</h2><p>직접 작성한 여행 후기를 모아보는 화면이에요.</p>{postsLoading ? <div className="mypage-empty">여행 글을 불러오는 중입니다.</div> : postsError ? <div className="mypage-empty"><strong>여행 글을 불러오지 못했습니다.</strong><p>{postsError}</p></div> : myPosts.length ? <div className="mypage-card-list" id="post-list">{myPosts.map((post) => { const postId = post.id || post.postId; const thumbnailUrl = postImages(post)[0]; return <article className="mypage-story-card" key={postId}><div className="mypage-story-body"><span>{post.regionName || post.region?.name || "전라도"}</span><h3>{post.title || post.concept}</h3><p>{post.contentPreview || post.content || "작성한 여행 이야기"}</p><footer><small>{post.createdAt?.slice?.(0, 10) || "작성일 정보 없음"} · 조회 {post.viewCount || 0} · 댓글 {post.commentCount || 0}</small><strong><Link to={`/community/${postId}`}>글 보기 →</Link></strong></footer></div>{thumbnailUrl ? <AuthenticatedImage src={thumbnailUrl} alt={`${post.title || "여행 게시물"} 대표 사진`} /> : <div className="mypage-story-placeholder"><b>旅</b><span>TRAVEL STORY</span></div>}</article>; })}</div> : <div className="mypage-empty"><strong>작성한 여행 글이 없어요</strong><p>여행의 순간을 공유하면 이곳에서 관리할 수 있어요.</p></div>}</>}
+      {tab === "applications" && <><span className="mypage-kicker">APPLICATIONS</span><h2>내가 지원한 공고</h2><p>지원한 공고의 핵심 조건을 다시 확인할 수 있어요.</p>{applicationsLoading ? <div className="mypage-empty">지원 내역을 불러오는 중입니다.</div> : applicationsError ? <div className="mypage-empty"><strong>지원 내역을 불러오지 못했습니다.</strong><p>{applicationsError}</p></div> : applications.length ? <div className="mypage-card-list" id="application-list">{applications.map((application) => { const job = application.job || application; const applicationId = application.id || application.applicationId; const source = String(job.source || ""); const detailPath = externalJobDetailPath({ externalSource: source.includes("JUNNAM") ? "junnam" : "tour", externalId: job.externalId }); const statusLabel = application.status === "APPLIED" ? "지원 완료" : application.status || "지원 완료"; return <article className="mypage-favorite-job" key={applicationId}><div className="mypage-favorite-job-body"><span>{statusLabel} · {job.address || "근무지 정보 없음"}</span><h3>{job.title || application.jobTitle}</h3><p>{job.companyName || application.companyName || "기업 정보 없음"}</p><div className="mypage-favorite-job-meta"><b>{job.deadline ? `${job.deadline} 마감` : "마감일 확인"}</b></div><footer><small>{application.appliedAt?.slice?.(0, 10) || "지원일 정보 없음"}</small><strong><Link to={detailPath}>공고 보기 →</Link></strong></footer></div></article>; })}</div> : <div className="mypage-empty"><strong>지원한 공고가 없어요</strong><p>관광 일자리에 지원하면 이곳에서 확인할 수 있어요.</p></div>}</>}
+      {tab === "favoriteJobs" && <><span className="mypage-kicker">FAVORITE JOBS</span><h2>내가 찜한 일자리</h2><p>관심 있는 공고를 모아두고 상세 조건을 다시 확인할 수 있어요.</p>{favoritesLoading ? <div className="mypage-empty">찜 목록을 불러오는 중입니다.</div> : favoritesError ? <div className="mypage-empty"><strong>찜 목록을 불러오지 못했습니다.</strong><p>{favoritesError}</p></div> : favoriteJobs.length ? <div className="mypage-card-list" id="favorite-list">{favoriteJobs.map((favorite) => { const job = favorite.job || favorite; const source = String(job.source || ""); const detailPath = externalJobDetailPath({ externalSource: source.includes("JUNNAM") ? "junnam" : "tour", externalId: job.externalId }); return <article className="mypage-favorite-job" key={favorite.favoriteId || job.externalId}><div className="mypage-favorite-job-body"><span>{job.address || "근무지 정보 없음"}</span><h3>{job.title}</h3><p>{job.companyName || "기업 정보 없음"}</p><div className="mypage-favorite-job-meta"><b>{job.deadline ? `${job.deadline} 마감` : "마감일 확인"}</b></div><footer><small>{favorite.favoritedAt?.slice?.(0, 10) || "저장일 정보 없음"}</small><strong><Link to={detailPath}>공고 보기 →</Link></strong></footer></div></article>; })}</div> : <div className="mypage-empty"><strong>찜한 일자리가 없어요</strong><p>관심 있는 관광 일자리를 찜하면 이곳에서 확인할 수 있어요.</p></div>}</>}
+      {tab === "gatherings" && <><span className="mypage-kicker">MY GATHERINGS</span><h2>내 게더링</h2><p>{gatheringFilter === "hosted" ? "필터: 내가 올린 게더링만 표시한 상태예요." : gatheringFilter === "joined" ? "필터: 참여 중 게더링만 표시한 상태예요." : `내가 올린 게더링 ${pageItems(hostedGatheringData, "gatherings").length}개와 참여 중인 게더링 ${pageItems(joinedGatheringData, "gatherings").length}개를 보고 관리할 수 있어요.`}</p><div className="mypage-gathering-filters"><button className={gatheringFilter === "joined" ? "is-active" : ""} type="button" onClick={() => setGatheringFilter("joined")}>참여 중 게더링</button><button className={gatheringFilter === "hosted" ? "is-active" : ""} type="button" onClick={() => setGatheringFilter("hosted")}>내가 올린 게더링</button><button className={gatheringFilter === "all" ? "is-active" : ""} type="button" onClick={() => setGatheringFilter("all")}>참여한 게더링</button></div>{gatheringsLoading ? <div className="mypage-empty">게더링을 불러오는 중입니다.</div> : gatheringsError ? <div className="mypage-empty"><strong>게더링을 불러오지 못했습니다.</strong><p>{gatheringsError}</p></div> : filteredGatherings.length ? <div className="mypage-card-list" id="gathering-list">{filteredGatherings.map((gathering) => { const item = gathering.gathering || gathering; const participantCount = Number(item.participantCount || item.participant_count || 0); const capacity = Number(item.capacity || 0); const left = Math.max(0, capacity - participantCount); const status = gatheringStatus(item); return <article className={`mypage-gathering-card ${gathering.relationshipType === "hosted" ? "is-owned" : "is-joined"}${isPastGathering(item) ? " is-past" : ""}`} key={`${gathering.relationshipType}-${item.id || item.gatheringId}`}><div className="mypage-gathering-copy"><span>{gathering.relationshipType === "hosted" ? "내가 올린 게더링" : "참여 중"}</span><h3>{item.title}</h3><p>{item.meetingPlace || item.location || "장소 확인"}</p><time>{formatGatheringDate(item.startsAt || item.eventTime || item.event_time)}</time><div className="mypage-gathering-meta"><b>{participantCount}/{capacity || "-"}명</b><b>{status === "참여 중" && left ? `${left}자리 남음` : status}</b></div><footer><strong>{item.concept || "함께하는 지역 모임"}</strong><span>{status}</span><Link to="/gatherings">게더링 보기</Link></footer></div></article>; })}</div> : <div className="mypage-empty"><strong>해당하는 게더링이 없어요</strong><p>게더링을 만들거나 참여하면 이곳에서 확인할 수 있어요.</p></div>}</>}
     </section></div></section>
   </main>;
 }

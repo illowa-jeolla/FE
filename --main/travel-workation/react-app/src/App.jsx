@@ -11,9 +11,8 @@ import GuideTrashPage from "./pages/GuideTrashPage";
 import GuideDraftsPage from "./pages/GuideDraftsPage";
 import MyGatheringsPage from "./pages/MyGatheringsPage";
 import HomePage from "./pages/HomePage";
-import JobDetailPage from "./pages/JobDetailPage";
 import JunnamJobDetailPage from "./pages/JunnamJobDetailPage";
-import JobsPage from "./pages/JobsPage";
+import TourJobDetailPage from "./pages/TourJobDetailPage";
 import LocalFitPage from "./pages/LocalFitPage";
 import MapPage from "./pages/MapPage";
 import MyPage from "./pages/MyPage";
@@ -34,15 +33,18 @@ export default function App() {
         <Route path="travel-guide/draft/:draftId" element={<TravelGuidePage />} />
         <Route path="map" element={<MapPage />} />
         <Route path="destinations/:id" element={<DestinationDetailPage />} />
-        <Route path="jobs" element={<JobsPage />} />
+        <Route path="jobs" element={<Navigate to="/map?view=search" replace />} />
+        <Route path="jobs/tour/:employmentInfoNo" element={<TourJobDetailPage />} />
         <Route path="jobs/junnam/:jobKey" element={<JunnamJobDetailPage />} />
-        <Route path="jobs/:id" element={<JobDetailPage />} />
+        <Route path="jobs/:id" element={<Navigate to="/map?view=search" replace />} />
         <Route path="local-fit" element={<LocalFitPage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/write" element={<CommunityWritePage />} />
+        <Route path="community/:id/edit" element={<CommunityWritePage />} />
         <Route path="community/:id" element={<CommunityDetailPage />} />
         <Route path="gatherings" element={<GatheringsPage />} />
         <Route path="gatherings/write" element={<GatheringWritePage />} />
+        <Route path="gatherings/:id/edit" element={<GatheringWritePage />} />
         <Route path="gatherings/mine" element={<MyGatheringsPage />} />
         <Route path="mypage" element={<MyPage />} />
         <Route path="mypage/trash" element={<GuideTrashPage />} />

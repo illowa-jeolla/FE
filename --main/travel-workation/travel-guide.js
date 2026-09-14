@@ -94,6 +94,35 @@ function mapPositions(data) {
   data.spots = data.spots.map((spot, index) => ({ ...spot, ...fixedPositions[index] }));
 }
 
+function unwrapGuideResponse(response) {
+  return response?.success === true && response?.data ? response.data : response;
+}
+
+function normalizeGuideResponse(response) {
+  const data = unwrapGuideResponse(response) || {};
+  const region = data.regionName || data.region || conditions.regionName || conditions.region || "";
+  const hotelValue = conditions.hotel;
+  const hotel = typeof hotelValue === "object" && hotelValue ? hotelValue : { name: String(hotelValue || data.startLocation?.name || "출발지") };
+  const days = (data.days || []).map((day) => {
+    const routeSegments = [...(day.routeSegments || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0)).map((segment) => ({
+      ...segment,
+      distanceMeters: Number(segment.distanceMeters) || 0,
+      durationMinutes: Number(segment.durationMinutes) || 0,
+      path: (segment.path || []).map((point) => ({ latitude: Number(point?.latitude), longitude: Number(point?.longitude) }))
+        .filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude))
+    }));
+    const spots = [...(day.items || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0)).map((item, index) => ({
+      contentId: String(item.contentId || ""), name: item.title || item.name || "관광지", address: item.address || "", category: item.category || "관광지",
+      description: item.reason || item.description || "추천 관광지입니다.", latitude: Number(item.latitude), longitude: Number(item.longitude),
+      imageUrl: item.thumbnailUrl || item.imageUrl || "", time: String(item.recommendedTime || item.time || "").slice(0, 5),
+      stayMinutes: Number(item.stayMinutes) || 0, travelMinutes: Number(item.travelMinutes ?? routeSegments[index]?.durationMinutes) || 0,
+      distanceFromPreviousKm: Number(item.distanceFromPreviousKm ?? routeSegments[index]?.distanceMeters / 1000) || 0
+    }));
+    return { ...data, dayNumber: Number(day.dayNumber) || 1, region, hotel, tip: data.travelTip || data.tip || "", routeSegments, spots };
+  });
+  return { data, days };
+}
+
 async function loadKakaoSdk() {
   if (window.kakao?.maps) return window.kakao.maps;
   if (kakaoSdkPromise) return kakaoSdkPromise;
@@ -114,6 +143,7 @@ async function loadKakaoSdk() {
 
 function resolveKakaoPosition(maps, item, region = "") {
   const fallback = { latitude: Number(item?.latitude), longitude: Number(item?.longitude) };
+  if (Number.isFinite(fallback.latitude) && Number.isFinite(fallback.longitude)) return Promise.resolve(fallback);
   const query = `${region} ${String(item?.name || "").trim()}`.trim();
   return new Promise((resolve) => {
     const finishWithAddress = () => {
@@ -183,13 +213,31 @@ async function renderKakaoMap() {
       const marker = new maps.CustomOverlay({ map: kakaoMap, position, content: markerContent, yAnchor: 0 });
       kakaoMarkers.push(marker); bounds.extend(position); routePath.push(position);
     });
+    const backendSegments = Array.isArray(guide.routeSegments) ? guide.routeSegments : [];
+    const backendRoadPoints = backendSegments.flatMap((segment, segmentIndex) =>
+      (segment.path || []).filter((_, pointIndex) => segmentIndex === 0 || pointIndex > 0)
+    );
+    const hasBackendRoadPath = backendRoadPoints.length > 1;
     const routingPoints = [
       ...(Number.isFinite(hotelLatitude) && Number.isFinite(hotelLongitude) ? [{ name: guide.hotel?.name || "숙소", latitude: hotelLatitude, longitude: hotelLongitude }] : []),
       ...validSpots.map(({ spot, latitude, longitude }) => ({ name: spot.name, latitude, longitude })),
       ...(Number.isFinite(hotelLatitude) && Number.isFinite(hotelLongitude) ? [{ name: `${guide.hotel?.name || "숙소"} 복귀`, latitude: hotelLatitude, longitude: hotelLongitude }] : [])
     ];
     const routeSignature = routingPoints.map((point) => `${point.name}:${point.latitude}:${point.longitude}`).join("|");
-    if (routeSignature !== kakaoRoadRouteSignature) {
+    if (hasBackendRoadPath) {
+      kakaoRoadRouteSignature = `backend:${routeSignature}`;
+      kakaoRoadPoints = backendRoadPoints;
+      kakaoDrivingLegs = backendSegments.map((segment) => ({
+        distanceMeters: Number(segment.distanceMeters) || 0,
+        durationSeconds: (Number(segment.durationMinutes) || 0) * 60,
+        points: segment.path || []
+      }));
+      kakaoDrivingSummary = {
+        distanceMeters: kakaoDrivingLegs.reduce((sum, leg) => sum + leg.distanceMeters, 0),
+        durationSeconds: kakaoDrivingLegs.reduce((sum, leg) => sum + leg.durationSeconds, 0)
+      };
+      updateDrivingInfo();
+    } else if (routeSignature !== kakaoRoadRouteSignature) {
       kakaoRoadRouteSignature = routeSignature;
       try {
         const roadRoute = await request("/api/travel-route", { method: "POST", body: JSON.stringify({ points: routingPoints }) });
@@ -281,9 +329,15 @@ async function loadGuide(isRetry = false) {
   clearInterval(stepTimer); loadingView.hidden = false; errorView.hidden = true; guideView.hidden = true; beginLoadingSteps();
   try {
     const days = tripDayCount();
-    const dayGuides = [];
+    const response = await request("/api/travel-guide", { method: "POST", body: JSON.stringify({ ...conditions, attempt, tripDays: days, excludedSpots: excludedSpots.slice(-35) }) });
+    console.log("[travel-guide] response JSON:", response);
+    console.log("[travel-guide] response JSON (string):", JSON.stringify(response, null, 2));
+    const normalized = normalizeGuideResponse(response);
+    const dayGuides = normalized.days;
+    const hasMultiDayResponse = dayGuides.length > 0;
+    if (!hasMultiDayResponse && Array.isArray(normalized.data?.spots)) dayGuides.push(normalized.data);
     const usedSpots = [...excludedSpots];
-    for (let index = 0; index < days; index += 1) {
+    for (let index = dayGuides.length; !hasMultiDayResponse && index < days; index += 1) {
       loadingMessage.textContent = `${days}일 중 DAY ${index + 1} 여행 코스를 만들고 있어요.`;
       const placeCount = Math.max(1, Math.min(5, Number(conditions.dailyPlaceCounts?.[index]) || 3));
       const dayGuide = await request("/api/travel-guide", { method: "POST", body: JSON.stringify({ ...conditions, attempt, dayIndex: index + 1, tripDays: days, placeCount, excludedSpots: usedSpots.slice(-35) }) });

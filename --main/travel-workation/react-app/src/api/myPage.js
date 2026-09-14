@@ -11,13 +11,13 @@ function queryString(params = {}) {
   return serialized ? `?${serialized}` : "";
 }
 
-export function getMyProfile() { return apiRequest(API_BASE); }
-export function updateMyProfile(profile) { return apiRequest(API_BASE, { method: "PATCH", body: JSON.stringify(profile) }); }
+export function getMyProfile() { return apiRequest("/api/v1/users/me"); }
+export function updateMyNickname(nickname) { return apiRequest("/api/v1/users/me/nickname", { method: "PATCH", body: JSON.stringify({ nickname }) }); }
 export function deleteMyAccount() { return apiRequest(API_BASE, { method: "DELETE" }); }
 export function getMySummary() { return apiRequest(`${API_BASE}/summary`); }
 export function getMyVisitedPlaces(params = {}) { return apiRequest(`${API_BASE}/visited-places${queryString(params)}`); }
-export function getMyTravelGuides(params = {}) { return apiRequest(`${API_BASE}/travel-guides${queryString(params)}`); }
-export function getMyTravelPosts(params = {}) { return apiRequest(`${API_BASE}/travel-posts${queryString(params)}`); }
-export function getMyJobApplications(params = {}) { return apiRequest(`${API_BASE}/job-applications${queryString(params)}`); }
-export function getMyFavoriteJobs(params = {}) { return apiRequest(`${API_BASE}/favorite-jobs${queryString(params)}`); }
+export function getMyTravelGuides() { return apiRequest("/api/v1/travel-guides/saved"); }
+export function getMyTravelPosts(params = {}) { return apiRequest(`/api/v1/community/travel-posts/me${queryString(params)}`); }
+export function getMyJobApplications(params = {}) { return apiRequest(`/api/v1/jobs/applications${queryString(params)}`); }
+export function getMyFavoriteJobs(params = {}) { return apiRequest(`/api/v1/jobs/favorites${queryString(params)}`); }
 export function getMyGatherings(params = { type: "hosted" }) { return apiRequest(`/api/v1/gatherings/me${queryString(params)}`); }

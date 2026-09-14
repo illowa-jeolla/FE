@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getRegion, getRegionPlaces, getRegions } from "../api/regions";
-import KakaoMarkerMap from "../components/KakaoMarkerMap";
-import { asList, useApi } from "../hooks/useApi";
-import { dateValue, displayDate, JobCalendarMonth, jobsPath, timeOptions, workTypes } from "./JobsPage";
+import { getRegion, getRegions } from "../api/regions";
+import { externalJobDetailPath, getExternalJobsBatch } from "../api/jobs";
+import RegionIllustrationMap from "../components/RegionIllustrationMap";
+import { asList } from "../hooks/useApi";
+import { dateValue, displayDate, JobCalendarMonth, timeOptions, workTypes } from "./JobsPage";
 
 const jobPhotos = [
   new URL("../../../assets/J6aHjc.jpeg", import.meta.url).href,
@@ -21,39 +22,62 @@ function jobPhoto(job) {
 }
 
 function MapJobItem({ job }) {
-  return <Link className="map-job-item" to={`/jobs/${job.id}`}><img className="map-job-photo" src={jobPhoto(job)} alt={`${job.regionName || "전라도"} 일자리 현장`} /><div><span>{job.category || "관광 운영"}</span><h3>{job.title}</h3><p>{job.employerName}</p></div><div className="job-meta">{[job.workType, job.workHours, job.employmentPeriod].filter(Boolean).map((item) => <span key={item}>{item}</span>)}</div><footer><span>{job.location || `${job.regionName} 주요 관광지 인근`}</span><strong>{job.salaryText || "급여 협의"}</strong><b>상세 보기 →</b></footer></Link>;
-}
-
-function placeImage(place) {
-  return place.imageUrl || place.image || place.thumbnailUrl || place.firstImage || "/assets/jeolla-region-map.png";
+  const employer = String(job.employerName || "").trim();
+  const location = job.location || job.regionName || "위치 정보 확인";
+  return <Link className="map-job-item" to={externalJobDetailPath(job)}><img className="map-job-photo" src={jobPhoto(job)} alt={`${job.regionName || "전라도"} 일자리 현장`} /><div className="map-job-heading">{job.externalSource !== "junnam" && <span>{job.category}</span>}<h3>{job.title}</h3>{employer && employer !== "관리자" && <p className="map-job-employer">{employer}</p>}</div><div className="job-meta">{[job.workType, job.workHours, job.employmentPeriod].filter(Boolean).map((item) => <span key={item}>{item}</span>)}</div><footer><span className="map-job-location">{location}</span><strong>{job.salaryText || "상세 조건 확인"}</strong><b>상세 보기 →</b></footer></Link>;
 }
 
 export default function MapPage() {
   const [params, setParams] = useSearchParams();
   const selectedRegion = params.get("region") || "전체";
   const [jobFilters, setJobFilters] = useState({ tripStart: "", tripEnd: "", workType: "", time: "" });
-  const [openPicker, setOpenPicker] = useState(""); const [regionFilter, setRegionFilter] = useState("");
+  const [openPicker, setOpenPicker] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
+  const [jobTitleQuery, setJobTitleQuery] = useState("");
+  const [submittedJobTitleQuery, setSubmittedJobTitleQuery] = useState("");
   const [dateOpen, setDateOpen] = useState(false); const [draftStart, setDraftStart] = useState(null); const [draftEnd, setDraftEnd] = useState(null);
   const [timeOpen, setTimeOpen] = useState(false); const [draftTimeStart, setDraftTimeStart] = useState("09:00"); const [draftTimeEnd, setDraftTimeEnd] = useState("18:00");
   const jobFilterRef = useRef(null); const todayRef = useRef(new Date()); todayRef.current.setHours(0, 0, 0, 0);
   const [calendarCursor, setCalendarCursor] = useState(new Date(todayRef.current.getFullYear(), todayRef.current.getMonth(), 1));
-  const [view, setView] = useState("map");
+  const [view, setView] = useState(() => params.get("view") === "search" ? "search" : "map");
   const [summaryView, setSummaryView] = useState("region");
   const [regionSummary, setRegionSummary] = useState(null);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [regionRecords, setRegionRecords] = useState([]);
-  const [places, setPlaces] = useState([]);
   const [regionsError, setRegionsError] = useState("");
   const mapRegions = regionRecords.map((region) => region.name);
   const selectedRegionRecord = regionRecords.find((region) => region.name === selectedRegion);
-  const jobsApi = useApi(jobsPath({ ...jobFilters, region: selectedRegion === "전체" ? "" : selectedRegion }, regionRecords));
-  const jobs = Array.isArray(jobsApi.data?.content) ? jobsApi.data.content : asList(jobsApi.data, "jobs");
+  const [jobs, setJobs] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsFetchingMore, setJobsFetchingMore] = useState(false);
+  const [jobsError, setJobsError] = useState("");
+  const [jobsPage, setJobsPage] = useState(1);
+  const [jobsHasMore, setJobsHasMore] = useState(true);
+  const [visibleJobCount, setVisibleJobCount] = useState(20);
+  const [visibleMapJobCount, setVisibleMapJobCount] = useState(10);
   const resultTitle = selectedRegion === "전체" ? "전체" : selectedRegion;
+  const normalizedJobTitleQuery = submittedJobTitleQuery.trim().toLocaleLowerCase();
+  const filteredJobs = jobs.filter((job) => String(job.title || "").toLocaleLowerCase().includes(normalizedJobTitleQuery));
+  const visibleJobs = filteredJobs.slice(0, visibleJobCount);
+  const emptyRegionJobsMessage = selectedRegion === "전체" ? "일자리 정보가 없습니다." : `${selectedRegion}에 일자리 정보가 없습니다.`;
+  const jobsAuthenticationError = /로그인|인증|토큰|세션/.test(jobsError);
+  const jobsErrorView = <div className="jobs-status is-visible is-error"><p>{jobsError}</p>{jobsAuthenticationError && <Link className="button button-primary" to="/auth?returnTo=%2Fmap">다시 로그인하기</Link>}</div>;
 
   function chooseRegion(region) {
-    setParams(region === "전체" ? {} : { region });
+    const next = {};
+    if (view === "search") next.view = "search";
+    if (region !== "전체") next.region = region;
+    setParams(next);
+  }
+
+  function chooseView(nextView) {
+    setView(nextView);
+    const next = {};
+    if (nextView === "search") next.view = "search";
+    if (selectedRegion !== "전체") next.region = selectedRegion;
+    setParams(next);
   }
 
   useEffect(() => {
@@ -70,7 +94,7 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    function closePicker(event) { if (!jobFilterRef.current?.contains(event.target)) setOpenPicker(""); }
+    function closePicker(event) { if (!jobFilterRef.current?.contains(event.target)) { setOpenPicker(""); setRegionFilter(""); } }
     document.addEventListener("pointerdown", closePicker); return () => document.removeEventListener("pointerdown", closePicker);
   }, []);
 
@@ -80,13 +104,76 @@ export default function MapPage() {
   }
   function selectJobDate(date) { if (!draftStart || draftEnd || date <= draftStart) { setDraftStart(date); setDraftEnd(null); } else setDraftEnd(date); }
 
+  function submitJobTitleSearch(event) {
+    event.preventDefault();
+    setSubmittedJobTitleQuery(jobTitleQuery.trim());
+    setVisibleJobCount(20);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    setVisibleJobCount(20);
+    setVisibleMapJobCount(10);
+    setJobs([]); setJobsLoading(true); setJobsFetchingMore(true); setJobsError("");
+    setJobsPage(1); setJobsHasMore(true);
+    getExternalJobsBatch({ region: selectedRegion === "전체" ? "" : selectedRegion, page: 1 })
+      .then((result) => { if (!cancelled) { setJobs(result.items); setJobsHasMore(result.hasMore); } })
+      .catch((requestError) => { if (!cancelled) { setJobs([]); setJobsError(requestError.message); } })
+      .finally(() => { if (!cancelled) { setJobsLoading(false); setJobsFetchingMore(false); } });
+    return () => { cancelled = true; };
+  }, [selectedRegion]);
+
+  async function loadMoreJobs() {
+    if (visibleJobCount < filteredJobs.length) {
+      setVisibleJobCount((count) => count + 20);
+      return;
+    }
+    if (!jobsHasMore || jobsFetchingMore) return;
+    const nextPage = jobsPage + 1;
+    setJobsFetchingMore(true); setJobsError("");
+    try {
+      const result = await getExternalJobsBatch({ region: selectedRegion === "전체" ? "" : selectedRegion, page: nextPage });
+      setJobs((current) => {
+        const seen = new Set(current.map((job) => job.id));
+        return [...current, ...result.items.filter((job) => !seen.has(job.id))];
+      });
+      setJobsPage(nextPage); setJobsHasMore(result.hasMore); setVisibleJobCount((count) => count + 20);
+    } catch (requestError) {
+      if (!jobs.length) setJobsError(requestError.message);
+    } finally {
+      setJobsFetchingMore(false);
+    }
+  }
+
+  async function loadMoreMapJobs() {
+    if (visibleMapJobCount < jobs.length) {
+      setVisibleMapJobCount((count) => count + 10);
+      return;
+    }
+    if (!jobsHasMore || jobsFetchingMore) return;
+    const nextPage = jobsPage + 1;
+    setJobsFetchingMore(true); setJobsError("");
+    try {
+      const result = await getExternalJobsBatch({ region: selectedRegion === "전체" ? "" : selectedRegion, page: nextPage });
+      setJobs((current) => {
+        const seen = new Set(current.map((job) => job.id));
+        return [...current, ...result.items.filter((job) => !seen.has(job.id))];
+      });
+      setJobsPage(nextPage); setJobsHasMore(result.hasMore); setVisibleMapJobCount((count) => count + 10);
+    } catch (requestError) {
+      if (!jobs.length) setJobsError(requestError.message);
+    } finally {
+      setJobsFetchingMore(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     setRegionSummary(null); setReviewSummary(null); setReviewError("");
-    if (selectedRegion === "전체" || !selectedRegionRecord?.id) { setPlaces([]); return () => { cancelled = true; }; }
+    if (selectedRegion === "전체" || !selectedRegionRecord?.id) return () => { cancelled = true; };
     setReviewLoading(true);
-    Promise.all([getRegion(selectedRegionRecord.id), getRegionPlaces(selectedRegionRecord.id)])
-      .then(([region, placeResult]) => { if (!cancelled) { setRegionSummary({ ...region, destinationCount: region.placeCount ?? asList(placeResult, "places").length }); setPlaces(asList(placeResult, "places")); } })
+    getRegion(selectedRegionRecord.id)
+      .then((region) => { if (!cancelled) setRegionSummary(region); })
       .catch((requestError) => { if (!cancelled) setReviewError(requestError.message); })
       .finally(() => { if (!cancelled) setReviewLoading(false); });
     return () => { cancelled = true; };
@@ -111,18 +198,20 @@ export default function MapPage() {
   </>;
 
   return <main className={`map-page-main${view === "search" ? " is-job-search-mode" : ""}`}>
-    <section className="job-view-switch" aria-label="일자리 보기 방식"><button className={view === "map" ? "is-active" : ""} type="button" onClick={() => setView("map")}><span aria-hidden="true">⌖</span><strong>지도</strong></button><button className={view === "search" ? "is-active" : ""} type="button" onClick={() => setView("search")}><span aria-hidden="true">⌕</span><strong>검색</strong></button></section>
-    {view === "map" ? <section className="map-controls-panel region-summary-panel"><div className="map-summary-tabs"><button className={summaryView === "region" ? "is-active" : ""} type="button" aria-pressed={summaryView === "region"} onClick={() => setSummaryView("region")}>지역 정보</button><button className={summaryView === "reviews" ? "is-active" : ""} type="button" aria-pressed={summaryView === "reviews"} onClick={() => setSummaryView("reviews")}>리뷰 요약</button></div>{regionPanel}</section> : <section className="job-search-panel"><div className="job-detail-card-head"><h2>일자리 검색</h2><span>DB 공고</span></div><form className="job-search-form map-job-search-form" ref={jobFilterRef} onSubmit={(event) => event.preventDefault()}>
-      <label className="job-picker-field">지역 검색<button className="job-picker-trigger" type="button" aria-expanded={openPicker === "region"} onClick={() => setOpenPicker((current) => current === "region" ? "" : "region")}><span>{selectedRegion === "전체" ? "지역을 선택해 주세요" : selectedRegion}</span><i /></button>{openPicker === "region" && <section className="job-option-popover"><input value={regionFilter} onChange={(event) => setRegionFilter(event.target.value)} placeholder="지역 이름 검색" autoFocus /><div>{["전체", ...mapRegions].filter((region) => !regionFilter || region.includes(regionFilter)).map((region) => <button className={selectedRegion === region ? "is-selected" : ""} type="button" key={region} onClick={() => { chooseRegion(region); setRegionFilter(region === "전체" ? "" : region); setOpenPicker(""); }}><span>{region}</span>{selectedRegion === region && <i>✓</i>}</button>)}</div></section>}</label>
-      <fieldset className="map-job-date-group"><legend>여행 기간</legend><button className="job-date-trigger" type="button" aria-expanded={dateOpen} onClick={openDatePicker}><span className="job-picker-icon">▦</span><strong>{jobFilters.tripStart && jobFilters.tripEnd ? `${displayDate(jobFilters.tripStart)} → ${displayDate(jobFilters.tripEnd)}` : "날짜를 선택해 주세요"}</strong><i /></button></fieldset>
-      <label className="job-picker-field">일하는 방식<button className="job-picker-trigger" type="button" aria-expanded={openPicker === "work"} onClick={() => setOpenPicker((current) => current === "work" ? "" : "work")}><span>{jobFilters.workType || "근무 방식 선택"}</span><i /></button>{openPicker === "work" && <section className="job-option-popover job-work-popover"><div>{workTypes.map((item) => <button className={jobFilters.workType === item ? "is-selected" : ""} type="button" key={item} onClick={() => { setJobFilters((current) => ({ ...current, workType: item })); setOpenPicker(""); }}><span>{item}</span>{jobFilters.workType === item && <i>✓</i>}</button>)}</div></section>}</label>
-      <label>희망 시간<button className="job-time-trigger" type="button" aria-expanded={timeOpen} onClick={() => { const [start = "09:00", end = "18:00"] = jobFilters.time.split("~"); setDraftTimeStart(start); setDraftTimeEnd(end); setTimeOpen(true); }}><span className="job-picker-icon">◷</span><strong>{jobFilters.time || "시간을 선택해 주세요"}</strong><i /></button></label>
-      <button className="button button-primary" type="submit">조건으로 검색하기</button><button className="button" type="button" onClick={() => { chooseRegion("전체"); setRegionFilter(""); setJobFilters({ tripStart: "", tripEnd: "", workType: "", time: "" }); }}>전체 공고 보기</button></form></section>}
-    {view === "map" && <section className="map-canvas-panel"><div className="map-canvas-scroll-content"><div className="map-canvas-heading"><div><p className="eyebrow dark">관광지·일자리 탐색</p><h2>전라도에서 원하는 지역을 선택하세요</h2></div><strong>{selectedRegion === "전체" ? "선택 전" : selectedRegion}</strong></div>{regionsError && <p className="map-api-warning">지역 API 연결 실패: {regionsError}</p>}<div className="map-filter-chips" aria-label="지역 빠른 선택">{mapRegions.map((region) => <button className={selectedRegion === region ? "is-selected" : ""} type="button" key={region} onClick={() => chooseRegion(region)}>{region}</button>)}</div><div className="jeolla-map"><KakaoMarkerMap items={regionRecords} selectedId={selectedRegionRecord?.regionId || selectedRegionRecord?.id} onSelect={(item) => chooseRegion(item.name)} label="전라도 지역 선택 카카오 지도" /></div></div></section>}
+    <section className="job-view-switch" aria-label="일자리 보기 방식"><button className={view === "map" ? "is-active" : ""} type="button" onClick={() => chooseView("map")}><span aria-hidden="true">⌖</span><strong>지도</strong></button><button className={view === "search" ? "is-active" : ""} type="button" onClick={() => chooseView("search")}><span aria-hidden="true">⌕</span><strong>검색</strong></button></section>
+    {view === "map" ? <section className="map-controls-panel region-summary-panel"><div className="map-summary-tabs"><button className={summaryView === "region" ? "is-active" : ""} type="button" aria-pressed={summaryView === "region"} onClick={() => setSummaryView("region")}>지역 정보</button><button className={summaryView === "reviews" ? "is-active" : ""} type="button" aria-pressed={summaryView === "reviews"} onClick={() => setSummaryView("reviews")}>리뷰 요약</button></div>{regionPanel}</section> : <section className="job-search-panel"><div className="job-detail-card-head"><h2>일자리 검색</h2><span>외부 공고</span></div><form className="job-search-form map-job-search-form" ref={jobFilterRef} onSubmit={submitJobTitleSearch}>
+      <label className="job-picker-field">지역 검색<div className="job-picker-trigger job-region-search-trigger"><input value={openPicker === "region" ? regionFilter : selectedRegion === "전체" ? "" : selectedRegion} placeholder="지역을 선택해 주세요" autoComplete="off" aria-expanded={openPicker === "region"} onFocus={() => { setRegionFilter(""); setOpenPicker("region"); }} onChange={(event) => { setRegionFilter(event.target.value); setOpenPicker("region"); }} /><i /></div>{openPicker === "region" && <section className="job-option-popover"><div>{["전체", ...mapRegions].filter((region) => !regionFilter.trim() || region.includes(regionFilter.trim())).map((region) => <button className={selectedRegion === region ? "is-selected" : ""} type="button" key={region} onClick={(event) => { event.preventDefault(); chooseRegion(region); setRegionFilter(""); setOpenPicker(""); }}><span>{region}</span>{selectedRegion === region && <i>✓</i>}</button>)}</div></section>}</label>
+      <label className="job-title-search-field">제목 검색<div><span aria-hidden="true">⌕</span><input value={jobTitleQuery} placeholder="공고 제목을 검색해 주세요" autoComplete="off" onChange={(event) => setJobTitleQuery(event.target.value)} />{jobTitleQuery && <button type="button" aria-label="제목 검색어 지우기" onClick={() => { setJobTitleQuery(""); setSubmittedJobTitleQuery(""); setVisibleJobCount(20); }}>×</button>}</div></label>
+      <button className="button button-primary" type="submit" disabled={jobsLoading}>{jobsLoading ? "검색 중..." : "제목으로 검색하기"}</button>
+      </form></section>}
+    {view === "map" && <section className="map-canvas-panel"><div className="map-canvas-scroll-content"><div className="map-canvas-heading"><h2>원하는 지역을 선택하세요</h2></div><div className="jeolla-map"><RegionIllustrationMap items={regionRecords} selectedName={selectedRegion === "전체" ? "" : selectedRegion} onSelect={(item) => chooseRegion(item.name)} /></div></div></section>}
     {dateOpen && <div className="travel-calendar-popover job-calendar-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setDateOpen(false); }}><section className="travel-calendar-dialog job-calendar-dialog" role="dialog" aria-modal="true"><header><h2>여행 날짜를 선택하세요</h2><button type="button" aria-label="닫기" onClick={() => setDateOpen(false)}>×</button></header><div className="travel-calendar-nav"><button type="button" aria-label="이전 달" disabled={calendarCursor <= new Date(todayRef.current.getFullYear(), todayRef.current.getMonth(), 1)} onClick={() => setCalendarCursor((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>‹</button><button type="button" aria-label="다음 달" onClick={() => setCalendarCursor((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>›</button></div><div className="travel-calendar-months"><JobCalendarMonth monthDate={calendarCursor} today={todayRef.current} start={draftStart} end={draftEnd} onSelect={selectJobDate} /><JobCalendarMonth monthDate={new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1)} today={todayRef.current} start={draftStart} end={draftEnd} onSelect={selectJobDate} /></div><footer><button type="button" disabled={!draftStart || !draftEnd} onClick={() => { setJobFilters((current) => ({ ...current, tripStart: dateValue(draftStart), tripEnd: dateValue(draftEnd) })); setDateOpen(false); }}>적용하기</button></footer></section></div>}
     {timeOpen && <div className="job-time-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setTimeOpen(false); }}><section className="job-time-dialog" role="dialog" aria-modal="true"><header><div><span>WORK HOURS</span><h2>희망 시간을 선택하세요</h2></div><button type="button" aria-label="닫기" onClick={() => setTimeOpen(false)}>×</button></header><div className="job-time-columns"><label><span>시작 시간</span><select value={draftTimeStart} onChange={(event) => { const next = event.target.value; setDraftTimeStart(next); if (draftTimeEnd <= next) setDraftTimeEnd(timeOptions.find((time) => time > next) || "21:00"); }}>{timeOptions.slice(0, -1).map((time) => <option key={time}>{time}</option>)}</select></label><div className="job-time-line"><i /><span>근무</span><i /></div><label><span>종료 시간</span><select value={draftTimeEnd} onChange={(event) => setDraftTimeEnd(event.target.value)}>{timeOptions.filter((time) => time > draftTimeStart).map((time) => <option key={time}>{time}</option>)}</select></label></div><div className="job-time-presets">{[["오전", "09:00", "13:00"], ["오후", "13:00", "18:00"], ["종일", "09:00", "18:00"]].map(([label, start, end]) => <button type="button" key={label} onClick={() => { setDraftTimeStart(start); setDraftTimeEnd(end); }}>{label}<small>{start}–{end}</small></button>)}</div><footer><button type="button" onClick={() => { setJobFilters((current) => ({ ...current, time: `${draftTimeStart}~${draftTimeEnd}` })); setTimeOpen(false); }}>적용하기</button></footer></section></div>}
     <aside className="map-results-panel">
-      {view === "map" ? <><div className="map-results-heading"><div><p className="eyebrow dark">관광지 조회 결과</p><h2>{resultTitle} 관광지</h2></div><strong>{places.length}</strong></div>{reviewLoading ? <div className="jobs-status is-visible">관광지를 불러오는 중입니다.</div> : reviewError ? <div className="jobs-status is-visible">{reviewError}</div> : selectedRegion === "전체" ? <div className="jobs-status is-visible is-empty">지도에서 지역을 선택해 주세요.</div> : places.length ? <div className="map-job-list">{places.map((place) => { const placeId = place.id || place.placeId; return <Link className="map-job-item map-destination-item" to={`/destinations/${placeId}`} key={placeId}><img src={placeImage(place)} alt="" /><div><span>{place.category || place.placeType || "관광지"}</span><h3>{place.name || place.title}</h3><p>{place.description || place.address || `${selectedRegion} 관광지`}</p></div><div className="job-meta"><span>★ {Number(place.averageRating || place.rating || 0).toFixed(1)}</span><span>리뷰 {place.reviewCount || 0}</span></div><footer><b>상세·리뷰 보기 →</b></footer></Link>; })}</div> : <div className="jobs-status is-visible is-empty">등록된 관광지가 없습니다.</div>}</> : <><div className="map-results-heading"><div><p className="eyebrow dark">일자리 조회 결과</p><h2>{resultTitle} 일자리</h2></div><strong>{jobs.length}</strong></div>{jobsApi.loading ? <div className="jobs-status is-visible">데이터를 불러오는 중입니다.</div> : jobsApi.error ? <div className="jobs-status is-visible">{jobsApi.error}</div> : jobs.length ? <div className="map-job-list">{jobs.map((job) => <MapJobItem job={job} key={job.id} />)}</div> : <div className="jobs-status is-visible is-empty">조건에 맞는 일자리가 없습니다.</div>}</>}
+      {view === "search" && jobsLoading && !jobs.length && <section className="jobs-loading-state"><div className="travel-loading-orbit"><span>일</span><i /></div><h3>일자리를 불러오고 있어요</h3><p>먼저 도착한 공고부터 곧 보여드릴게요.</p></section>}
+      {view === "map" ? <><div className="map-results-heading"><div><p className="eyebrow dark">일자리 조회 결과</p><h2>{resultTitle} 일자리</h2></div></div>{jobsLoading ? <div className="jobs-status is-visible">일자리를 불러오는 중입니다.</div> : jobsError ? jobsErrorView : jobs.length ? <><div className="map-job-list">{jobs.slice(0, visibleMapJobCount).map((job) => <MapJobItem job={job} key={job.id} />)}</div>{(visibleMapJobCount < jobs.length || jobsHasMore) && <button className="map-jobs-more-button" type="button" disabled={jobsFetchingMore} onClick={loadMoreMapJobs}>{jobsFetchingMore ? "불러오는 중..." : "더보기"}</button>}</> : <div className="jobs-status is-visible is-empty">{emptyRegionJobsMessage}</div>}</> : <><div className="map-results-heading"><div><p className="eyebrow dark">일자리 조회 결과</p><h2>{resultTitle} 일자리</h2></div></div>{jobsLoading ? <div className="jobs-status is-visible">데이터를 불러오는 중입니다.</div> : jobsError ? jobsErrorView : filteredJobs.length ? <><div className="map-job-list">{visibleJobs.map((job) => <MapJobItem job={job} key={job.id} />)}</div>{visibleJobCount < filteredJobs.length && <button className="map-jobs-more-button" type="button" onClick={() => setVisibleJobCount((count) => count + 20)}>더보기</button>}</> : <div className="jobs-status is-visible is-empty">{normalizedJobTitleQuery ? "제목과 지역 조건에 맞는 일자리가 없습니다." : emptyRegionJobsMessage}</div>}</>}
+      {view === "search" && !jobsFetchingMore && jobsHasMore && visibleJobCount >= filteredJobs.length && filteredJobs.length > 0 && <button className="map-jobs-more-button" type="button" onClick={loadMoreJobs}>더보기</button>}
+      {view === "search" && jobsFetchingMore && jobs.length > 0 && <p className="jobs-progress-note">다음 일자리를 불러오는 중입니다.</p>}
     </aside>
   </main>;
 }
