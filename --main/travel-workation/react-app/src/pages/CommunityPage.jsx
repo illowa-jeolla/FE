@@ -6,6 +6,9 @@ import { asList, useApi } from "../hooks/useApi";
 import { postImages } from "./communityUtils";
 import AuthenticatedImage from "../components/AuthenticatedImage";
 
+let communityPageCache = null;
+let communityRegionsCache = null;
+
 function PostCard({ post }) {
   const images = postImages(post);
   const postId = post.postId || post.id;
@@ -14,11 +17,11 @@ function PostCard({ post }) {
 
 export default function CommunityPage() {
   const location = useLocation(); const navigate = useNavigate();
-  const [regionId, setRegionId] = useState("");
-  const [regionRecords, setRegionRecords] = useState([]);
+  const [regionId, setRegionId] = useState(communityPageCache?.regionId || "");
+  const [regionRecords, setRegionRecords] = useState(communityRegionsCache || []);
   const [savedToast, setSavedToast] = useState(Boolean(location.state?.draftSaved));
   const path = "/api/v1/community/travel-posts?page=0&size=12&sort=createdAt,desc";
-  const { data, loading, error, run } = useApi(path);
+  const { data, loading, error, run, setData } = useApi(null, { immediate: false });
   const posts = Array.isArray(data?.content) ? data.content : asList(data, "posts");
   const sortedPosts = [...posts].sort((left, right) => {
     const rightTime = new Date(right.createdAt || right.created_at || 0).getTime() || 0;
@@ -26,7 +29,15 @@ export default function CommunityPage() {
     if (rightTime !== leftTime) return rightTime - leftTime;
     return Number(right.postId || right.id || 0) - Number(left.postId || left.id || 0);
   });
-  useEffect(() => { getRegions().then((result) => setRegionRecords(asList(result, "regions"))).catch(() => {}); }, []);
+  useEffect(() => {
+    if (communityPageCache?.data) setData(communityPageCache.data);
+    else run(path).then((result) => { communityPageCache = { data: result, regionId: "" }; }).catch(() => {});
+    if (communityRegionsCache) return;
+    getRegions().then((result) => {
+      communityRegionsCache = asList(result, "regions");
+      setRegionRecords(communityRegionsCache);
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     if (!savedToast) return undefined;
     navigate(location.pathname, { replace: true, state: null });
@@ -34,6 +45,6 @@ export default function CommunityPage() {
     return () => window.clearTimeout(timer);
   }, [location.pathname, navigate, savedToast]);
   const selectedRegion = regionRecords.find((item) => String(item.regionId || item.id) === regionId);
-  function applyRegion(event) { event.preventDefault(); const query = new URLSearchParams({ page: "0", size: "12", sort: "createdAt,desc" }); if (regionId) query.set("regionId", regionId); run(`/api/v1/community/travel-posts?${query}`).catch(() => {}); }
+  function applyRegion(event) { event.preventDefault(); const query = new URLSearchParams({ page: "0", size: "12", sort: "createdAt,desc" }); if (regionId) query.set("regionId", regionId); run(`/api/v1/community/travel-posts?${query}`).then((result) => { communityPageCache = { data: result, regionId }; }).catch(() => {}); }
   return <main className="feature-page-main community-page-main">{savedToast && <div className="community-saved-toast" role="status"><span>✓</span>저장되었습니다</div>}<section className="page-intro"><div><p className="eyebrow dark">지금의 여행</p><h1>전라도를 공유해요</h1></div><div className="page-intro-actions"><Link className="button button-primary" to="/community/write">여행 올리기 +</Link></div></section><div className="page-workspace community-layout"><section className="page-panel"><form className="filter-row" onSubmit={applyRegion}><select aria-label="게시글 지역 필터" value={regionId} onChange={(event) => setRegionId(event.target.value)}><option value="">전체</option>{regionRecords.map((item) => { const id = item.regionId || item.id; return <option value={id} key={id || item.name}>{item.name}</option>; })}</select><button className="button button-primary" type="submit">지역 적용</button></form><div className="community-filter-notice">{selectedRegion ? `${selectedRegion.name} 여행 기록을 모아보고 있어요.` : "모든 여행 기록을 모아보고 있어요."}</div><Status loading={loading} error={error} empty={!sortedPosts.length}><div className="post-feed">{sortedPosts.map((post) => <PostCard post={post} key={post.postId || post.id} />)}</div></Status></section></div></main>;
 }

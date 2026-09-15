@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { postJson } from "../api/client";
 import { saveLoginSession } from "../auth/session";
 import { AUTH_API, authApiUrl } from "../config";
@@ -10,6 +10,9 @@ export default function AuthPage() {
   const [error, setError] = useState(false);
   const [socialLoginStarting, setSocialLoginStarting] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedReturnTo = searchParams.get("returnTo") || "/";
+  const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/";
 
   function startSocialLogin(provider) {
     if (socialLoginStarting) return;
@@ -32,7 +35,7 @@ export default function AuthPage() {
       setError(false); setMessage("로그인 중입니다.");
       const data = await postJson(url, { email: values.email.trim().toLowerCase(), password: values.password });
       saveLoginSession(data);
-      navigate("/");
+      navigate(returnTo);
     } catch (requestError) {
       setError(true); setMessage(requestError.message);
     }

@@ -8,8 +8,8 @@ function GatheringList({ title, data }) {
 }
 
 export default function MyGatheringsPage() {
-  const hosted = useApi("/api/v1/gatherings/me?type=hosted&page=0&size=100");
-  const joined = useApi("/api/v1/gatherings/me?type=joined&page=0&size=100");
+  const hosted = useApi("/api/v1/gatherings/me?type=hosted&page=0&size=20");
+  const joined = useApi("/api/v1/gatherings/me?type=joined&page=0&size=20");
   const loading = hosted.loading || joined.loading;
   const error = hosted.error || joined.error;
   return <main className="feature-page-main gatherings-page-main"><section className="page-intro"><div><p className="eyebrow dark">MY GATHERINGS</p><h1>내 게더링</h1></div><div className="page-intro-actions"><Link className="button" to="/gatherings">전체 게더링</Link><Link className="button button-primary" to="/gatherings/write">게더링 만들기 +</Link></div></section><Status loading={loading} error={error} empty={false}><div className="page-workspace"><GatheringList title="내가 만든 게더링" data={hosted.data} /><GatheringList title="참여 중인 게더링" data={joined.data} /></div></Status></main>;

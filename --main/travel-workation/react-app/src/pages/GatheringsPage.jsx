@@ -7,6 +7,9 @@ import { FormMessage, Status } from "../components/UI";
 import { getRegions } from "../api/regions";
 import { asList, useApi } from "../hooks/useApi";
 
+let gatheringsPageCache = null;
+let gatheringRegionsCache = null;
+
 function formatDate(value) {
   if (!value) return "일정 미정";
   return new Intl.DateTimeFormat("ko-KR", {
@@ -32,6 +35,12 @@ function localDateFromDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function gatheringDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : localDateFromDate(date);
+}
+
 function GatheringCalendarMonth({ monthDate, today, selected, onSelect }) {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
@@ -50,25 +59,30 @@ function toKoreaOffsetDateTime(value) {
 }
 
 function normalizeGathering(item) {
+  const startsAt = item.startsAt || item.event_time;
+  const expired = Boolean(startsAt) && new Date(startsAt).getTime() <= Date.now();
   return {
     ...item,
     id: item.gatheringId || item.id,
     region: item.region?.name || item.region || "",
     location: item.meetingPlace,
-    event_time: item.startsAt,
+    event_time: startsAt,
     participant_count: item.participantCount,
     nickname: item.creator?.nickname,
     username: item.creator?.nickname,
     owned: Boolean(item.host) || String(item.creator?.id ?? "") === String(sessionStorage.getItem("userId") || ""),
-    confirmed: item.status && item.status !== "OPEN"
+    expired,
+    confirmed: expired || (item.status && item.status !== "OPEN")
   };
 }
 
 function GatheringCard({ gathering, onOpen, onAction, onCancel }) {
   const full = Number(gathering.participant_count) >= Number(gathering.capacity);
-  const actionDisabled = gathering.owned || gathering.cancelled || (!gathering.joined && (full || gathering.confirmed));
+  const actionDisabled = gathering.owned || gathering.cancelled || gathering.expired || (!gathering.joined && (full || gathering.confirmed));
   const actionLabel = gathering.owned
     ? "내가 만든 모임"
+    : gathering.expired
+      ? "마감됨"
     : gathering.cancelled
       ? "재참여 불가"
     : gathering.joined
@@ -102,42 +116,63 @@ export default function GatheringsPage() {
   const todayRef = useRef(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
   const initialStartDate = localDate();
   const initialEndDate = localDate(365);
-  const [region, setRegion] = useState("전체");
-  const [concept, setConcept] = useState("");
-  const [meetingPlace, setMeetingPlace] = useState("");
-  const [time, setTime] = useState("");
-  const [startDate, setStartDate] = useState(initialStartDate);
-  const [dateScope, setDateScope] = useState("after");
+  const cachedFilters = gatheringsPageCache?.filters;
+  const [region, setRegion] = useState(cachedFilters?.region || "전체");
+  const [concept, setConcept] = useState(cachedFilters?.concept || "");
+  const [meetingPlace, setMeetingPlace] = useState(cachedFilters?.meetingPlace || "");
+  const [time, setTime] = useState(cachedFilters?.time || "");
+  const [startDate, setStartDate] = useState(cachedFilters?.startDate || initialStartDate);
+  const [dateScope, setDateScope] = useState(cachedFilters?.dateScope || "after");
   const [dateOpen, setDateOpen] = useState(false);
   const [draftDate, setDraftDate] = useState(null);
   const [calendarCursor, setCalendarCursor] = useState(new Date(todayRef.current.getFullYear(), todayRef.current.getMonth(), 1));
   const [selected, setSelected] = useState(null);
   const [message, setMessage] = useState("");
-  const [regionRecords, setRegionRecords] = useState([]);
+  const [regionRecords, setRegionRecords] = useState(gatheringRegionsCache || []);
   const [cancelledIds, setCancelledIds] = useState(() => new Set());
   const [joinedIds, setJoinedIds] = useState(() => new Set());
   const { data, loading, error, run, setData } = useApi(null, { immediate: false });
-  const gatherings = asList(data, "content").map(normalizeGathering).map((item) => ({
-    ...item,
-    joined: item.joined || joinedIds.has(String(item.id))
-  }));
+  const gatherings = asList(data, "content")
+    .map(normalizeGathering)
+    .filter((item) => !item.expired)
+    .filter((item) => item.owned || dateScope !== "single" || gatheringDate(item.event_time) === startDate)
+    .map((item) => ({
+      ...item,
+      joined: item.joined || joinedIds.has(String(item.id))
+    }));
   const ownedGatherings = gatherings.filter((item) => item.owned);
   const otherGatherings = gatherings.filter((item) => !item.owned);
 
   useEffect(() => {
+    if (gatheringsPageCache?.data) {
+      setData(gatheringsPageCache.data);
+      return;
+    }
     getRegions().then(async (result) => {
       const records = asList(result, "regions");
+      gatheringRegionsCache = records;
       setRegionRecords(records);
       await loadAllRegions({ startDate: initialStartDate, endDate: initialEndDate });
     }).catch((requestError) => setMessage(requestError.message));
-  }, [run, setData]);
+  }, []);
+
+  function filterSnapshot(overrides = {}) {
+    return {
+      region: overrides.region ?? region,
+      concept: overrides.concept ?? concept,
+      meetingPlace: overrides.meetingPlace ?? meetingPlace,
+      time: overrides.time ?? time,
+      startDate: overrides.startDate ?? startDate,
+      dateScope: overrides.dateScope ?? dateScope
+    };
+  }
 
   async function loadAllRegions(overrides = {}) {
     const response = await run(buildGatheringQuery({ ...overrides, region: "전체" }));
-    return mergeWithHosted(asList(response, "content"));
+    return mergeWithHosted(asList(response, "content"), filterSnapshot({ ...overrides, region: "전체" }));
   }
 
-  async function mergeWithHosted(generalItems) {
+  async function mergeWithHosted(generalItems, filters = filterSnapshot()) {
     let hostedResponse = null;
     if (hasSession()) {
       try {
@@ -150,13 +185,15 @@ export default function GatheringsPage() {
     const hostedItems = asList(hostedResponse, "content").map((item) => ({ ...item, host: true }));
     const unique = new Map([...generalItems, ...hostedItems].map((item) => [item.id || item.gatheringId, item]));
     const content = [...unique.values()];
-    setData({ content, page: 0, size: content.length, totalElements: content.length, hasNext: false });
+    const nextData = { content, page: 0, size: content.length, totalElements: content.length, hasNext: false };
+    gatheringsPageCache = { data: nextData, filters };
+    setData(nextData);
     return content;
   }
 
   async function loadSelectedRegion() {
     const generalResponse = await run(buildGatheringQuery());
-    return mergeWithHosted(asList(generalResponse, "content"));
+    return mergeWithHosted(asList(generalResponse, "content"), filterSnapshot());
   }
 
   async function refreshGatherings() {
@@ -167,14 +204,17 @@ export default function GatheringsPage() {
     const selectedRegion = overrides.region ?? region;
     const selectedStartDate = overrides.startDate ?? startDate;
     const selectedDateScope = overrides.dateScope ?? dateScope;
+    const selectedConcept = overrides.concept ?? concept;
+    const selectedMeetingPlace = overrides.meetingPlace ?? meetingPlace;
+    const selectedTime = overrides.time ?? time;
     const selectedEndDate = overrides.endDate ?? (selectedDateScope === "single" ? selectedStartDate : initialEndDate);
     const params = new URLSearchParams();
-    if (selectedRegion && selectedRegion !== "전체") params.set("region", selectedRegion);
+    params.set("region", selectedRegion === "전체" ? "" : selectedRegion || "");
     params.set("startsOn", selectedStartDate);
     params.set("endsOn", selectedEndDate);
-    if (concept.trim()) params.set("concept", concept.trim());
-    if (meetingPlace.trim()) params.set("meetingPlace", meetingPlace.trim());
-    if (time) params.set("time", time);
+    if (selectedConcept.trim()) params.set("concept", selectedConcept.trim());
+    if (selectedMeetingPlace.trim()) params.set("meetingPlace", selectedMeetingPlace.trim());
+    if (selectedTime) params.set("time", selectedTime);
     params.set("page", "0");
     params.set("size", "20");
     return authApiUrl(`/gatherings?${params}`);
@@ -199,7 +239,7 @@ export default function GatheringsPage() {
     setStartDate(resetStartDate);
     setDateScope("after");
     setMessage("");
-    await loadAllRegions({ startDate: resetStartDate, endDate: initialEndDate }).catch(() => {});
+    await loadAllRegions({ region: "전체", concept: "", meetingPlace: "", time: "", startDate: resetStartDate, dateScope: "after", endDate: initialEndDate }).catch(() => {});
   }
 
   function openDatePicker() {
@@ -322,7 +362,7 @@ export default function GatheringsPage() {
         </div>
       </Status></section></div>
       {dateOpen && <div className="travel-calendar-popover job-calendar-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setDateOpen(false); }}><section className="travel-calendar-dialog job-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="gathering-calendar-title"><header><h2 id="gathering-calendar-title">게더링 날짜를 선택하세요</h2><button type="button" aria-label="닫기" onClick={() => setDateOpen(false)}>×</button></header><div className="travel-calendar-nav"><button type="button" aria-label="이전 달" disabled={calendarCursor <= new Date(todayRef.current.getFullYear(), todayRef.current.getMonth(), 1)} onClick={() => setCalendarCursor((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>‹</button><button type="button" aria-label="다음 달" onClick={() => setCalendarCursor((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>›</button></div><div className="travel-calendar-months"><GatheringCalendarMonth monthDate={calendarCursor} today={todayRef.current} selected={draftDate} onSelect={setDraftDate} /><GatheringCalendarMonth monthDate={new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1)} today={todayRef.current} selected={draftDate} onSelect={setDraftDate} /></div><footer><button type="button" disabled={!draftDate} onClick={() => { setStartDate(localDateFromDate(draftDate)); setDateOpen(false); }}>적용하기</button></footer></section></div>}
-      {selected && <div className="gathering-detail-modal"><button className="gathering-detail-backdrop" type="button" aria-label="게더링 상세 창 닫기" onClick={() => setSelected(null)} /><section className="gathering-detail-dialog" role="dialog" aria-modal="true"><button className="gathering-detail-close" type="button" aria-label="닫기" onClick={() => setSelected(null)}>×</button><div><p className="eyebrow dark">GATHERING DETAIL</p><time>{formatDate(selected.event_time)}</time><h2>{selected.title}</h2><p className="gathering-detail-description">{selected.description || "함께 지역을 경험하는 가벼운 모임입니다."}</p><dl className="gathering-detail-info"><div><dt>지역</dt><dd>{selected.region}</dd></div><div><dt>장소</dt><dd>{selected.location}</dd></div><div><dt>참여 인원</dt><dd>{selected.participant_count || 0}/{selected.capacity}명</dd></div><div><dt>올린 사람</dt><dd>{selected.nickname || selected.username || "여행자"}</dd></div></dl>{selected.participants?.length > 0 && <section className="gathering-detail-participants"><strong>참여한 사람</strong><div>{selected.participants.map((participant) => <span key={participant.userId || participant.nickname}>{participant.nickname}{participant.role === "HOST" ? " · 방장" : ""}</span>)}</div></section>}{selected.host && <div className="gathering-detail-host-actions"><button className="button" type="button" onClick={() => editGathering(selected)}>수정</button><button className="button" type="button" onClick={() => deleteGathering(selected)}>삭제</button></div>}{!selected.owned && <button className="button button-primary" onClick={() => action(selected)}>{selected.joined ? "참여 취소" : "참여하기"}</button>}</div></section></div>}
+      {selected && <div className="gathering-detail-modal"><button className="gathering-detail-backdrop" type="button" aria-label="게더링 상세 창 닫기" onClick={() => setSelected(null)} /><section className="gathering-detail-dialog" role="dialog" aria-modal="true"><button className="gathering-detail-close" type="button" aria-label="닫기" onClick={() => setSelected(null)}>×</button><div><p className="eyebrow dark">GATHERING DETAIL</p><time>{formatDate(selected.event_time)}</time><h2>{selected.title}</h2><p className="gathering-detail-description">{selected.description || "함께 지역을 경험하는 가벼운 모임입니다."}</p><dl className="gathering-detail-info"><div><dt>지역</dt><dd>{selected.region}</dd></div><div><dt>장소</dt><dd>{selected.location}</dd></div><div><dt>참여 인원</dt><dd>{selected.participant_count || 0}/{selected.capacity}명</dd></div><div><dt>올린 사람</dt><dd>{selected.nickname || selected.username || "여행자"}</dd></div></dl>{selected.participants?.length > 0 && <section className="gathering-detail-participants"><strong>참여한 사람</strong><div>{selected.participants.map((participant) => <span key={participant.userId || participant.nickname}>{participant.nickname}{participant.role === "HOST" ? " · 방장" : ""}</span>)}</div></section>}{selected.host && <div className="gathering-detail-host-actions"><Link className="button" to={`/gatherings/${selected.id}/edit`}>수정</Link><button className="button" type="button" onClick={() => deleteGathering(selected)}>삭제</button></div>}{!selected.owned && <button className="button button-primary" onClick={() => action(selected)}>{selected.joined ? "참여 취소" : "참여하기"}</button>}</div></section></div>}
     </main>
   );
 }
