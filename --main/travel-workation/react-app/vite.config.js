@@ -11,49 +11,44 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    allowedHosts: ["rearview-sugar-botanist.ngrok-free.dev"],
+    allowedHosts: ["localhost"],
     fs: {
       allow: [path.resolve("..")]
     },
     proxy: {
       "/api": {
-        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
         changeOrigin: true,
         secure: true,
         headers: {
-          "ngrok-skip-browser-warning": "1"
         }
       },
       "/assets": {
-        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
         changeOrigin: true,
         secure: true,
         headers: {
-          "ngrok-skip-browser-warning": "1"
         }
       },
       "/uploads": {
-        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
         changeOrigin: true,
         secure: true,
         headers: {
-          "ngrok-skip-browser-warning": "1"
         }
       },
       "/files": {
-        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
         changeOrigin: true,
         secure: true,
         headers: {
-          "ngrok-skip-browser-warning": "1"
         }
       },
       "/local-images": {
-        target: "https://lia-balsamiferous-elois.ngrok-free.dev",
+        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
         changeOrigin: true,
         secure: true,
         headers: {
-          "ngrok-skip-browser-warning": "1"
         }
       }
     }
