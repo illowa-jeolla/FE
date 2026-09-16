@@ -11,7 +11,7 @@ async function parseResponse(response) {
 }
 
 function tunnelHeaders(url) {
-  return String(url).includes("ngrok-free") ? { "ngrok-skip-browser-warning": "1" } : {};
+  return {};
 }
 
 function accessTokenFrom(payload = {}) {
@@ -57,7 +57,7 @@ async function performTokenRefresh() {
 
   const cookieName = csrfPayload.data?.cookieName || "XSRF-TOKEN";
   const headerName = csrfPayload.data?.headerName || "X-XSRF-TOKEN";
-  const csrfToken = readCookie(cookieName);
+  const csrfToken = csrfPayload.data?.token || readCookie(cookieName);
   if (!csrfToken) throw new Error("CSRF 쿠키를 읽을 수 없습니다.");
 
   const refreshResponse = await fetch(authApiUrl(AUTH_API.endpoints.refresh), {

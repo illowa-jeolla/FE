@@ -21,7 +21,7 @@ export default function AuthenticatedImage({ src, alt = "", ...props }) {
     setRetried(true);
     try {
       const token = sessionStorage.getItem("accessToken");
-      const response = await fetch(src, { credentials: "include", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(String(src).includes("ngrok-free") ? { "ngrok-skip-browser-warning": "1" } : {}) } });
+      const response = await fetch(src, { credentials: "include", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
       if (!response.ok) throw new Error(`이미지 요청 실패 (${response.status})`);
       const blob = await response.blob();
       if (!blob.type.startsWith("image/")) throw new Error("이미지 형식의 응답이 아닙니다.");
