@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20260805-2">
-  <link rel="stylesheet" href="feature-pages.css?v=20260809-13">
+  <link rel="stylesheet" href="feature-pages.css?v=20260826-17">
 </head>
 <body class="feature-page travel-guide-page">
   <header class="site-header">
@@ -31,9 +31,16 @@
 
     <form class="travel-search-bar" id="travel-guide-form">
       <div class="travel-search-side-heading"><span class="travel-guide-eyebrow">TRIP DETAILS</span><b>여행 조건</b><h2>여행 정보 입력</h2></div>
-      <label class="travel-search-field travel-search-region"><span>여행 지역 <small>선택</small></span><div><i class="travel-field-icon travel-field-icon-location" aria-hidden="true"></i><input id="travel-region" name="region" value="" placeholder="전라도 전체" autocomplete="off"></div></label>
-      <label class="travel-search-field travel-search-start"><span>출발 <small>선택</small></span><div><i class="travel-field-icon travel-field-icon-calendar" aria-hidden="true"></i><input id="travel-start" type="date" name="start"></div></label>
-      <label class="travel-search-field travel-search-end"><span>도착 <small>선택</small></span><div><i class="travel-field-icon travel-field-icon-calendar" aria-hidden="true"></i><input id="travel-end" type="date" name="end"></div></label>
+      <div class="travel-search-field travel-search-region" id="travel-region-field">
+        <span>여행 지역 <small>선택</small></span>
+        <div class="travel-region-input-wrap"><i class="travel-field-icon travel-field-icon-location" aria-hidden="true"></i><input id="travel-region" name="region" value="" placeholder="전라도 전체" autocomplete="off" aria-expanded="false" aria-controls="travel-region-picker"><button class="travel-region-chevron" id="travel-region-toggle" type="button" aria-label="지역 선택 열기"><i aria-hidden="true"></i></button></div>
+        <section class="travel-region-picker" id="travel-region-picker" aria-label="전라도 지역 선택" hidden>
+          <div class="travel-region-options" id="travel-region-options"></div>
+        </section>
+      </div>
+      <button class="travel-search-field travel-date-trigger" id="travel-date-open" type="button"><span>여행 날짜 <small>선택</small></span><div><i class="travel-field-icon travel-field-icon-calendar" aria-hidden="true"></i><strong id="travel-date-summary"><span class="travel-date-placeholder">날짜를 선택해 주세요</span></strong><i class="travel-date-arrow" aria-hidden="true"></i></div></button>
+      <input id="travel-start" type="hidden" name="start"><input id="travel-end" type="hidden" name="end">
+      <section class="travel-daily-counts" id="travel-daily-counts" hidden><header><strong>방문할 관광지 수</strong><small>1–5곳</small></header><div id="travel-daily-count-list"></div></section>
       <button class="travel-search-field travel-hotel-trigger" id="hotel-search-open" type="button"><span>숙소 위치</span><div><i class="travel-field-icon travel-field-icon-hotel" aria-hidden="true"></i><strong id="selected-hotel">숙소 위치 검색하기</strong></div></button>
       <button class="travel-guide-submit" type="submit">맞춤 여행 추천받기 <span>→</span></button>
       <div class="page-status travel-guide-status" id="travel-guide-status" role="status"></div>
@@ -103,7 +110,16 @@
     </section>
   </div>
 
+  <div class="travel-calendar-popover" id="travel-calendar-modal" hidden>
+    <section class="travel-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="travel-calendar-title">
+      <header><h2 id="travel-calendar-title">여행 날짜를 선택하세요</h2><button id="travel-calendar-close" type="button" aria-label="닫기">×</button></header>
+      <div class="travel-calendar-nav"><button id="travel-calendar-prev" type="button" aria-label="이전 달">‹</button><button id="travel-calendar-next" type="button" aria-label="다음 달">›</button></div>
+      <div class="travel-calendar-months" id="travel-calendar-months"></div>
+      <footer><button id="travel-calendar-apply" type="button" disabled>적용하기</button></footer>
+    </section>
+  </div>
+
   <script src="shared.js?v=20260807-6"></script>
-  <script src="recommend.js?v=20260809-4"></script>
+  <script src="recommend.js?v=20260826-11"></script>
 </body>
 </html>

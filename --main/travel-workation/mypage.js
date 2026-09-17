@@ -19,11 +19,13 @@ function canReview(item) {
 function render() {
   const { profile, trips, guides, posts, gatherings = [], applications, favoriteJobs = [] } = dashboard;
   const reviewedGuideIds = new Set(trips.map((trip) => String(trip.guideId)));
-  document.querySelector("#mypage-nickname").textContent = `${profile.nickname || profile.username}님의 기록`;
-  document.querySelector("#mypage-username").textContent = `@${profile.username}`;
-  document.querySelector("#mypage-avatar").textContent = (profile.nickname || profile.username).slice(0, 1);
-  document.querySelector("#profile-username").value = profile.username;
-  document.querySelector("#profile-nickname").value = profile.nickname || profile.username;
+  const email = profile.email || profile.username || "";
+  const displayName = profile.nickname || email.split("@")[0] || "사용자";
+  document.querySelector("#mypage-nickname").textContent = `${displayName}님의 기록`;
+  document.querySelector("#mypage-email").textContent = email;
+  document.querySelector("#mypage-avatar").textContent = displayName.slice(0, 1);
+  document.querySelector("#profile-email").value = email;
+  document.querySelector("#profile-nickname").value = profile.nickname || displayName;
   [["trip", trips], ["guide", guides], ["post", posts], ["gathering", gatherings], ["application", applications], ["favorite", favoriteJobs]].forEach(([key, values]) => document.querySelector(`#${key}-count`).textContent = values.length);
   document.querySelector("#trip-list").innerHTML = trips.length ? trips.map((trip) => { const images = trip.images?.length ? trip.images : trip.imageData ? [trip.imageData] : []; const rating = Math.max(1, Math.min(5, Number(trip.rating) || 5)); return `<article class="mypage-trip-review" data-open-trip="${trip.id}" tabindex="0">${images.length ? `<div class="mypage-trip-cover"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(trip.region)} 여행 리뷰 사진"><span>${escapeHtml(trip.region)}</span><b>★ ${rating}.0</b>${images.length > 1 ? `<small>+${images.length - 1}</small>` : ""}</div>` : `<div class="mypage-trip-cover is-empty"><span>${escapeHtml(trip.region)}</span><b>★ ${rating}.0</b></div>`}<div class="mypage-trip-copy"><span>MY TRAVEL REVIEW</span><h3>${escapeHtml(trip.destinationName)}</h3><p>${escapeHtml(trip.note || "여행 리뷰")}</p><footer><small>${date(trip.createdAt)}</small><strong>여행 기록 보기 →</strong></footer></div></article>`; }).join("") : empty("리뷰를 남긴 여행 가이드가 아직 없어요.");
   document.querySelector("#guide-list").innerHTML = guides.length ? guides.map((item) => {
@@ -193,27 +195,62 @@ document.querySelector("#guide-list").addEventListener("click", async (event) =>
 document.querySelector("#guide-list").addEventListener("keydown", (event) => {
   if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-open-guide]")) event.target.click();
 });
-function openTripGuide(trip) {
-  if (!trip?.guide) return;
-  const savedItem = dashboard.guides.find((item) => String(item.id) === String(trip.guideId));
-  const savedConditions = trip.guide.conditions || { region: trip.region, hotel: trip.guide.hotel?.name || "", start: trip.guide.tripStart || "", end: trip.guide.tripEnd || "", themes: [], transport: "", companion: "" };
-  sessionStorage.setItem("travelGuideConditions", JSON.stringify(savedConditions));
-  sessionStorage.setItem("travelGuideResult", JSON.stringify({ guide: trip.guide, attempt: 1, excludedSpots: [], conditions: savedConditions, saved: Boolean(savedItem), savedGuideId: savedItem?.id || "" }));
-  location.href = savedItem ? `travel-guide.html?saved=1&guideId=${encodeURIComponent(savedItem.id)}` : "travel-guide.html";
+let tripReviewModal;
+function closeTripReview() {
+  if (!tripReviewModal) return;
+  tripReviewModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+function openTripReview(trip) {
+  if (!trip) return;
+  const images = trip.images?.length ? trip.images : trip.imageData ? [trip.imageData] : [];
+  const rating = Math.max(1, Math.min(5, Number(trip.rating) || 5));
+  if (!tripReviewModal) {
+    tripReviewModal = document.createElement("div");
+    tripReviewModal.className = "guide-review-modal trip-review-detail-modal";
+    tripReviewModal.hidden = true;
+    tripReviewModal.innerHTML = `<button class="guide-review-backdrop" type="button" aria-label="리뷰 상세 창 닫기" data-trip-review-close></button><section class="guide-review-dialog trip-review-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="trip-review-detail-title"><button class="guide-review-close" type="button" aria-label="닫기" data-trip-review-close>×</button><div id="trip-review-detail-content"></div></section>`;
+    document.body.appendChild(tripReviewModal);
+    tripReviewModal.addEventListener("click", (event) => { if (event.target.closest("[data-trip-review-close]")) closeTripReview(); });
+  }
+  tripReviewModal.querySelector("#trip-review-detail-content").innerHTML = `<span class="mypage-kicker">MY TRAVEL REVIEW</span><h2 id="trip-review-detail-title">${escapeHtml(trip.destinationName)}</h2><div class="trip-review-detail-meta"><span>${escapeHtml(trip.region)}</span><time>${date(trip.createdAt)}</time></div><div class="mypage-review-stars" aria-label="별점 ${rating}점">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</div>${images.length ? `<div class="trip-review-detail-images">${images.map((image, index) => `<img src="${escapeHtml(image)}" alt="${escapeHtml(trip.region)} 여행 리뷰 사진 ${index + 1}">`).join("")}</div>` : ""}<p class="trip-review-detail-content">${escapeHtml(trip.note || "작성한 리뷰 내용이 없습니다.")}</p>`;
+  tripReviewModal.hidden = false;
+  document.body.classList.add("modal-open");
+  tripReviewModal.querySelector(".guide-review-close").focus();
 }
 document.querySelector("#trip-list").addEventListener("click", (event) => {
   const card = event.target.closest("[data-open-trip]");
-  if (card) openTripGuide(dashboard.trips.find((trip) => String(trip.id) === card.dataset.openTrip));
+  if (card) openTripReview(dashboard.trips.find((trip) => String(trip.id) === card.dataset.openTrip));
 });
 document.querySelector("#trip-list").addEventListener("keydown", (event) => {
   if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-open-trip]")) event.target.click();
 });
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && tripReviewModal && !tripReviewModal.hidden) closeTripReview(); });
 document.querySelector("#nickname-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try { const profile = await request("/api/me", { method: "PATCH", body: JSON.stringify({ nickname: document.querySelector("#profile-nickname").value }) }); sessionStorage.setItem("nickname", profile.nickname); dashboard.profile = profile; render(); setStatus(statusElement, "닉네임을 변경했습니다."); }
   catch (error) { setStatus(statusElement, error.message, "error"); }
 });
-document.querySelector("#mypage-logout").addEventListener("click", () => { sessionStorage.clear(); location.href = "index.html"; });
+document.querySelector("#mypage-logout").addEventListener("click", async () => {
+  const config = window.AUTH_API_CONFIG ?? {};
+  const origin = String(config.origin || "").replace(/\/+$/, "");
+  const basePath = `/${String(config.basePath || "/api/v1").replace(/^\/+|\/+$/g, "")}`;
+  const endpoint = config.endpoints?.logout || "/auth/logout";
+  const token = sessionStorage.getItem("accessToken");
+  try {
+    const response = await fetch(`${origin}${basePath}${endpoint}`, {
+      method: "POST",
+      headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      credentials: "include"
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "로그아웃하지 못했습니다.");
+    sessionStorage.clear();
+    location.href = "index.html";
+  } catch (error) {
+    setStatus(statusElement, error.message, "error");
+  }
+});
 document.querySelector("#mypage-delete").addEventListener("click", async () => { if (!confirm("정말 탈퇴할까요? 모든 기록이 삭제되며 되돌릴 수 없습니다.")) return; try { await request("/api/me", { method: "DELETE" }); sessionStorage.clear(); location.href = "index.html"; } catch (error) { setStatus(statusElement, error.message, "error"); } });
 
 (async function load() {

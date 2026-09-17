@@ -1,2 +1,7 @@
 .env
+react-app/node_modules/
+react-dist/
+data/react-smoke.db
 
+.vercel
+.env*

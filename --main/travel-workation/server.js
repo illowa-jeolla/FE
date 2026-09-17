@@ -6,6 +6,7 @@ const { DatabaseSync } = require("node:sqlite");
 
 const port = Number(process.env.PORT || 8080);
 const root = __dirname;
+const reactRoot = path.join(root, "react-dist");
 const dbPath = process.env.WORKATION_DB_PATH || path.join(root, "data", "workation.db");
 
 const envPath = path.join(root, ".env");
@@ -205,6 +206,15 @@ function ensureColumn(table, column, definition) {
 
 ensureColumn("destinations", "transport", "TEXT");
 ensureColumn("destinations", "companion", "TEXT");
+ensureColumn("destinations", "address", "TEXT");
+ensureColumn("destinations", "phone", "TEXT");
+ensureColumn("destinations", "opening_hours", "TEXT");
+ensureColumn("destinations", "homepage_url", "TEXT");
+ensureColumn("destinations", "parking", "TEXT");
+ensureColumn("destinations", "latitude", "REAL");
+ensureColumn("destinations", "longitude", "REAL");
+ensureColumn("destinations", "source_name", "TEXT");
+ensureColumn("destinations", "source_id", "TEXT");
 ensureColumn("jobs", "job_kind", "TEXT NOT NULL DEFAULT 'general'");
 ensureColumn("users", "nickname", "TEXT");
 ensureColumn("posts", "is_demo", "INTEGER NOT NULL DEFAULT 0");
@@ -217,6 +227,7 @@ ensureColumn("guide_reviews", "images_data", "TEXT");
 ensureColumn("jobs", "map_demo", "INTEGER NOT NULL DEFAULT 0");
 ensureColumn("gatherings", "description", "TEXT");
 ensureColumn("gatherings", "confirmed", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("saved_guides", "deleted_at", "TEXT");
 
 function seedCommunityDemoData() {
   const existing = db.prepare("SELECT COUNT(*) AS count FROM posts WHERE is_demo = 1").get().count;
@@ -314,6 +325,47 @@ function responseText(payload) {
   return "";
 }
 
+const placeImageCache = new Map();
+
+async function findPlaceImage(placeName) {
+  const name = String(placeName || "").trim();
+  if (!name) return "";
+  if (placeImageCache.has(name)) return placeImageCache.get(name);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7_000);
+  try {
+    const wikiEndpoint = new URL("https://ko.wikipedia.org/w/api.php");
+    wikiEndpoint.search = new URLSearchParams({ action: "query", format: "json", origin: "*", generator: "search", gsrsearch: name, gsrlimit: "5", prop: "pageimages", piprop: "thumbnail", pithumbsize: "320" }).toString();
+    const commonsEndpoint = new URL("https://commons.wikimedia.org/w/api.php");
+    commonsEndpoint.search = new URLSearchParams({ action: "query", format: "json", origin: "*", generator: "search", gsrsearch: name, gsrnamespace: "6", gsrlimit: "5", prop: "imageinfo", iiprop: "url", iiurlwidth: "320" }).toString();
+    const [wikiResponse, commonsResponse] = await Promise.all([
+      fetch(wikiEndpoint, { headers: { "User-Agent": "IllowaJeolla/1.0" }, signal: controller.signal }),
+      fetch(commonsEndpoint, { headers: { "User-Agent": "IllowaJeolla/1.0" }, signal: controller.signal })
+    ]);
+    const wikiPayload = wikiResponse.ok ? await wikiResponse.json() : {};
+    const commonsPayload = commonsResponse.ok ? await commonsResponse.json() : {};
+    const normalizedName = name.replace(/[\s·_-]+/g, "").toLowerCase();
+    const matchesName = (title) => {
+      const normalizedTitle = String(title || "").replace(/^file:/i, "").replace(/[\s·_-]+/g, "").toLowerCase();
+      const coreName = normalizedName.replace(/(관광지|유적지|기념관|거리|공원)$/u, "");
+      return normalizedTitle.includes(normalizedName) || normalizedTitle.includes(coreName) || normalizedName.includes(normalizedTitle);
+    };
+    const wikiPages = Object.values(wikiPayload.query?.pages || {});
+    const commonsPages = Object.values(commonsPayload.query?.pages || {});
+    const wikiMatch = wikiPages.find((page) => page.thumbnail?.source && matchesName(page.title));
+    const commonsMatch = commonsPages.find((page) => page.imageinfo?.[0]?.thumburl && matchesName(page.title));
+    const imageUrl = String(wikiMatch?.thumbnail?.source || commonsMatch?.imageinfo?.[0]?.thumburl || "");
+    const safeImageUrl = imageUrl.startsWith("https://") ? imageUrl : "";
+    placeImageCache.set(name, safeImageUrl);
+    return safeImageUrl;
+  } catch {
+    placeImageCache.set(name, "");
+    return "";
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function generateAiText({ instructions, input, fallback, maxOutputTokens = 220 }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { text: fallback, aiEnabled: false, error: "OPENAI_API_KEY가 설정되지 않았습니다." };
@@ -366,15 +418,14 @@ async function generateAiTravelGuide(conditions) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
   const model = process.env.OPENAI_MODEL || "gpt-5.6-terra";
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const placeCount = Math.max(1, Math.min(5, Number(conditions.placeCount) || 3));
   try {
     const apiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        instructions: `당신은 대한민국 전라도 전문 여행 플래너입니다. 반드시 웹 검색으로 현재 실제 운영 중인 관광지와 숙소 위치를 확인하세요. 공식 관광 사이트, 지자체, 한국관광공사 등 신뢰할 수 있는 최신 출처를 우선 사용하세요. 사용자가 숙소를 입력하면 그 숙소의 실제 위치를 기준으로 가까운 관광지 5곳을 고르고, 이동 거리와 방향을 고려해 불필요한 왕복이 적은 순서로 배열하세요. 숙소가 없으면 입력 지역의 중심 관광 거점에서 시작하세요. excludedSpots에 장소가 있으면 가능한 한 제외해 이전 추천과 다른 코스를 만드세요. 폐업 여부나 위치를 확인할 수 없는 장소는 제외하세요. 각 장소의 imageUrl에는 공식 관광 사이트나 신뢰할 수 있는 공개 페이지에서 확인한 실제 장소 사진의 직접 HTTPS 이미지 주소를 넣고, 확인할 수 없으면 빈 문자열을 넣으세요. 거리와 시간은 합리적인 추정치임을 tip에 밝히세요. 정확히 5곳을 반환하고 위경도는 숫자로 반환하세요.`,
+        instructions: `당신은 대한민국 전라도 전문 여행 플래너입니다. 반드시 웹 검색으로 현재 실제 운영 중인 관광지와 숙소 위치를 확인하세요. 공식 관광 사이트, 지자체, 한국관광공사 등 신뢰할 수 있는 최신 출처를 우선 사용하세요. 사용자가 숙소를 입력하면 그 숙소의 실제 위치를 기준으로 요청된 placeCount만큼 관광지를 고르고, 이동 거리와 방향을 고려해 불필요한 왕복이 적은 순서로 배열하세요. 숙소가 없으면 입력 지역의 중심 관광 거점에서 시작하세요. dayIndex와 tripDays가 있으면 전체 여행 중 해당 날짜의 하루 코스를 만드세요. 날짜마다 서로 다른 권역과 장소가 되도록 구성하고 excludedSpots의 장소는 반드시 제외하세요. 폐업 여부나 위치를 확인할 수 없는 장소는 제외하세요. 각 장소의 imageUrl에는 공식 관광 사이트나 신뢰할 수 있는 공개 페이지에서 확인한 실제 장소 사진의 직접 HTTPS 이미지 주소를 넣고, 확인할 수 없으면 빈 문자열을 넣으세요. 거리와 시간은 합리적인 추정치임을 tip에 밝히세요. 정확히 ${placeCount}곳을 반환하고 위경도는 숫자로 반환하세요.`,
         input: JSON.stringify(conditions),
         tools: [{ type: "web_search" }],
         reasoning: { effort: "low" },
@@ -397,7 +448,7 @@ async function generateAiTravelGuide(conditions) {
                 },
                 summary: { type: "string" }, totalDistanceKm: { type: "number" }, totalMinutes: { type: "number" }, tip: { type: "string" },
                 spots: {
-                  type: "array", minItems: 5, maxItems: 5,
+                  type: "array", minItems: placeCount, maxItems: placeCount,
                   items: {
                     type: "object", additionalProperties: false,
                     required: ["name", "address", "category", "description", "time", "stayMinutes", "latitude", "longitude", "distanceFromPreviousKm", "travelMinutes", "sourceTitle", "sourceUrl", "imageUrl"],
@@ -414,8 +465,7 @@ async function generateAiTravelGuide(conditions) {
         },
         max_output_tokens: 3600,
         store: false
-      }),
-      signal: controller.signal
+      })
     });
     const payload = await apiResponse.json().catch(() => ({}));
     if (!apiResponse.ok) throw new Error(payload.error?.message || `OpenAI API 오류 (${apiResponse.status})`);
@@ -423,7 +473,7 @@ async function generateAiTravelGuide(conditions) {
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     const guide = JSON.parse(start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned);
-    if (!Array.isArray(guide.spots) || guide.spots.length !== 5) throw new Error("AI가 관광지 5곳을 반환하지 않았습니다.");
+    if (!Array.isArray(guide.spots) || guide.spots.length !== placeCount) throw new Error(`AI가 관광지 ${placeCount}곳을 반환하지 않았습니다.`);
     guide.spots = guide.spots.map((spot) => ({
       name: String(spot.name || "").trim(),
       address: String(spot.address || "").trim(),
@@ -441,6 +491,10 @@ async function generateAiTravelGuide(conditions) {
     if (guide.spots.some((spot) => !spot.name || !Number.isFinite(spot.latitude) || !Number.isFinite(spot.longitude))) throw new Error("관광지 위치 정보를 확인하지 못했습니다.");
     guide.totalMinutes = guide.spots.reduce((total, spot) => total + spot.stayMinutes + spot.travelMinutes, 0);
     guide.totalDistanceKm = Number(guide.spots.reduce((total, spot) => total + spot.distanceFromPreviousKm, 0).toFixed(1));
+    guide.spots = await Promise.all(guide.spots.map(async (spot) => ({
+      ...spot,
+      imageUrl: spot.imageUrl || await findPlaceImage(spot.name)
+    })));
     guide.hotel = {
       name: String(guide.hotel?.name || conditions.hotel || "추천 출발지").trim(),
       address: String(guide.hotel?.address || "").trim(),
@@ -448,10 +502,7 @@ async function generateAiTravelGuide(conditions) {
     };
     return { ...guide, aiEnabled: true, model };
   } catch (error) {
-    if (error.name === "AbortError") throw new Error("여행지 검색 시간이 초과되었습니다. 다시 시도해 주세요.");
     throw error;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -565,6 +616,14 @@ function verifyPassword(password, user) {
   return saved.length === entered.length && crypto.timingSafeEqual(saved, entered);
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function getAuthenticatedUser(request) {
   const authorization = request.headers.authorization || "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -623,7 +682,16 @@ function mapDestination(destination) {
     searchVolume: destination.search_volume,
     rating: destination.rating,
     transport: destination.transport,
-    companion: destination.companion
+    companion: destination.companion,
+    address: destination.address,
+    phone: destination.phone,
+    openingHours: destination.opening_hours,
+    homepageUrl: destination.homepage_url,
+    parking: destination.parking,
+    latitude: destination.latitude,
+    longitude: destination.longitude,
+    sourceName: destination.source_name,
+    sourceId: destination.source_id
   };
 }
 
@@ -709,6 +777,86 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/destinations") {
+    const region = String(url.searchParams.get("region") || "").trim();
+    const keyword = String(url.searchParams.get("q") || "").trim();
+    const destinations = region && keyword
+      ? db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1 AND region = ? AND (name LIKE ? OR category LIKE ? OR description LIKE ?)
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+          LIMIT 20
+        `).all(region, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`)
+      : keyword
+        ? db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1 AND (name LIKE ? OR region LIKE ? OR category LIKE ? OR description LIKE ?)
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+          LIMIT 20
+        `).all(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`)
+      : region
+      ? db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1 AND region = ?
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+        `).all(region)
+      : db.prepare(`
+          SELECT * FROM destinations
+          WHERE active = 1
+          ORDER BY search_volume DESC, rating DESC, created_at DESC
+        `).all();
+    const localResults = destinations.map(mapDestination);
+    const apiKey = String(process.env.KAKAO_REST_API_KEY || "").trim();
+    if (!keyword || !apiKey) { sendJson(response, 200, localResults); return true; }
+    try {
+      const searchKakao = async (categoryCode) => {
+        const endpoint = new URL("https://dapi.kakao.com/v2/local/search/keyword.json");
+        endpoint.searchParams.set("query", [region, keyword].filter(Boolean).join(" "));
+        endpoint.searchParams.set("category_group_code", categoryCode);
+        endpoint.searchParams.set("size", "15");
+        const kakaoResponse = await fetch(endpoint, { headers: { Authorization: `KakaoAK ${apiKey}` } });
+        const payload = await kakaoResponse.json().catch(() => ({}));
+        if (!kakaoResponse.ok) throw new Error(payload.message || "카카오 관광지 검색에 실패했습니다.");
+        return payload.documents || [];
+      };
+      const kakaoDocuments = (await Promise.all([searchKakao("AT4"), searchKakao("CT1")])).flat();
+      const kakaoResults = [...new Map(kakaoDocuments.map((place) => [place.id, place])).values()].map((place) => ({
+        id: `kakao:${place.id}`,
+        name: place.place_name,
+        region: region || String(place.address_name || "").split(" ").slice(0, 2).join(" "),
+        category: String(place.category_name || "관광명소").split(" > ").at(-1),
+        description: `${place.place_name} 관광 정보`,
+        imageUrl: "",
+        rating: 0,
+        address: place.road_address_name || place.address_name,
+        phone: place.phone || "",
+        homepageUrl: place.place_url || "",
+        latitude: Number(place.y),
+        longitude: Number(place.x),
+        sourceName: "카카오맵",
+        sourceId: place.id
+      }));
+      const kakaoNames = new Set(kakaoResults.map((item) => item.name));
+      sendJson(response, 200, [...kakaoResults, ...localResults.filter((item) => !kakaoNames.has(item.name))].slice(0, 30));
+    } catch (error) {
+      console.error("카카오 관광지 검색:", error.message);
+      sendJson(response, 200, localResults);
+    }
+    return true;
+  }
+
+  const destinationDetailMatch = url.pathname.match(/^\/api\/destinations\/(\d+)$/);
+  if (request.method === "GET" && destinationDetailMatch) {
+    const destination = db.prepare("SELECT * FROM destinations WHERE id = ? AND active = 1")
+      .get(Number(destinationDetailMatch[1]));
+    if (!destination) {
+      sendJson(response, 404, { message: "관광지를 찾을 수 없습니다." });
+      return true;
+    }
+    sendJson(response, 200, mapDestination(destination));
+    return true;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/destinations/trending") {
     const requestedLimit = Number(url.searchParams.get("limit") || 6);
     const limit = Number.isInteger(requestedLimit)
@@ -721,6 +869,99 @@ async function handleApi(request, response, url) {
       LIMIT ?
     `).all(limit).map(mapDestination);
     sendJson(response, 200, destinations);
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/public-config") {
+    sendJson(response, 200, {
+      kakaoMapJavaScriptKey: String(process.env.KAKAO_MAP_JAVASCRIPT_KEY || "").trim()
+    });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/hotels/search") {
+    const query = String(url.searchParams.get("q") || "").trim().slice(0, 80);
+    const region = String(url.searchParams.get("region") || "").trim().slice(0, 40);
+    if (!query) { sendJson(response, 200, { hotels: [] }); return true; }
+    const apiKey = String(process.env.KAKAO_REST_API_KEY || "").trim();
+    if (!apiKey) { sendJson(response, 503, { message: "숙소 검색 API 키가 설정되지 않았습니다." }); return true; }
+    try {
+      const jeollaRegions = ["전주", "군산", "남원", "목포", "광주", "순천", "여수", "보성", "완도", "담양"];
+      const selectedRegion = region && !region.includes("전체") ? region : "전라도";
+      const matchedRegions = jeollaRegions.filter((item) => item.includes(query) || query.includes(item));
+      const searchTerms = [...new Set([
+        `${selectedRegion} ${query}`,
+        `${selectedRegion} ${query} 숙소`,
+        ...matchedRegions.flatMap((item) => [`${item} 숙소`, `${item} 호텔`])
+      ])];
+      const payloads = await Promise.all(searchTerms.map(async (term) => {
+        const endpoint = new URL("https://dapi.kakao.com/v2/local/search/keyword.json");
+        endpoint.searchParams.set("query", term);
+        endpoint.searchParams.set("category_group_code", "AD5");
+        endpoint.searchParams.set("size", "15");
+        const searchResponse = await fetch(endpoint, { headers: { Authorization: `KakaoAK ${apiKey}` } });
+        const payload = await searchResponse.json().catch(() => ({}));
+        if (!searchResponse.ok) throw new Error(payload.message || "숙소를 검색하지 못했습니다.");
+        return payload.documents || [];
+      }));
+      const uniqueHotels = new Map();
+      payloads.flat().forEach((hotel) => {
+        if (!hotel.id || uniqueHotels.has(hotel.id)) return;
+        const searchable = `${hotel.place_name} ${hotel.road_address_name || hotel.address_name}`;
+        if (searchable.includes(query) || matchedRegions.some((item) => searchable.includes(item))) uniqueHotels.set(hotel.id, hotel);
+      });
+      const hotels = [...uniqueHotels.values()].slice(0, 30).map((hotel) => ({
+        name: hotel.place_name,
+        address: hotel.road_address_name || hotel.address_name,
+        phone: hotel.phone || "",
+        latitude: Number(hotel.y),
+        longitude: Number(hotel.x),
+        url: hotel.place_url || ""
+      }));
+      sendJson(response, 200, { hotels });
+    } catch (error) {
+      sendJson(response, 502, { message: error.message || "숙소 검색 서비스에 연결하지 못했습니다." });
+    }
+    return true;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/travel-route") {
+    const body = await readJson(request);
+    const points = (Array.isArray(body.points) ? body.points : []).slice(0, 7).map((point) => ({
+      name: String(point?.name || "경유지").trim().slice(0, 80),
+      latitude: Number(point?.latitude),
+      longitude: Number(point?.longitude)
+    })).filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+    if (points.length < 2) { sendJson(response, 400, { message: "길찾기에 필요한 위치가 부족합니다." }); return true; }
+    const apiKey = String(process.env.KAKAO_REST_API_KEY || "").trim();
+    if (!apiKey) { sendJson(response, 503, { message: "카카오 길찾기 REST API 키가 설정되지 않았습니다." }); return true; }
+    const endpoint = new URL("https://apis-navi.kakaomobility.com/v1/directions");
+    const pointValue = (point) => `${point.longitude},${point.latitude},name=${point.name}`;
+    endpoint.searchParams.set("origin", pointValue(points[0]));
+    endpoint.searchParams.set("destination", pointValue(points.at(-1)));
+    if (points.length > 2) endpoint.searchParams.set("waypoints", points.slice(1, -1).map(pointValue).join("|"));
+    endpoint.searchParams.set("priority", "RECOMMEND");
+    endpoint.searchParams.set("summary", "false");
+    const routeResponse = await fetch(endpoint, { headers: { Authorization: `KakaoAK ${apiKey}`, "Content-Type": "application/json" } });
+    const payload = await routeResponse.json().catch(() => ({}));
+    if (!routeResponse.ok || payload.routes?.[0]?.result_code !== 0) {
+      sendJson(response, routeResponse.ok ? 502 : routeResponse.status, { message: payload.routes?.[0]?.result_msg || payload.msg || "도로 경로를 찾지 못했습니다." });
+      return true;
+    }
+    const route = payload.routes[0];
+    const sectionPoints = (section) => section.roads.flatMap((road) => {
+      const values = road.vertexes || [];
+      const result = [];
+      for (let index = 0; index < values.length - 1; index += 2) result.push({ longitude: Number(values[index]), latitude: Number(values[index + 1]) });
+      return result;
+    });
+    const routePoints = route.sections.flatMap(sectionPoints);
+    const legs = route.sections.map((section) => ({
+      distanceMeters: Number(section.distance) || 0,
+      durationSeconds: Number(section.duration) || 0,
+      points: sectionPoints(section)
+    }));
+    sendJson(response, 200, { points: routePoints, legs, distanceMeters: route.summary?.distance || 0, durationSeconds: route.summary?.duration || 0, provider: "kakao-mobility" });
     return true;
   }
 
@@ -739,8 +980,11 @@ async function handleApi(request, response, url) {
       themes: normalizedList(body.themes).slice(0, 6),
       transport: String(body.transport || "대중교통").trim().slice(0, 40),
       companion: String(body.companion || "친구").trim().slice(0, 40),
-      attempt: Math.max(1, Math.min(3, Number(body.attempt) || 1)),
-      excludedSpots: normalizedList(body.excludedSpots).slice(0, 10)
+      attempt: Math.max(1, Math.min(2, Number(body.attempt) || 1)),
+      excludedSpots: normalizedList(body.excludedSpots).slice(-35),
+      dayIndex: Math.max(1, Math.min(7, Number(body.dayIndex) || 1)),
+      tripDays: Math.max(1, Math.min(7, Number(body.tripDays) || 1)),
+      placeCount: Math.max(1, Math.min(5, Number(body.placeCount) || 3))
     };
     try {
       const guide = await generateAiTravelGuide(conditions);
@@ -1260,15 +1504,33 @@ async function handleApi(request, response, url) {
 
   if (request.method === "GET" && url.pathname === "/api/gatherings") {
     const currentUser = getAuthenticatedUser(request);
+    const mine = url.searchParams.get("mine") === "true";
+    const includePast = mine && url.searchParams.get("includePast") === "true";
     const region = (url.searchParams.get("region") || "").trim();
+    const location = (url.searchParams.get("location") || "").trim();
     const date = (url.searchParams.get("date") || "").trim();
+    const startDate = (url.searchParams.get("startDate") || "").trim();
+    const endDate = (url.searchParams.get("endDate") || "").trim();
     const time = (url.searchParams.get("time") || "").trim();
     const dateScope = url.searchParams.get("dateScope") === "from" ? "from" : "exact";
     const concept = (url.searchParams.get("concept") || "").trim();
-    const filters = ["datetime(event_time) >= datetime('now')"];
+    if (mine && !currentUser) {
+      sendJson(response, 401, { message: "로그인이 필요합니다." });
+      return true;
+    }
+    const filters = includePast ? [] : ["datetime(event_time) >= datetime('now')"];
     const parameters = [currentUser?.id || 0, currentUser?.id || 0];
+    if (startDate && endDate && startDate > endDate) {
+      sendJson(response, 400, { message: "종료일은 시작일보다 빠를 수 없습니다." });
+      return true;
+    }
     if (region) { filters.push("gatherings.region = ?"); parameters.push(region); }
-    if (date) {
+    if (mine) { filters.push("gatherings.user_id = ?"); parameters.push(currentUser.id); }
+    if (location) { filters.push("gatherings.location LIKE ?"); parameters.push(`%${location}%`); }
+    if (startDate || endDate) {
+      if (startDate) { filters.push("date(gatherings.event_time) >= date(?)"); parameters.push(startDate); }
+      if (endDate) { filters.push("date(gatherings.event_time) <= date(?)"); parameters.push(endDate); }
+    } else if (date) {
       filters.push(dateScope === "from" ? "date(gatherings.event_time) >= date(?)" : "date(gatherings.event_time) = date(?)");
       parameters.push(date);
     }
@@ -1281,7 +1543,7 @@ async function handleApi(request, response, url) {
               WHERE gathering_id = gatherings.id AND user_id = ?) AS joined,
              CASE WHEN gatherings.user_id = ? THEN 1 ELSE 0 END AS owned
       FROM gatherings JOIN users ON users.id = gatherings.user_id
-      WHERE ${filters.join(" AND ")}
+      WHERE ${filters.length ? filters.join(" AND ") : "1 = 1"}
       ORDER BY event_time ASC
     `).all(...parameters);
     if (concept) gatherings = await selectGatheringsByConcept(concept, gatherings);
@@ -1390,7 +1652,7 @@ async function handleApi(request, response, url) {
     const user = requireUser(request, response);
     if (!user) return true;
     const trips = db.prepare(`SELECT id, guide_id AS guideId, region, title AS destinationName, content AS note, rating, image_data AS imageData, images_data AS imagesData, guide_json AS guideJson, created_at AS createdAt FROM guide_reviews WHERE user_id = ? ORDER BY created_at DESC, id DESC`).all(user.id).map((entry) => ({ ...entry, images: JSON.parse(entry.imagesData || "[]"), guide: JSON.parse(entry.guideJson || "{}"), imagesData: undefined, guideJson: undefined }));
-    const guides = db.prepare("SELECT id, title, region, hotel, guide_json AS guideJson, created_at AS createdAt FROM saved_guides WHERE user_id = ? ORDER BY created_at DESC, id DESC").all(user.id).map((entry) => ({ ...entry, guide: JSON.parse(entry.guideJson || "{}"), guideJson: undefined }));
+    const guides = db.prepare("SELECT id, title, region, hotel, guide_json AS guideJson, created_at AS createdAt FROM saved_guides WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC, id DESC").all(user.id).map((entry) => ({ ...entry, guide: JSON.parse(entry.guideJson || "{}"), guideJson: undefined }));
     const posts = db.prepare("SELECT id, region, concept, content, image_data AS imageData, created_at AS createdAt FROM posts WHERE user_id = ? ORDER BY created_at DESC, id DESC").all(user.id);
     const gatherings = db.prepare(`
       SELECT gatherings.id, gatherings.title, gatherings.region, gatherings.location, gatherings.concept, gatherings.description, gatherings.confirmed,
@@ -1407,7 +1669,7 @@ async function handleApi(request, response, url) {
     attachGatheringParticipants(gatherings);
     const applications = db.prepare(`SELECT job_applications.id, job_applications.created_at AS createdAt, jobs.id AS jobId, jobs.title, jobs.company_name AS companyName, jobs.category, jobs.region, jobs.location, jobs.work_type AS workType, jobs.work_time AS workTime, jobs.duration, jobs.pay FROM job_applications JOIN jobs ON jobs.id = job_applications.job_id WHERE job_applications.user_id = ? ORDER BY job_applications.created_at DESC, job_applications.id DESC`).all(user.id);
     const favoriteJobs = db.prepare(`SELECT favorite_jobs.created_at AS createdAt, jobs.id AS jobId, jobs.title, jobs.company_name AS companyName, jobs.category, jobs.region, jobs.location, jobs.work_type AS workType, jobs.work_time AS workTime, jobs.duration, jobs.pay FROM favorite_jobs JOIN jobs ON jobs.id = favorite_jobs.job_id WHERE favorite_jobs.user_id = ? ORDER BY favorite_jobs.created_at DESC`).all(user.id);
-    sendJson(response, 200, { profile: user, trips, guides, posts, gatherings, applications, favoriteJobs });
+    sendJson(response, 200, { profile: { ...user, email: user.username }, trips, guides, posts, gatherings, applications, favoriteJobs });
     return true;
   }
 
@@ -1431,7 +1693,7 @@ async function handleApi(request, response, url) {
     const nickname = String(body.nickname || "").trim();
     if (nickname.length < 2 || nickname.length > 20) { sendJson(response, 400, { message: "닉네임은 2~20자로 입력해 주세요." }); return true; }
     db.prepare("UPDATE users SET nickname = ? WHERE id = ?").run(nickname, user.id);
-    sendJson(response, 200, { username: user.username, nickname });
+    sendJson(response, 200, { email: user.username, username: user.username, nickname });
     return true;
   }
 
@@ -1471,12 +1733,21 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/me/guides/trash") {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const guides = db.prepare("SELECT id, title, region, hotel, guide_json AS guideJson, created_at AS createdAt, deleted_at AS deletedAt FROM saved_guides WHERE user_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC, id DESC").all(user.id)
+      .map((entry) => ({ ...entry, guide: JSON.parse(entry.guideJson || "{}"), guideJson: undefined }));
+    sendJson(response, 200, { guides });
+    return true;
+  }
+
   const guideReviewMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/review$/);
   if (request.method === "POST" && guideReviewMatch) {
     const user = requireUser(request, response);
     if (!user) return true;
     const guideId = Number(guideReviewMatch[1]);
-    const saved = db.prepare("SELECT id, title, region, guide_json AS guideJson FROM saved_guides WHERE id = ? AND user_id = ?").get(guideId, user.id);
+    const saved = db.prepare("SELECT id, title, region, guide_json AS guideJson FROM saved_guides WHERE id = ? AND user_id = ? AND deleted_at IS NULL").get(guideId, user.id);
     if (!saved) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
     const body = await readJson(request);
     const rating = Math.max(1, Math.min(5, Math.round(Number(body.rating) || 0)));
@@ -1494,13 +1765,51 @@ async function handleApi(request, response, url) {
     return true;
   }
 
+  const restoreGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/restore$/);
+  if (request.method === "PATCH" && restoreGuideMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const result = db.prepare("UPDATE saved_guides SET deleted_at = NULL WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL").run(Number(restoreGuideMatch[1]), user.id);
+    if (!result.changes) { sendJson(response, 404, { message: "휴지통에서 여행 가이드를 찾을 수 없습니다." }); return true; }
+    sendJson(response, 200, { message: "여행 가이드를 복원했습니다." });
+    return true;
+  }
+
+  const permanentGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)\/permanent$/);
+  if (request.method === "DELETE" && permanentGuideMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const guideId = Number(permanentGuideMatch[1]);
+    const saved = db.prepare("SELECT id FROM saved_guides WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL").get(guideId, user.id);
+    if (!saved) { sendJson(response, 404, { message: "휴지통에서 여행 가이드를 찾을 수 없습니다." }); return true; }
+    db.exec("BEGIN");
+    try {
+      db.prepare("DELETE FROM guide_reviews WHERE guide_id = ? AND user_id = ?").run(guideId, user.id);
+      db.prepare("DELETE FROM saved_guides WHERE id = ? AND user_id = ?").run(guideId, user.id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    sendJson(response, 200, { message: "여행 가이드를 영구 삭제했습니다." });
+    return true;
+  }
+
   const savedGuideMatch = url.pathname.match(/^\/api\/me\/guides\/(\d+)$/);
+  if (request.method === "PATCH" && savedGuideMatch) {
+    const user = requireUser(request, response);
+    if (!user) return true;
+    const body = await readJson(request);
+    const title = String(body.title || "").trim().slice(0, 100);
+    if (title.length < 2) { sendJson(response, 400, { message: "가이드 이름은 2자 이상 입력해 주세요." }); return true; }
+    const result = db.prepare("UPDATE saved_guides SET title = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL").run(title, Number(savedGuideMatch[1]), user.id);
+    if (!result.changes) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
+    sendJson(response, 200, { id: Number(savedGuideMatch[1]), title, message: "가이드 이름을 변경했습니다." });
+    return true;
+  }
   if (request.method === "DELETE" && savedGuideMatch) {
     const user = requireUser(request, response);
     if (!user) return true;
-    const result = db.prepare("DELETE FROM saved_guides WHERE id = ? AND user_id = ?").run(Number(savedGuideMatch[1]), user.id);
+    const result = db.prepare("UPDATE saved_guides SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND deleted_at IS NULL").run(Number(savedGuideMatch[1]), user.id);
     if (!result.changes) { sendJson(response, 404, { message: "저장한 여행 가이드를 찾을 수 없습니다." }); return true; }
-    sendJson(response, 200, { message: "저장한 여행 가이드를 삭제했습니다." });
+    sendJson(response, 200, { message: "여행 가이드를 휴지통으로 이동했습니다." });
     return true;
   }
 
@@ -1532,37 +1841,76 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/register") {
-    const { username = "", password = "", nickname = "" } = await readJson(request);
-    if (username.trim().length < 4 || password.length < 8 || nickname.trim().length < 2 || nickname.trim().length > 20) {
-      sendJson(response, 400, { message: "아이디는 4자 이상, 비밀번호는 8자 이상, 닉네임은 2~20자로 입력해 주세요." });
+    const { email = "", password = "", nickname = "" } = await readJson(request);
+    const normalizedEmail = normalizeEmail(email);
+    if (!isValidEmail(normalizedEmail) || password.length < 8 || nickname.trim().length < 2 || nickname.trim().length > 20) {
+      sendJson(response, 400, { message: "올바른 이메일, 8자 이상의 비밀번호, 2~20자의 닉네임을 입력해 주세요." });
       return true;
     }
 
     try {
+      if (db.prepare("SELECT 1 FROM users WHERE LOWER(username) = ?").get(normalizedEmail)) {
+        sendJson(response, 409, { message: "이미 사용 중인 이메일입니다." });
+        return true;
+      }
       const { hash, salt } = hashPassword(password);
       db.prepare("INSERT INTO users (username, password_hash, password_salt, nickname) VALUES (?, ?, ?, ?)")
-        .run(username.trim(), hash, salt, nickname.trim());
+        .run(normalizedEmail, hash, salt, nickname.trim());
       sendJson(response, 201, { message: "회원가입이 완료되었습니다." });
     } catch (error) {
       const duplicate = String(error.message).includes("UNIQUE");
       sendJson(response, duplicate ? 409 : 500, {
-        message: duplicate ? "이미 사용 중인 아이디입니다." : "회원가입을 처리하지 못했습니다."
+        message: duplicate ? "이미 사용 중인 이메일입니다." : "회원가입을 처리하지 못했습니다."
       });
     }
     return true;
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
-    const { username = "", password = "" } = await readJson(request);
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username.trim());
+    const { email = "", password = "" } = await readJson(request);
+    const normalizedEmail = normalizeEmail(email);
+    const user = isValidEmail(normalizedEmail)
+      ? db.prepare("SELECT * FROM users WHERE LOWER(username) = ?").get(normalizedEmail)
+      : null;
     if (!user || !verifyPassword(password, user)) {
-      sendJson(response, 401, { message: "아이디 또는 비밀번호를 확인해 주세요." });
+      sendJson(response, 401, { message: "이메일 또는 비밀번호를 확인해 주세요." });
       return true;
     }
 
     const token = crypto.randomBytes(32).toString("hex");
     sessions.set(token, user.id);
-    sendJson(response, 200, { token, username: user.username, nickname: user.nickname || user.username });
+    sendJson(response, 200, { token, email: user.username, username: user.username, nickname: user.nickname || user.username.split("@")[0] });
+    return true;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/search") {
+    const query = String(url.searchParams.get("q") || "").trim();
+    if (query.length < 2) {
+      sendJson(response, 400, { message: "검색어를 두 글자 이상 입력해 주세요." });
+      return true;
+    }
+    const like = `%${query}%`;
+    const jobs = db.prepare(`
+      SELECT * FROM jobs WHERE active = 1
+      AND (title LIKE ? OR company_name LIKE ? OR region LIKE ? OR category LIKE ?)
+      ORDER BY rating DESC, created_at DESC LIMIT 8
+    `).all(like, like, like, like).map(mapJob);
+    const destinations = db.prepare(`
+      SELECT * FROM destinations WHERE active = 1
+      AND (name LIKE ? OR region LIKE ? OR category LIKE ? OR description LIKE ?)
+      ORDER BY search_volume DESC, rating DESC LIMIT 8
+    `).all(like, like, like, like).map(mapDestination);
+    const posts = db.prepare(`
+      SELECT id, region, concept, content FROM posts
+      WHERE region LIKE ? OR concept LIKE ? OR content LIKE ?
+      ORDER BY created_at DESC LIMIT 8
+    `).all(like, like, like);
+    const gatherings = db.prepare(`
+      SELECT id, title, region, concept, description FROM gatherings
+      WHERE title LIKE ? OR region LIKE ? OR concept LIKE ? OR description LIKE ?
+      ORDER BY event_time DESC, id DESC LIMIT 8
+    `).all(like, like, like, like);
+    sendJson(response, 200, { query, jobs, destinations, posts, gatherings });
     return true;
   }
 
@@ -1570,9 +1918,23 @@ async function handleApi(request, response, url) {
 }
 
 function serveFile(request, response, pathname) {
-  const requested = pathname === "/" ? "/index.html" : pathname;
-  const filePath = path.resolve(root, `.${decodeURIComponent(requested)}`);
-  if (!filePath.startsWith(root) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+  const isReactRoute = pathname === "/app" || pathname.startsWith("/app/");
+  const reactIndex = path.join(reactRoot, "index.html");
+  let filePath;
+
+  if (isReactRoute && fs.existsSync(reactIndex)) {
+    const relativePath = pathname.slice("/app".length) || "/index.html";
+    const candidate = path.resolve(reactRoot, `.${decodeURIComponent(relativePath)}`);
+    filePath = candidate.startsWith(reactRoot) && fs.existsSync(candidate) && !fs.statSync(candidate).isDirectory()
+      ? candidate
+      : reactIndex;
+  } else {
+    const requested = pathname === "/" ? "/index.html" : pathname;
+    filePath = path.resolve(root, `.${decodeURIComponent(requested)}`);
+  }
+
+  const allowedRoot = isReactRoute ? reactRoot : root;
+  if (!filePath.startsWith(allowedRoot) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     sendJson(response, 404, { message: "페이지를 찾을 수 없습니다." });
     return;
   }
@@ -1584,7 +1946,9 @@ function serveFile(request, response, pathname) {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
-    ".webp": "image/webp"
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".json": "application/json"
   };
   const extension = path.extname(filePath);
   const contentType = types[extension] || "application/octet-stream";
