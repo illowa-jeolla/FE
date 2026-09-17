@@ -79,11 +79,7 @@ async function performTokenRefresh() {
 
   const cookieName = csrfPayload.data?.cookieName || "XSRF-TOKEN";
   const headerName = csrfPayload.data?.headerName || "X-XSRF-TOKEN";
-<<<<<<< HEAD
-  const csrfToken = readCookie(cookieName) || csrfPayload.data?.token;
-=======
   const csrfToken = csrfPayload.data?.token || readCookie(cookieName);
->>>>>>> ae900c2 (fix: login)
   if (!csrfToken) throw new Error("CSRF 쿠키를 읽을 수 없습니다.");
   const storedRefreshToken = sessionStorage.getItem("refreshToken");
 
