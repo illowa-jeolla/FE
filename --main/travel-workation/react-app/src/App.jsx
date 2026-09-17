@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import SiteLayout from "./components/SiteLayout";
 import AuthPage from "./pages/AuthPage";
 import CommunityDetailPage from "./pages/CommunityDetailPage";
@@ -19,14 +19,22 @@ import MyPage from "./pages/MyPage";
 import RecommendPage from "./pages/RecommendPage";
 import TravelGuidePage from "./pages/TravelGuidePage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
+import { hasSession } from "./auth/session";
+
+function RequireAuth({ children }) {
+  const location = useLocation();
+  if (!hasSession()) {
+    const returnTo = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={`/auth?returnTo=${encodeURIComponent(returnTo)}`} replace />;
+  }
+  return children;
+}
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<SiteLayout />}>
+      <Route element={<RequireAuth><SiteLayout /></RequireAuth>}>
         <Route index element={<HomePage />} />
-        <Route path="auth" element={<AuthPage />} />
-        <Route path="oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="recommend" element={<RecommendPage />} />
         <Route path="travel-guide" element={<TravelGuidePage />} />
         <Route path="travel-guide/:guideId" element={<TravelGuidePage />} />
@@ -50,6 +58,8 @@ export default function App() {
         <Route path="mypage/trash" element={<GuideTrashPage />} />
         <Route path="mypage/drafts" element={<GuideDraftsPage />} />
       </Route>
+      <Route path="auth" element={<AuthPage />} />
+      <Route path="oauth/callback" element={<OAuthCallbackPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
