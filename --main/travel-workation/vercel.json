@@ -4,11 +4,11 @@
   "buildCommand": "cd react-app && npm run build",
   "outputDirectory": "react-dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com/api/:path*" },
-    { "source": "/assets/:path*", "destination": "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com/assets/:path*" },
-    { "source": "/uploads/:path*", "destination": "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com/uploads/:path*" },
-    { "source": "/files/:path*", "destination": "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com/files/:path*" },
-    { "source": "/local-images/:path*", "destination": "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com/local-images/:path*" },
+    { "source": "/api/:path*", "destination": "https://api.illowa-jeolla.cloud/api/:path*" },
+    { "source": "/assets/:path*", "destination": "https://api.illowa-jeolla.cloud/assets/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://api.illowa-jeolla.cloud/uploads/:path*" },
+    { "source": "/files/:path*", "destination": "https://api.illowa-jeolla.cloud/files/:path*" },
+    { "source": "/local-images/:path*", "destination": "https://api.illowa-jeolla.cloud/local-images/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

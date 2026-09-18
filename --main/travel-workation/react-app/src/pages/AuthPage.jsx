@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { postJson } from "../api/client";
+import { clearApiCache, postJson } from "../api/client";
 import { saveLoginSession } from "../auth/session";
 import { AUTH_API, authApiUrl } from "../config";
 
@@ -56,6 +56,7 @@ export default function AuthPage() {
       setBusy(true);
       setError(false); setMessage("로그인 중입니다.");
       const data = await postJson(url, { email: values.email.trim().toLowerCase(), password: values.password });
+      clearApiCache();
       saveLoginSession(data);
       navigate(returnTo, { replace: true });
     } catch (requestError) {
@@ -78,6 +79,7 @@ export default function AuthPage() {
       const url = authApiUrl(AUTH_API.endpoints.signup);
       const email = values.email.trim().toLowerCase();
       const data = await postJson(url, { email, password: values.password, nickname: values.nickname });
+      clearApiCache();
       saveLoginSession({ ...data, email, nickname: values.nickname });
       navigate(returnTo, { replace: true });
     } catch (requestError) {
