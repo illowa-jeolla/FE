@@ -42,6 +42,49 @@ export default function HomePage() {
     return () => { observer.disconnect(); animations.forEach((animation) => animation.revert()); };
   }, []);
 
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const root = page.current;
+    const cleanup = [];
+    const controls = [
+      ...root.querySelectorAll(".home-animated-link"),
+      ...document.querySelectorAll(".site-header > .button, .site-header .mobile-menu-button")
+    ];
+    controls.forEach((link) => {
+      const enter = () => animate(link, { scale: 1.035, y: -3, duration: 230, ease: "out(3)" });
+      const leave = () => animate(link, { scale: 1, y: 0, duration: 230, ease: "out(3)" });
+      link.addEventListener("pointerenter", enter);
+      link.addEventListener("pointerleave", leave);
+      link.addEventListener("blur", leave);
+      cleanup.push(() => {
+        link.removeEventListener("pointerenter", enter);
+        link.removeEventListener("pointerleave", leave);
+        link.removeEventListener("blur", leave);
+      });
+    });
+
+    const mapCard = root.querySelector(".home-feature-card--featured");
+    const mapScene = root.querySelector(".home-map-scene");
+    const pins = root.querySelectorAll(".home-map-pin");
+    if (mapCard && mapScene) {
+      const enter = () => {
+        animate(mapScene, { scale: 1.045, y: -7, duration: 430, ease: "out(3)" });
+        animate(pins, { scale: [1, 1.14], delay: stagger(70), duration: 350, ease: "out(3)" });
+      };
+      const leave = () => {
+        animate(mapScene, { scale: 1, y: 0, duration: 430, ease: "out(3)" });
+        animate(pins, { scale: 1, duration: 260, ease: "out(3)" });
+      };
+      mapCard.addEventListener("pointerenter", enter);
+      mapCard.addEventListener("pointerleave", leave);
+      cleanup.push(() => {
+        mapCard.removeEventListener("pointerenter", enter);
+        mapCard.removeEventListener("pointerleave", leave);
+      });
+    }
+    return () => cleanup.forEach((dispose) => dispose());
+  }, []);
+
   return (
     <main ref={page} className="home-main">
       <section className="home-hero" aria-labelledby="home-title">
@@ -50,8 +93,8 @@ export default function HomePage() {
           <h1 id="home-title">전라도에서,<br />여행하듯 일해보세요</h1>
           <p>여행지를 발견하고, 나와 지역의 궁합을 알아보고, 머무는 동안 할 수 있는 일까지 연결해 드려요.</p>
           <div className="home-hero__actions">
-            <a className="home-button home-button--primary" href="#features">시작하기</a>
-            <Link className="home-button home-button--secondary" to="/map?view=search">내게 맞는 일자리 보기</Link>
+            <a className="home-button home-button--primary home-animated-link" href="#features">시작하기</a>
+            <Link className="home-button home-button--secondary home-animated-link" to="/map?view=search">내게 맞는 일자리 보기</Link>
           </div>
         </div>
       </section>
@@ -67,12 +110,13 @@ export default function HomePage() {
             <article className={`home-feature-card${featured ? " home-feature-card--featured" : ""}`} key={path}>
               <div className="home-feature-card__icon" aria-hidden="true">{icon}</div>
               <span className="home-feature-card__tag">{tag}</span><h3>{title}</h3><p>{description}</p>
-              <Link className="home-feature-card__button" to={path}><span>{label}</span><span aria-hidden="true">→</span></Link>
+              <Link className="home-feature-card__button home-animated-link" to={path}><span>{label}</span><span aria-hidden="true">→</span></Link>
+              {featured && <div className="home-map-scene" aria-hidden="true"><span className="home-map-pin home-map-pin--north">전북</span><span className="home-map-pin home-map-pin--center">광주</span><span className="home-map-pin home-map-pin--south">전남</span></div>}
             </article>
           ))}
         </div>
       </section>
-      <section className="home-cta"><div><span>어디서부터 시작할지 고민된다면</span><h2>지도에서 끌리는 지역을 먼저 골라보세요</h2></div><Link className="button button-light" to="/map">전라도 지도 열기 →</Link></section>
+      <section className="home-cta"><div><span>어디서부터 시작할지 고민된다면</span><h2>지도에서 끌리는 지역을 먼저 골라보세요</h2></div><Link className="button button-light home-animated-link" to="/map">전라도 지도 열기 →</Link></section>
     </main>
   );
 }

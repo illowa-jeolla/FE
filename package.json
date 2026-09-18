@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "dev": "npm --prefix ./--main/travel-workation/react-app run dev --"
+  },
   "dependencies": {
     "pnpm": "^12.4.1",
     "pnpn": "^0.0.1"
