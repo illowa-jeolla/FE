@@ -1,3 +1,4 @@
+import BrandCharacter from "../components/BrandCharacter";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { hasSession } from "../auth/session";
@@ -168,7 +169,7 @@ export default function TravelGuidePage() {
     setMessage("백엔드에서 생성한 여행안만 저장할 수 있습니다. 추천을 다시 생성해 주세요.");
   }
 
-  if (loading) return <main className="travel-result-main"><section className="travel-guide-loading"><div className="travel-loading-orbit"><span>일</span><i /></div><span className="travel-guide-eyebrow">AI TRAVEL CURATOR</span><h1>당신만의 여행을<br />만들고 있어요</h1><p>입력한 지역과 숙소 주변 관광지를 비교하고 있어요.</p><ol className="travel-loading-steps"><li className="is-active"><b>01</b><span>숙소 위치 확인</span></li><li><b>02</b><span>주변 관광지 검색</span></li><li><b>03</b><span>최적 동선 만들기</span></li></ol><div className="travel-loading-bar"><span /></div></section></main>;
+  if (loading) return <main className="travel-result-main"><section className="travel-guide-loading"><BrandCharacter pose="loading" /><span className="travel-guide-eyebrow">AI TRAVEL CURATOR</span><h1>당신만의 여행을<br />만들고 있어요</h1><p>입력한 지역과 숙소 주변 관광지를 비교하고 있어요.</p><ol className="travel-loading-steps"><li className="is-active"><b>01</b><span>숙소 위치 확인</span></li><li><b>02</b><span>주변 관광지 검색</span></li><li><b>03</b><span>최적 동선 만들기</span></li></ol><div className="travel-loading-bar"><span /></div></section></main>;
   if (error || !guide) return <main className="travel-result-main"><section className="travel-guide-error"><span>!</span><h1>가이드를 만들지 못했어요</h1><p>{error || "추천 결과가 없습니다."}</p><div><Link className="button" to="/recommend">조건 다시 선택</Link><button className="button button-primary" onClick={() => load(false)}>다시 시도</button></div></section></main>;
 
   const finalSegment = guide.routeSegments[guide.spots.length];

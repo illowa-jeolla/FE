@@ -1,10 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import jeonnamSvg from "../assets/maps/jeonnam.svg?raw";
-import jeonbukSvg from "../assets/maps/jeonbuk.svg?raw";
-import gwangjuSvg from "../assets/maps/gwangju.svg?raw";
 
 const MAP_WIDTH = 800;
-const MAP_HEIGHT = 900;
+const MAP_HEIGHT = 560;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 5;
 const MAX_PAN_SENSITIVITY = 2.4;
@@ -12,7 +10,6 @@ const MIN_PAN_X = MAP_WIDTH * .18;
 const MIN_PAN_Y = MAP_HEIGHT * .18;
 
 const labelOffsets = {
-  완주: { x: 35, y: -16 },
   나주: { x: 28, y: 18 },
   여수: { x: 12, y: -24 }
 };
@@ -26,8 +23,6 @@ function readPaths(svgText) {
 }
 
 const jeonnamPaths = readPaths(jeonnamSvg);
-const jeonbukPaths = readPaths(jeonbukSvg);
-const gwangjuPaths = readPaths(gwangjuSvg);
 
 function shortName(name) {
   return name.replace(/(특별자치도|광역시|특별시|자치시|시|군|구)$/u, "");
@@ -153,7 +148,7 @@ export default function RegionIllustrationMap({ items = [], selectedName, onSele
     dragRef.current = null;
   };
 
-  return <div ref={mapRef} className="region-illustration-map" aria-label="전라도 행정구역 선택 지도">
+  return <div ref={mapRef} className="region-illustration-map" aria-label="전라남도 행정구역 선택 지도">
     <div className="region-map-toolbar" aria-label="지도 확대 축소">
       <button type="button" onClick={() => changeZoom(zoom + .35)} aria-label="지도 확대">＋</button>
       <button type="button" onClick={() => changeZoom(zoom - .35)} aria-label="지도 축소">−</button>
@@ -172,21 +167,10 @@ export default function RegionIllustrationMap({ items = [], selectedName, onSele
     >
       <rect className="region-map-sea" width={MAP_WIDTH} height={MAP_HEIGHT} rx="28" />
       <g transform={`translate(${MAP_WIDTH / 2 + offset.x} ${MAP_HEIGHT / 2 + offset.y}) scale(${zoom}) translate(${-MAP_WIDTH / 2} ${-MAP_HEIGHT / 2})`}>
-        <svg x="56" y="18" width="688" height="375" viewBox="0 0 800 436" aria-label="전북 지역">
-          <RegionPaths paths={jeonbukPaths} province="전북" itemsByName={itemsByName} selectedName={selectedName} onSelect={selectRegion} onHover={setHoveredName} />
-        </svg>
-        <svg x="0" y="348" width="800" height="519" viewBox="0 0 800 519" aria-label="전남 지역">
+        <svg x="0" y="20" width="800" height="519" viewBox="0 0 800 519" aria-label="전남 지역">
           <RegionPaths paths={jeonnamPaths} province="전남" itemsByName={itemsByName} selectedName={selectedName} onSelect={selectRegion} onHover={setHoveredName} />
         </svg>
-        <svg className="gwangju-map-shape" x="382" y="449" width="105" height="72" viewBox="0 0 800 545" aria-label="광주 지역" role="button" tabIndex="0"
-          onMouseEnter={() => setHoveredName("광주")} onMouseLeave={() => setHoveredName("")} onFocus={() => setHoveredName("광주")} onBlur={() => setHoveredName("")}
-          onClick={() => selectRegion(itemsByName.get("광주") || { name: "광주" })}
-          onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectRegion(itemsByName.get("광주") || { name: "광주" }); }}>
-          <g className={`region-map-shape-group${shortName(selectedName || "") === "광주" ? " is-selected" : ""}`}>
-            {gwangjuPaths.map((path) => <path key={path.id} d={path.d} fillRule={path.fillRule}><title>광주</title></path>)}
-            <text className="region-map-label region-map-label-gwangju" x="430" y="300">광주</text>
-          </g>
-        </svg>
+
       </g>
     </svg>
   </div>;

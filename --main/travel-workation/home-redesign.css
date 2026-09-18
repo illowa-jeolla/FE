@@ -152,3 +152,7 @@ body:has(.home-main) .mobile-menu-button { display: none; }
   .home-main .home-feature-card:nth-child(1) { padding-bottom: 280px; }
   .home-main .home-feature-card h3 { font-size: 27px; }
 }
+.home-main .home-map-scene { background: none; }
+.home-main .home-map-scene .region-illustration-map { width: 100%; height: 100%; border-radius: 28px; overflow: hidden; }
+.home-main .home-map-scene .region-boundary-map { width: 100%; height: 100%; }
+.home-main .home-map-scene .region-map-toolbar { display: none; }

@@ -1,9 +1,11 @@
+import BrandCharacter from "../components/BrandCharacter";
+import RegionIllustrationMap from "../components/RegionIllustrationMap";
 import { useEffect, useRef } from "react";
 import { animate, stagger } from "animejs";
 import { Link } from "react-router-dom";
 
 const features = [
-  { icon: "⌖", tag: "여행 탐색", title: "관광지 지도", description: "전라도 지도를 보며 가고 싶은 지역을 고르고, 지역별 관광 정보와 일자리를 함께 살펴보세요.", label: "지도 열기", path: "/map", featured: true },
+  { icon: "⌖", tag: "여행 탐색", title: "관광지 지도", description: "전라남도 지도를 보며 가고 싶은 지역을 고르고, 지역별 관광 정보와 일자리를 함께 살펴보세요.", label: "지도 열기", path: "/map", featured: true },
   { icon: "✦", tag: "취향에 맞는 여행", title: "관광지 추천", description: "어제 정리한 날짜와 여행 조건을 바탕으로 나에게 맞는 전라도 여행 코스를 추천받아 보세요.", label: "관광지 추천받기", path: "/recommend" },
   { icon: "◎", tag: "나의 여행 기록", title: "로컬 핏", description: "여행 경험을 기록하면 취향과 지역의 궁합을 점수로 확인하고, 다음 여행지를 발견할 수 있어요.", label: "로컬 핏 확인하기", path: "/local-fit" },
   { icon: "▣", tag: "머물며 일하기", title: "일자리 추천", description: "선택한 지역과 로컬 핏을 바탕으로 행사, 축제, 팝업 등 여행 중 가능한 일자리를 찾아보세요.", label: "일자리 찾아보기", path: "/map?view=search" },
@@ -106,17 +108,17 @@ export default function HomePage() {
           <p>긴 설명을 따라 내려갈 필요 없이, 지금 필요한 기능을 선택하면 해당 페이지에서 바로 시작할 수 있어요.</p>
         </div>
         <div className="home-feature-grid">
-          {features.map(({ icon, tag, title, description, label, path, featured }) => (
+          {features.map(({ icon, tag, title, description, label, path, featured }, index) => (
             <article className={`home-feature-card${featured ? " home-feature-card--featured" : ""}`} key={path}>
-              <div className="home-feature-card__icon" aria-hidden="true">{icon}</div>
+              <div className="home-feature-card__icon" aria-hidden="true"><BrandCharacter pose={["travel", "photo", "welcome", "work", "photo", "gathering"][index]} /></div>
               <span className="home-feature-card__tag">{tag}</span><h3>{title}</h3><p>{description}</p>
               <Link className="home-feature-card__button home-animated-link" to={path}><span>{label}</span><span aria-hidden="true">→</span></Link>
-              {featured && <div className="home-map-scene" aria-hidden="true"><span className="home-map-pin home-map-pin--north">전북</span><span className="home-map-pin home-map-pin--center">광주</span><span className="home-map-pin home-map-pin--south">전남</span></div>}
+              {featured && <div className="home-map-scene" aria-label="전라남도 지도"><RegionIllustrationMap items={[]} /></div>}
             </article>
           ))}
         </div>
       </section>
-      <section className="home-cta"><div><span>어디서부터 시작할지 고민된다면</span><h2>지도에서 끌리는 지역을 먼저 골라보세요</h2></div><Link className="button button-light home-animated-link" to="/map">전라도 지도 열기 →</Link></section>
+      <section className="home-cta"><div><span>어디서부터 시작할지 고민된다면</span><h2>지도에서 끌리는 지역을 먼저 골라보세요</h2></div><Link className="button button-light home-animated-link" to="/map">전라남도 지도 열기 →</Link></section>
     </main>
   );
 }

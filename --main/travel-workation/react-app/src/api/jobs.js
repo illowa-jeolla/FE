@@ -171,14 +171,16 @@ export function cancelJobApplication(applicationId) {
 export function favoriteJob(job) {
   return apiRequest(`${API_BASE}/jobs/favorites`, {
     method: "POST",
+    dedupeMs: 0,
     body: JSON.stringify(job)
   });
 }
 
-export function unfavoriteJob(jobId) {
-  return apiRequest(`${API_BASE}/jobs/${encodeURIComponent(jobId)}/favorite`, { method: "DELETE" });
+// JobFavoriteController deletes the saved record by favoriteId.
+export function unfavoriteJob(favoriteId) {
+  return apiRequest(`${API_BASE}/jobs/favorites/${encodeURIComponent(favoriteId)}`, { method: "DELETE", dedupeMs: 0 });
 }
 
 export function getFavoriteJobs(params = {}) {
-  return apiRequest(`${API_BASE}/jobs/favorites${queryString(params)}`);
+  return apiRequest(`${API_BASE}/jobs/favorites${queryString(params)}`, { dedupeMs: 0 });
 }

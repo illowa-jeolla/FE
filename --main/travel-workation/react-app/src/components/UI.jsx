@@ -1,3 +1,4 @@
+import BrandCharacter from "./BrandCharacter";
 import { Link } from "react-router-dom";
 import { externalJobDetailPath } from "../api/jobs";
 
@@ -15,9 +16,9 @@ export function PageIntro({ eyebrow, title, description, action }) {
 }
 
 export function Status({ loading, error, empty, children }) {
-  if (loading) return <div className="page-status is-visible">데이터를 불러오는 중입니다.</div>;
-  if (error) return <div className="page-status is-visible is-error">{error}</div>;
-  if (empty) return <div className="page-status is-visible">조건에 맞는 결과가 없습니다.</div>;
+  if (loading) return <div className="page-status is-visible" role="status"><BrandCharacter pose="loading" />데이터를 불러오는 중입니다.</div>;
+  if (error) return <div className="page-status is-visible is-error" role="alert"><BrandCharacter pose="error" />{error}</div>;
+  if (empty) return <div className="page-status is-visible"><BrandCharacter pose="empty" />조건에 맞는 결과가 없습니다.</div>;
   return children;
 }
 
@@ -50,7 +51,7 @@ export function Modal({ open, title, onClose, children, actions }) {
 }
 
 export function EmptyCard({ title, description, action }) {
-  return <div className="page-status is-visible"><strong>{title}</strong><p>{description}</p>{action}</div>;
+  return <div className="page-status is-visible"><BrandCharacter pose="empty" /><strong>{title}</strong><p>{description}</p>{action}</div>;
 }
 
 export function FormMessage({ message, error }) {
