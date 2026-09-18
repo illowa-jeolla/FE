@@ -85,6 +85,85 @@
   .jobs-search-layout > .job-search-panel,
   .jobs-search-layout > .jobs-results-panel { position: static; grid-column: 1; grid-row: auto; max-height: none; }
 }
+
+/* Recommendation page uses the island cutout as the page background, not a split panel. */
+@media (min-width: 981px) {
+  .travel-search-bar.react-guide-search-react {
+    display: block;
+    min-height: calc(100vh - 76px);
+    padding: 24px clamp(28px,4vw,70px) 32px;
+    background-color: #edf4f0;
+    background-image: linear-gradient(90deg, rgba(246,250,247,.98) 0%, rgba(246,250,247,.96) 43%, rgba(227,240,235,.55) 60%, rgba(218,234,228,.12) 100%), url("/images/island-coast-cutout.png");
+    background-repeat: no-repeat;
+    background-position: center, right -7vw bottom -2vh;
+    background-size: cover, min(64vw, 1180px) auto;
+  }
+  .react-guide-search-react .recommend-form-panel {
+    width: min(620px, 47vw);
+    padding: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .react-guide-search-react .travel-preferences { margin-top: 5px; padding-top: 9px; }
+}
+@media (max-width: 980px) {
+  .travel-search-bar.react-guide-search-react {
+    padding: 18px;
+    background: linear-gradient(180deg, rgba(246,250,247,.98) 0%, rgba(246,250,247,.96) 64%, rgba(220,237,231,.55) 100%), url("/images/island-coast-cutout.png") center bottom / 115% auto no-repeat;
+  }
+  .react-guide-search-react .recommend-form-panel { width: 100%; padding: 0 0 300px; }
+}
+
+/* Final travel recommendation layout: controls left, island visual right. */
+.travel-guide-main.react-travel-guide-main { --primary: #47a8a2; --primary-soft: #e4f5f2; --ink: #173b3d; --muted: #667f7e; --line: #cfe3df; --mist: #f6fbf9; color: var(--ink); background: #f4f8f5; }
+.react-guide-search-react .recommend-form-panel { min-width: 0; }
+.react-guide-search-react .recommend-visual { min-width: 0; overflow: hidden; position: relative; background: linear-gradient(145deg, #dcece6 0%, #c8e1dc 55%, #f0e7d4 100%); }
+.react-guide-search-react .recommend-visual::before { content: ""; position: absolute; right: 8%; top: 8%; width: 210px; height: 210px; border: 1px solid rgba(23,82,82,.15); border-radius: 50%; }
+.react-guide-search-react .recommend-visual-copy { position: relative; z-index: 2; }
+.react-guide-search-react .recommend-visual-copy span { color: #247b78; font-size: 10px; font-weight: 900; letter-spacing: .2em; }
+.react-guide-search-react .recommend-visual-copy h2 { margin: 10px 0 9px; color: #173b3d; font-size: clamp(28px,2.4vw,42px); line-height: 1.12; letter-spacing: -.045em; }
+.react-guide-search-react .recommend-visual-copy p { max-width: 420px; margin: 0; color: #54716f; font-size: 13px; line-height: 1.65; }
+.react-guide-search-react .recommend-visual img { width: 115%; max-width: none; position: absolute; right: -12%; bottom: -4%; z-index: 1; filter: drop-shadow(0 24px 24px rgba(17,70,72,.2)); }
+.react-guide-search-react .travel-search-field > div { border-color: #cfe3df; background: #f8fcfa; }
+.react-guide-search-react .travel-search-field:focus-within > div, .react-guide-search-react .travel-hotel-trigger:hover > div { border-color: #47a8a2; background: #eaf7f4; }
+.react-guide-search-react .travel-field-icon, .react-guide-search-react .travel-search-field b { color: #27827e; }
+.react-guide-search-react .recommend-options label > span { border-color: #cee3df; color: #496d6b; background: #f8fcfa; }
+.react-guide-search-react .recommend-options input:checked + span { border-color: #47a8a2; color: #173b3d; background: #e4f5f2; }
+.react-guide-search-react .recommend-options input:checked + span::before { border-color: #47a8a2; background: #47a8a2; }
+.react-guide-search-react .travel-guide-submit { color: #fff; background: #267f7b; }
+.react-guide-search-react .travel-guide-submit:hover { background: #1f6e6a; }
+
+@media (min-width: 981px) {
+  .travel-search-bar.react-guide-search-react { width: 100%; min-height: calc(100vh - 76px); margin: 0; padding: 0; display: grid; grid-template-columns: minmax(560px,52%) minmax(440px,48%); grid-template-rows: 1fr; align-content: stretch; border: 0; border-radius: 0; background: #fff; box-shadow: none; }
+  .react-guide-search-react .recommend-form-panel { padding: 24px clamp(28px,4vw,68px) 30px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: min-content; align-content: start; column-gap: 10px; }
+  .react-guide-search-react .travel-search-side-heading, .react-guide-search-react .travel-search-region, .react-guide-search-react .travel-date-trigger, .react-guide-search-react .travel-daily-counts, .react-guide-search-react .travel-stay-trigger, .react-guide-search-react .travel-preferences, .react-guide-search-react .travel-guide-submit, .react-guide-search-react .page-status { grid-column: 1 / -1; grid-row: auto; }
+  .react-guide-search-react .travel-search-field { min-height: 64px; margin: 3px 0; padding: 5px 0 7px; gap: 4px; }
+  .react-guide-search-react .travel-search-start, .react-guide-search-react .travel-search-end { grid-column: auto; }
+  .react-guide-search-react .travel-search-field > span { font-size: 11px; }
+  .react-guide-search-react .travel-search-field > div { min-height: 42px; padding: 7px 11px; border-radius: 12px; }
+  .react-guide-search-react .travel-search-field input, .react-guide-search-react .travel-hotel-trigger strong { font-size: 12px; }
+  .react-guide-search-react .travel-search-side-heading { margin-right: 0; padding: 0 2px 10px; }
+  .react-guide-search-react .travel-search-side-heading h2 { margin: 7px 0 0; font-size: 23px; }
+  .react-guide-search-react .travel-preferences { margin: 3px 0 0; padding: 10px 0 0; border-top: 1px solid #dce9e5; border-left: 0; }
+  .react-guide-search-react .travel-preferences > header { margin-bottom: 0; }
+  .react-guide-search-react .travel-preferences h2 { margin-top: 5px; font-size: 19px; }
+  .react-guide-search-react .travel-preference-grid { gap: 0; }
+  .react-guide-search-react .travel-preferences .recommend-choice-group { padding: 7px 0; }
+  .react-guide-search-react .recommend-options { margin-top: 7px; gap: 7px; }
+  .react-guide-search-react .travel-preferences .recommend-options label > span { min-height: 39px; border-radius: 11px; font-size: 11px; }
+  .react-guide-search-react .travel-guide-submit { min-height: 48px; margin: 10px 0 0; border-radius: 12px; font-size: 13px; }
+  .react-guide-search-react .recommend-visual { min-height: calc(100vh - 76px); padding: clamp(38px,5vw,76px); }
+}
+
+@media (max-width: 980px) {
+  .travel-search-bar.react-guide-search-react { width: 100%; margin: 0; padding: 0; display: block; border: 0; border-radius: 0; box-shadow: none; }
+  .react-guide-search-react .recommend-form-panel { padding: 18px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 8px; }
+  .react-guide-search-react .recommend-form-panel > :not(.travel-search-start):not(.travel-search-end) { grid-column: 1 / -1; }
+  .react-guide-search-react .travel-search-start, .react-guide-search-react .travel-search-end { grid-column: auto; }
+  .react-guide-search-react .travel-preferences { padding-inline: 0; }
+  .react-guide-search-react .recommend-visual { min-height: 430px; padding: 36px 24px; }
+  .react-guide-search-react .recommend-visual img { width: 105%; right: -8%; }
+}
 .job-search-panel { padding: 18px !important; border-radius: 18px !important; }
 .job-search-panel > header { margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .job-search-panel > header h2 { margin: 0; color: #321628; font-size: 18px; letter-spacing: -.03em; }
@@ -1458,3 +1537,1081 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
 .guide-review-submit { min-height: 46px; border: 0; border-radius: 12px; color: #fff; background: #e77faf; font-weight: 850; }
 .guide-review-photo .photo-preview-grid { min-height: 150px; padding: 9px; }
 .guide-review-photo .photo-preview-card, .guide-review-photo .photo-add-card { width: 122px; height: 122px; flex-basis: 122px; }
+
+/* Keep the recommendation split layout after legacy travel-page rules. */
+@media (min-width: 981px) {
+  .travel-search-bar.react-guide-search-react { width: 100%; min-height: calc(100vh - 76px); margin: 0; padding: 0; display: grid; grid-template-columns: minmax(560px,52%) minmax(440px,48%); grid-template-rows: 1fr; align-content: stretch; border: 0; border-radius: 0; background: #fff; box-shadow: none; }
+  .react-guide-search-react .recommend-form-panel { min-width: 0; padding: 24px clamp(28px,4vw,68px) 30px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: min-content; align-content: start; column-gap: 10px; }
+  .react-guide-search-react .travel-search-side-heading, .react-guide-search-react .travel-search-region, .react-guide-search-react .travel-date-trigger, .react-guide-search-react .travel-daily-counts, .react-guide-search-react .travel-stay-trigger, .react-guide-search-react .travel-preferences, .react-guide-search-react .travel-guide-submit, .react-guide-search-react .page-status { grid-column: 1 / -1; grid-row: auto; }
+  .react-guide-search-react .travel-search-field { min-height: 64px; margin: 3px 0; padding: 5px 0 7px; gap: 4px; }
+  .react-guide-search-react .travel-search-start, .react-guide-search-react .travel-search-end { grid-column: auto; }
+  .react-guide-search-react .travel-search-field > span { font-size: 11px; }
+  .react-guide-search-react .travel-search-field > div { min-height: 42px; padding: 7px 11px; border-color: #cfe3df; border-radius: 12px; background: #f8fcfa; }
+  .react-guide-search-react .travel-search-field input, .react-guide-search-react .travel-hotel-trigger strong { font-size: 12px; }
+  .react-guide-search-react .travel-search-side-heading { margin-right: 0; padding: 0 2px 10px; }
+  .react-guide-search-react .travel-search-side-heading h2 { margin: 7px 0 0; font-size: 23px; }
+  .react-guide-search-react .travel-preferences { margin: 3px 0 0; padding: 10px 0 0; border-top: 1px solid #dce9e5; border-left: 0; }
+  .react-guide-search-react .travel-preferences > header { margin-bottom: 0; }
+  .react-guide-search-react .travel-preferences h2 { margin-top: 5px; font-size: 19px; }
+  .react-guide-search-react .travel-preference-grid { gap: 0; }
+  .react-guide-search-react .travel-preferences .recommend-choice-group { padding: 7px 0; }
+  .react-guide-search-react .recommend-options { margin-top: 7px; gap: 7px; }
+  .react-guide-search-react .travel-preferences .recommend-options label > span { min-height: 39px; border-color: #cee3df; border-radius: 11px; color: #496d6b; background: #f8fcfa; font-size: 11px; }
+  .react-guide-search-react .travel-guide-submit { min-height: 48px; margin: 10px 0 0; border-radius: 12px; color: #fff; background: #267f7b; font-size: 13px; }
+  .react-guide-search-react .recommend-visual { min-width: 0; min-height: calc(100vh - 76px); padding: clamp(38px,5vw,76px); overflow: hidden; position: relative; background: linear-gradient(145deg,#dcece6 0%,#c8e1dc 55%,#f0e7d4 100%); }
+}
+@media (max-width: 980px) {
+  .travel-search-bar.react-guide-search-react { width: 100%; margin: 0; padding: 0; display: block; border: 0; border-radius: 0; box-shadow: none; }
+  .react-guide-search-react .recommend-form-panel { padding: 18px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 8px; }
+  .react-guide-search-react .recommend-form-panel > :not(.travel-search-start):not(.travel-search-end) { grid-column: 1 / -1; }
+  .react-guide-search-react .travel-search-start, .react-guide-search-react .travel-search-end { grid-column: auto; }
+  .react-guide-search-react .recommend-visual { min-height: 430px; padding: 36px 24px; }
+}
+
+/* Final recommendation composition: one page with the island cutout in its background. */
+.travel-search-bar.react-guide-search-react {
+  width: 100%;
+  min-height: calc(100vh - 76px);
+  margin: 0;
+  padding: 24px clamp(28px, 4vw, 70px) 32px;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background-color: #e8f1ed;
+  background-image:
+    linear-gradient(90deg, rgba(248, 251, 249, 1) 0%, rgba(248, 251, 249, .98) 38%, rgba(238, 246, 242, .72) 48%, rgba(232, 242, 238, .12) 58%, rgba(232, 242, 238, 0) 100%),
+    url("/images/island-coast-cutout.png");
+  background-repeat: no-repeat;
+  background-position: center, right -6vw bottom -1vh;
+  background-size: cover, min(62vw, 1160px) auto;
+  box-shadow: none;
+}
+.react-guide-search-react .recommend-form-panel {
+  width: min(620px, 48vw);
+  min-width: 520px;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+  column-gap: 10px;
+}
+.react-guide-search-react .recommend-form-panel > :not(.travel-search-start):not(.travel-search-end) { grid-column: 1 / -1; }
+.react-guide-search-react .travel-search-start,
+.react-guide-search-react .travel-search-end { grid-column: auto; }
+.react-guide-search-react .travel-preferences { margin-top: 4px; padding-top: 10px; border-top: 1px solid #d4e3de; border-left: 0; }
+.react-guide-search-react .travel-guide-submit { color: #fff; background: #247b76; }
+
+@media (max-width: 980px) {
+  .travel-search-bar.react-guide-search-react {
+    min-height: calc(100vh - 68px);
+    padding: 18px 18px 300px;
+    background-image:
+      linear-gradient(180deg, rgba(248, 251, 249, .99) 0%, rgba(248, 251, 249, .98) 57%, rgba(226, 239, 234, .56) 76%, rgba(218, 235, 229, .08) 100%),
+      url("/images/island-coast-cutout.png");
+    background-position: center, right -110px bottom -5px;
+    background-size: cover, 720px auto;
+  }
+  .react-guide-search-react .recommend-form-panel {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .travel-search-bar.react-guide-search-react { padding: 14px 14px 240px; background-position: center, 58% bottom; background-size: cover, 560px auto; }
+  .react-guide-search-react .recommend-form-panel { display: block; }
+}
+
+/* Compact recommendation form on a single neutral canvas. */
+@media (min-width: 981px) {
+  .travel-search-bar.react-guide-search-react {
+    min-height: calc(100vh - 76px);
+    padding: 22px clamp(34px, 5vw, 82px) 26px;
+    background-color: #e9e9e7;
+    background-image: url("/images/island-coast-cutout.png");
+    background-repeat: no-repeat;
+    background-position: right -7vw bottom -2vh;
+    background-size: min(61vw, 1120px) auto;
+  }
+  .react-guide-search-react .recommend-form-panel {
+    width: min(560px, 43vw);
+    min-width: 500px;
+    column-gap: 8px;
+  }
+  .react-guide-search-react .travel-search-field {
+    min-height: 52px;
+    margin: 1px 0;
+    padding: 2px 0 4px;
+    gap: 3px;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .react-guide-search-react .travel-search-field > span {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+  .react-guide-search-react .travel-search-field > span small { font-size: 8px; }
+  .react-guide-search-react .travel-search-field > div {
+    min-height: 36px;
+    padding: 5px 9px;
+    border: 1px solid rgba(69, 105, 102, .25);
+    border-radius: 9px;
+    background: rgba(244, 245, 243, .68);
+    box-shadow: none;
+  }
+  .react-guide-search-react .travel-search-field input,
+  .react-guide-search-react .travel-hotel-trigger strong,
+  .react-guide-search-react .travel-date-trigger strong { font-size: 10px; }
+  .react-guide-search-react .travel-field-icon { transform: scale(.82); }
+  .react-guide-search-react .travel-region-chevron {
+    width: 28px;
+    height: 28px;
+  }
+  .react-guide-search-react .travel-date-arrow { width: 28px; height: 28px; }
+  .react-guide-search-react .travel-preferences {
+    margin-top: 7px;
+    padding-top: 10px;
+    border: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .react-guide-search-react .travel-preference-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-choice-group {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+  }
+  .react-guide-search-react .recommend-choice-group legend {
+    min-height: 28px;
+    margin: 0 0 7px;
+    font-size: 11px;
+  }
+  .react-guide-search-react .recommend-choice-group legend span { font-size: 8px; }
+  .react-guide-search-react .travel-preferences .recommend-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label > span {
+    min-height: 34px;
+    padding: 5px 7px;
+    border: 1px solid rgba(69, 105, 102, .25);
+    border-radius: 8px;
+    background: rgba(244, 245, 243, .58);
+    font-size: 9px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label > span::before {
+    width: 15px;
+    height: 15px;
+  }
+  .react-guide-search-react .travel-guide-submit {
+    min-height: 39px;
+    margin-top: 13px;
+    border-radius: 9px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 980px) {
+  .travel-search-bar.react-guide-search-react { background-color: #e9e9e7; }
+  .react-guide-search-react .travel-search-field,
+  .react-guide-search-react .travel-preferences,
+  .react-guide-search-react .recommend-choice-group { background: transparent !important; box-shadow: none !important; }
+}
+
+/* Two-column control cluster with underline cards and hover lift. */
+@media (min-width: 981px) {
+  .react-guide-search-react .recommend-form-panel {
+    width: min(600px, 46vw);
+    min-width: 540px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 24px;
+  }
+  .react-guide-search-react .recommend-form-panel > .travel-search-field {
+    grid-column: auto !important;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    transition: transform .18s ease;
+  }
+  .react-guide-search-react .recommend-form-panel > .travel-search-field:hover {
+    z-index: 3;
+    transform: translateY(-3px);
+  }
+  .react-guide-search-react .travel-search-field > div {
+    min-height: 40px;
+    padding: 5px 3px;
+    border: 0;
+    border-bottom: 1.5px solid #202020;
+    border-radius: 0;
+    background: transparent;
+    transition: background .18s ease, border-radius .18s ease, box-shadow .18s ease, padding .18s ease;
+  }
+  .react-guide-search-react .travel-search-field:hover > div,
+  .react-guide-search-react .travel-search-field:focus-within > div {
+    padding-inline: 10px;
+    border-bottom-color: transparent;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 9px 22px rgba(0, 0, 0, .11);
+  }
+  .react-guide-search-react .travel-search-region,
+  .react-guide-search-react .travel-date-trigger,
+  .react-guide-search-react .travel-stay-trigger,
+  .react-guide-search-react .travel-search-start,
+  .react-guide-search-react .travel-search-end { grid-column: auto !important; }
+  .react-guide-search-react .travel-daily-counts,
+  .react-guide-search-react .travel-preferences,
+  .react-guide-search-react .travel-guide-submit,
+  .react-guide-search-react .page-status { grid-column: 1 / -1 !important; }
+  .react-guide-search-react .travel-preferences { margin-top: 5px; }
+  .react-guide-search-react .travel-preferences .recommend-options label > span {
+    min-height: 32px;
+    padding: 5px 4px;
+    border: 0;
+    border-bottom: 1.5px solid #202020;
+    border-radius: 0;
+    color: #202020;
+    background: transparent;
+    box-shadow: none;
+    transition: transform .18s ease, background .18s ease, border-radius .18s ease, box-shadow .18s ease;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label:hover > span {
+    border-bottom-color: transparent;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .11);
+    transform: translateY(-3px);
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span {
+    border-color: #202020;
+    color: #111;
+    background: transparent;
+    box-shadow: none;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span::before {
+    color: #fff;
+    border-color: #202020;
+    background: #202020;
+  }
+  .react-guide-search-react .travel-guide-submit {
+    color: #fff;
+    background: #202020;
+    box-shadow: none;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .react-guide-search-react .travel-guide-submit:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, .18);
+  }
+}
+
+/* Bottom composition: trip controls stacked left, preferences stacked right. */
+@media (min-width: 981px) {
+  .react-guide-search-react .recommend-form-panel {
+    width: min(560px, 51vw) !important;
+    max-width: 560px;
+    min-width: 0;
+    min-height: calc(100vh - 124px);
+    padding-bottom: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+    grid-auto-rows: min-content;
+    align-content: end;
+    gap: 7px 22px;
+  }
+  .react-guide-search-react .recommend-form-panel > .travel-search-field {
+    grid-column: 1 !important;
+  }
+  .react-guide-search-react .travel-daily-counts {
+    grid-column: 1 !important;
+  }
+  .react-guide-search-react .travel-preferences {
+    grid-column: 2 !important;
+    grid-row: 1 / span 5;
+    align-self: stretch !important;
+    margin: 0;
+    padding: 0 0 2px;
+  }
+  .react-guide-search-react .travel-preference-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, min-content);
+    align-content: space-between;
+    min-height: 100%;
+    height: 100%;
+    gap: 14px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-choice-group {
+    display: block;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 9px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label > span {
+    min-height: 30px;
+    padding: 4px 3px;
+    font-size: 8.5px;
+  }
+  .react-guide-search-react .travel-guide-submit,
+  .react-guide-search-react .page-status {
+    grid-column: 1 / -1 !important;
+  }
+  .react-guide-search-react .travel-guide-submit { margin-top: 12px; }
+}
+
+@media (min-width: 981px) and (max-height: 760px) {
+  .react-guide-search-react .recommend-form-panel {
+    min-height: calc(100vh - 102px);
+    padding-bottom: 4px;
+    gap-block: 4px;
+  }
+  .react-guide-search-react .travel-search-field { min-height: 48px; }
+  .react-guide-search-react .travel-preference-grid { gap: 14px; }
+}
+
+/* Show per-day attraction counts as a separate panel to the right after date selection. */
+@media (min-width: 981px) {
+  .react-guide-search-react .travel-daily-counts {
+    width: 190px;
+    max-height: calc(100vh - 150px);
+    margin: 0;
+    padding: 14px 16px;
+    position: absolute;
+    left: calc(100% + 26px);
+    bottom: 64px;
+    z-index: 4;
+    overflow-y: auto;
+    border: 1px solid rgba(32, 32, 32, .12);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .9);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .1);
+    backdrop-filter: blur(8px);
+  }
+  .react-guide-search-react .travel-daily-counts > header { margin-bottom: 8px; }
+  .react-guide-search-react #travel-daily-count-list article { width: 100%; }
+}
+
+/* Date dialog: show daily attraction controls directly to the calendar's right. */
+.travel-calendar-body {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: stretch;
+  gap: 22px;
+}
+.travel-calendar-main { min-width: 0; position: relative; }
+.travel-calendar-main .travel-calendar-nav {
+  left: 0;
+  right: 0;
+  top: 0;
+}
+.travel-calendar-main .travel-calendar-months { margin-top: 0; gap: 30px; }
+.calendar-daily-counts {
+  min-height: 100%;
+  max-height: 410px;
+  padding: 16px;
+  overflow-y: auto;
+  border-left: 1px solid #ded8db;
+  background: #fafafa;
+}
+.calendar-daily-counts > header {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.calendar-daily-counts > header strong { color: #202020; font-size: 13px; font-weight: 850; }
+.calendar-daily-counts > header small { color: #777; font-size: 9px; font-weight: 750; }
+.calendar-daily-counts > div { display: grid; gap: 5px; }
+.calendar-daily-counts article {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #dedede;
+}
+.calendar-daily-counts article > b { color: #202020; font-size: 10px; }
+.calendar-daily-counts article > div { display: flex; align-items: center; gap: 6px; }
+.calendar-daily-counts article button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  color: #202020;
+  background: transparent;
+  font-size: 17px;
+  cursor: pointer;
+}
+.calendar-daily-counts article button:disabled { color: #bbb; cursor: default; }
+.calendar-daily-counts article strong { min-width: 14px; color: #111; font-size: 12px; text-align: center; }
+
+@media (max-width: 820px) {
+  .travel-calendar-body { grid-template-columns: 1fr; }
+  .calendar-daily-counts { min-height: 0; max-height: 180px; border-top: 1px solid #ded8db; border-left: 0; }
+}
+
+/* Minimal field chrome: keep labels and values, remove decorative helpers. */
+.react-guide-search-react .travel-search-field > span small,
+.react-guide-search-react .travel-field-icon,
+.react-guide-search-react .travel-region-chevron,
+.react-guide-search-react .travel-date-arrow { display: none; }
+.react-guide-search-react .travel-search-field > div { gap: 0; }
+.react-guide-search-react .travel-search-field input,
+.react-guide-search-react .travel-search-field strong { padding-left: 0; }
+
+/* Put the field label and selected value on the same line. */
+.react-guide-search-react .recommend-form-panel > .travel-search-field {
+  min-height: 47px;
+  padding: 0 6px;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1.5px solid #202020;
+}
+.react-guide-search-react .travel-search-field > span {
+  padding: 0;
+  color: #202020;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.react-guide-search-react .travel-search-field > div {
+  min-height: 36px;
+  padding: 0;
+  justify-content: flex-end;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.react-guide-search-react .travel-search-field input {
+  width: 100%;
+  color: #202020;
+  text-align: right;
+}
+.react-guide-search-react .travel-search-field strong {
+  width: 100%;
+  color: #202020;
+  text-align: right;
+}
+.react-guide-search-react .travel-date-trigger strong {
+  justify-content: flex-end;
+}
+.react-guide-search-react .recommend-form-panel > .travel-search-field:hover,
+.react-guide-search-react .recommend-form-panel > .travel-search-field:focus-within {
+  padding-inline: 10px;
+  border-bottom-color: transparent;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .82) !important;
+  box-shadow: 0 9px 22px rgba(0, 0, 0, .11) !important;
+}
+
+@media (max-width: 620px) {
+  .react-guide-search-react .recommend-form-panel > .travel-search-field { grid-template-columns: 82px minmax(0, 1fr); }
+}
+
+/* Recommendation flow uses a neutral monochrome palette, including every popup. */
+.react-travel-guide-main,
+.travel-region-picker,
+.travel-calendar-dialog,
+.hotel-search-dialog {
+  --primary: #202020;
+  --primary-soft: #eeeeec;
+  --line: #cfcfcb;
+  --ink: #202020;
+  --mist: #f3f3f1;
+}
+.react-guide-search-react .travel-date-value,
+.react-guide-search-react .travel-date-trigger strong,
+.react-guide-search-react .travel-date-trigger strong > i,
+.react-guide-search-react .travel-date-trigger strong > em {
+  color: #202020;
+}
+.react-guide-search-react .travel-date-trigger strong > em { background: #dededb; }
+.react-guide-search-react .travel-date-trigger .travel-date-placeholder {
+  color: #aaa9a4;
+  font-weight: 650;
+}
+.react-guide-search-react .travel-region-select {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 0;
+  color: #202020;
+  background: transparent;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+.react-guide-search-react .travel-region-select .travel-region-placeholder {
+  color: #aaa9a4;
+  font-weight: 650;
+}
+.react-guide-search-react .travel-region-picker {
+  border-color: #cfcfcb;
+  background: rgba(248, 248, 246, .98);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, .14);
+  animation: travel-region-drop .28s cubic-bezier(.22, .8, .3, 1) both;
+}
+.react-guide-search-react .travel-region-search {
+  min-height: 40px;
+  margin-bottom: 8px;
+  padding: 0 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d7d7d3;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .78);
+}
+.react-guide-search-react .travel-region-search > i {
+  width: 13px;
+  height: 13px;
+  position: relative;
+  flex: 0 0 13px;
+  border: 1.5px solid #777772;
+  border-radius: 50%;
+}
+.react-guide-search-react .travel-region-search > i::after {
+  width: 6px;
+  height: 1.5px;
+  position: absolute;
+  right: -5px;
+  bottom: -2px;
+  content: "";
+  background: #777772;
+  transform: rotate(45deg);
+}
+.react-guide-search-react .travel-region-search input {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #202020;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+.react-guide-search-react .travel-region-search input::placeholder { color: #aaa9a4; opacity: 1; }
+.react-guide-search-react .travel-region-options button {
+  animation: travel-region-card-drop .36s cubic-bezier(.22, .8, .3, 1) both;
+  animation-delay: calc(var(--region-index, 0) * 35ms + 70ms);
+}
+.react-guide-search-react .travel-region-options button {
+  color: #30302e;
+  border-color: #d7d7d3;
+  background: #f8f8f6;
+}
+.react-guide-search-react .travel-region-options button:hover {
+  color: #111;
+  border-color: #777;
+  background: #ededeb;
+}
+.react-guide-search-react .travel-region-options button.is-selected {
+  color: #111;
+  border-color: #202020;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #202020, 0 5px 14px rgba(0, 0, 0, .1);
+}
+@keyframes travel-region-drop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes travel-region-card-drop {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hotel-search-backdrop { background: rgba(24, 24, 24, .62); }
+.hotel-search-dialog {
+  color: #202020;
+  background: #f7f7f5;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .3);
+}
+.hotel-search-dialog .travel-guide-eyebrow,
+.hotel-search-dialog h2,
+.hotel-search-dialog > p,
+.hotel-search-dialog header > button { color: #202020; }
+.hotel-search-input { border-color: #aaa; background: #fff; }
+.hotel-search-input span { color: #202020; }
+.hotel-search-results > small,
+.hotel-search-empty,
+.hotel-search-loading,
+.hotel-search-loading small { color: #555; }
+.hotel-search-loading i { border-color: #d4d4d1; border-top-color: #202020; }
+.react-hotel-results button { color: #202020; border-color: #d5d5d2; background: #fff; }
+.react-hotel-results button:hover { border-color: #555; background: #ededeb; }
+.react-hotel-results button i { color: #202020; }
+.travel-calendar-dialog {
+  color: #202020;
+  border-color: #cfcfcb;
+  background: #f8f8f6;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, .2);
+}
+.travel-calendar-dialog header > button,
+.travel-calendar-nav button {
+  color: #202020;
+  border-color: #cfcfcb;
+  background: #ededeb;
+}
+.travel-calendar-week span,
+.travel-calendar-week span:first-child,
+.travel-calendar-days button:nth-child(7n + 1):not(:disabled) b { color: #555; }
+.travel-calendar-days button:not(:disabled):hover b { background: #dededb; }
+.travel-calendar-days button.is-range { background: #dededb; }
+.travel-calendar-days button.is-start { background: linear-gradient(to right, transparent 50%, #dededb 50%); }
+.travel-calendar-days button.is-end { background: linear-gradient(to left, transparent 50%, #dededb 50%); }
+.travel-calendar-days button.is-start b,
+.travel-calendar-days button.is-end b {
+  color: #fff;
+  background: #202020;
+  box-shadow: 0 5px 13px rgba(0, 0, 0, .22);
+}
+.travel-calendar-days button small { color: #555; }
+.travel-calendar-dialog footer { border-top-color: #d7d7d3; }
+.travel-calendar-dialog footer button { color: #fff; background: #202020; }
+.travel-calendar-dialog footer button:disabled { color: #888; background: #dededb; }
+
+/* Slightly stronger field typography and roomier preference choices. */
+.react-guide-search-react .travel-search-field > span {
+  font-size: 11.5px;
+  font-weight: 850;
+}
+.react-guide-search-react .travel-search-field input,
+.react-guide-search-react .travel-search-field strong {
+  font-size: 12px;
+  font-weight: 850;
+}
+.react-guide-search-react .recommend-choice-group legend strong {
+  font-size: 12px;
+  font-weight: 850;
+}
+.react-guide-search-react .travel-preferences .recommend-options label > span {
+  min-height: 38px;
+  padding: 7px 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.react-guide-search-react .travel-preferences .recommend-options label > span::before {
+  width: 17px;
+  height: 17px;
+}
+
+@media (min-width: 981px) {
+  .react-guide-search-react .recommend-form-panel { transform: translateY(-255px); }
+  .travel-search-bar.react-guide-search-react { background-position: right -7vw bottom 36px; }
+}
+
+@media (min-width: 981px) and (max-height: 760px) {
+  .react-guide-search-react .recommend-form-panel { transform: translateY(-85px); }
+  .travel-search-bar.react-guide-search-react { background-position: right -7vw bottom 18px; }
+}
+
+.travel-search-bar.react-guide-search-react { position: relative; }
+.recommend-intro {
+  position: absolute;
+  top: 40px;
+  left: clamp(34px, 5vw, 82px);
+  z-index: 2;
+  color: #202020;
+}
+.recommend-intro span {
+  display: block;
+  margin-bottom: 9px;
+  color: #666;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .2em;
+}
+.recommend-intro h1 {
+  margin: 0;
+  font-size: clamp(25px, 2.1vw, 34px);
+  line-height: 1.2;
+  letter-spacing: -.04em;
+}
+.recommend-intro p {
+  margin: 10px 0 0;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (max-width: 980px) {
+  .recommend-intro {
+    margin-bottom: 24px;
+    position: static;
+  }
+  .recommend-intro h1 { font-size: 25px; }
+}
+
+/* Keep each preference heading attached to its own choices. */
+@media (min-width: 981px) {
+  .react-guide-search-react .travel-preferences {
+    align-self: start !important;
+    padding-top: 0;
+  }
+  .react-guide-search-react .travel-preference-grid {
+    height: auto;
+    min-height: 0;
+    align-content: start;
+    gap: 18px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-choice-group {
+    padding: 13px;
+    border: 1px solid rgba(32, 32, 32, .18);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .62) !important;
+    box-shadow: 0 7px 20px rgba(0, 0, 0, .05);
+  }
+  .react-guide-search-react .recommend-choice-group legend {
+    min-height: auto;
+    margin: 0 0 10px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options {
+    margin-top: 0;
+    gap: 8px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label > span {
+    min-height: 40px;
+    border: 1px solid #c9c9c5;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .8);
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label:hover > span {
+    border-color: #202020;
+    background: #fff;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span {
+    color: #fff;
+    border-color: #202020;
+    background: #202020;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span::before {
+    color: #202020;
+    border-color: #fff;
+    background: #fff;
+  }
+  .react-guide-search-react .recommend-choice-group--theme {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options {
+    gap: 5px 12px;
+  }
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label > span {
+    min-height: 30px;
+    padding: 2px 0;
+    justify-content: flex-start;
+    border: 0;
+    border-radius: 0;
+    color: #202020;
+    background: transparent;
+    box-shadow: none;
+  }
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label:hover > span {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options input:checked + span {
+    color: #202020;
+    border: 0;
+    background: transparent;
+  }
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options input:checked + span::before {
+    color: #fff;
+    border-color: #202020;
+    background: #202020;
+  }
+}
+
+/* Individual choice cards only: no large wrapper card around either group. */
+@media (min-width: 981px) {
+  .react-guide-search-react .travel-preferences .recommend-choice-group,
+  .react-guide-search-react .recommend-choice-group--theme {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options {
+    gap: 8px;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label > span,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label > span {
+    min-height: 40px;
+    padding: 7px 6px;
+    justify-content: center;
+    border: 1px solid #c9c9c5;
+    border-radius: 9px;
+    color: #202020;
+    background: rgba(255, 255, 255, .8);
+    box-shadow: none;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label:hover > span,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label:hover > span {
+    border-color: #202020;
+    background: #fff;
+    box-shadow: 0 7px 16px rgba(0, 0, 0, .08);
+    transform: translateY(-2px);
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options input:checked + span {
+    color: #fff;
+    border-color: #202020;
+    background: #202020;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span::before,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options input:checked + span::before {
+    color: #202020;
+    border-color: #fff;
+    background: #fff;
+  }
+}
+
+/* Clean white canvas and softer, more deliberate choice cards. */
+.travel-search-bar.react-guide-search-react { background-color: #fff; }
+@media (min-width: 981px) {
+  .react-guide-search-react .travel-preferences .recommend-options label > span,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label > span {
+    min-height: 42px;
+    padding: 8px 10px;
+    gap: 9px;
+    border: 1px solid rgba(196, 196, 190, .72);
+    border-radius: 11px;
+    color: #363634;
+    background: rgba(255, 255, 255, .58);
+    backdrop-filter: blur(3px);
+    font-weight: 750;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label > span::before,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label > span::before {
+    width: 16px;
+    height: 16px;
+    border-color: #bdbdb8;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, .88);
+  }
+  .react-guide-search-react .travel-preferences .recommend-options label:hover > span,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options label:hover > span {
+    border-color: #a7a7a1;
+    background: rgba(255, 255, 255, .78);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .08);
+    transform: translateY(-2px);
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options input:checked + span {
+    color: #202020;
+    border-color: #3d3d3a;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px #3d3d3a, 0 7px 15px rgba(0, 0, 0, .12);
+  }
+  .react-guide-search-react .travel-preferences .recommend-options input:checked + span::before,
+  .react-guide-search-react .recommend-choice-group--theme .recommend-options input:checked + span::before {
+    color: #fff;
+    border-color: #3d3d3a;
+    background: #3d3d3a;
+  }
+}
+
+.react-guide-search-react .travel-guide-submit { font-size: 15px; }
+
+/* Full scenic photo background with a softened reading area on the left. */
+.travel-search-bar.react-guide-search-react {
+  isolation: isolate;
+  background-color: #dce5e3;
+  background-image: url("/images/jeolla-coast-background.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.travel-search-bar.react-guide-search-react::before {
+  position: absolute;
+  inset: -18px;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  background: url("/images/jeolla-coast-background.png") center / cover no-repeat;
+  filter: blur(10px);
+  opacity: .82;
+  clip-path: inset(18px);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 42%, rgba(0, 0, 0, .72) 58%, transparent 78%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 42%, rgba(0, 0, 0, .72) 58%, transparent 78%);
+}
+.travel-search-bar.react-guide-search-react::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .68) 0%, rgba(255, 255, 255, .43) 37%, rgba(255, 255, 255, .15) 58%, transparent 82%);
+}
+.react-guide-search-react .recommend-form-panel { z-index: 1; }
+.react-travel-guide-main { overflow-x: clip; }
+.recommend-birds {
+  --flock-scale: 1;
+  position: absolute;
+  top: 18%;
+  bottom: auto;
+  right: auto;
+  left: calc(100% - 72px);
+  z-index: 1;
+  width: 56px;
+  height: 22px;
+  opacity: .3;
+  pointer-events: none;
+  animation: recommend-birds-drift 21s linear infinite;
+  animation-delay: -1s;
+}
+.recommend-birds i {
+  width: 10px;
+  height: 4px;
+  position: absolute;
+  display: block;
+  animation: recommend-bird-wing .78s ease-in-out infinite;
+}
+.recommend-birds i::before,
+.recommend-birds i::after {
+  width: 10px;
+  height: 4px;
+  position: absolute;
+  top: -1px;
+  border-top: 1px solid rgba(20, 43, 45, .72);
+  border-radius: 50%;
+  content: "";
+}
+.recommend-birds i::before {
+  right: 50%;
+  transform: rotate(-18deg);
+  transform-origin: right center;
+  animation: recommend-bird-left-wing .78s ease-in-out infinite;
+}
+.recommend-birds i::after {
+  left: 50%;
+  transform: rotate(18deg);
+  transform-origin: left center;
+  animation: recommend-bird-right-wing .78s ease-in-out infinite;
+}
+.recommend-birds i:nth-child(1) { top: 2px; left: 0; transform: scale(.65); }
+.recommend-birds i:nth-child(2) { top: 12px; left: 20px; transform: scale(.48); animation-delay: -.8s; }
+.recommend-birds i:nth-child(3) { top: 5px; left: 38px; transform: scale(.4); animation-delay: -1.5s; }
+.recommend-birds--two {
+  top: 30%;
+  opacity: .22;
+  animation-delay: -8s;
+  --flock-scale: .78;
+}
+.recommend-birds--three {
+  top: 24%;
+  opacity: .18;
+  animation-delay: -15s;
+  --flock-scale: .58;
+}
+@keyframes recommend-birds-drift {
+  0% { transform: translate3d(0, 0, 0) scale(var(--flock-scale)); }
+  55% { transform: translate3d(-62vw, 8px, 0) scale(var(--flock-scale)); }
+  100% { transform: translate3d(-118vw, 18px, 0) scale(var(--flock-scale)); }
+}
+@keyframes recommend-bird-wing {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -2px; }
+}
+@keyframes recommend-bird-left-wing {
+  0%, 100% { transform: rotate(-12deg) scaleY(.75); }
+  50% { transform: rotate(-48deg) scaleY(1.15); }
+}
+@keyframes recommend-bird-right-wing {
+  0%, 100% { transform: rotate(12deg) scaleY(.75); }
+  50% { transform: rotate(48deg) scaleY(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recommend-birds, .recommend-birds i, .recommend-birds i::before, .recommend-birds i::after { animation: none; }
+}
+
+/* Keep the desktop recommendation screen within one viewport. */
+@media (min-width: 981px) {
+  .travel-guide-main.react-travel-guide-main {
+    height: calc(100vh - 76px);
+    min-height: 0;
+    overflow: hidden;
+  }
+  .travel-search-bar.react-guide-search-react {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 980px) {
+  .travel-search-bar.react-guide-search-react { background-position: 58% center; }
+  .travel-search-bar.react-guide-search-react::before {
+    width: 100%;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 52%, rgba(0, 0, 0, .65) 72%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 52%, rgba(0, 0, 0, .65) 72%, transparent 100%);
+  }
+  .travel-search-bar.react-guide-search-react::after {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .63) 0%, rgba(255, 255, 255, .36) 55%, rgba(255, 255, 255, .08) 100%);
+  }
+}
+
+/* Gently reveal recommendation content when the page is entered. */
+.react-guide-search-react .recommend-intro,
+.react-guide-search-react .recommend-form-panel > .travel-search-field,
+.react-guide-search-react .recommend-form-panel > .travel-preferences,
+.react-guide-search-react .recommend-form-panel > .travel-guide-submit {
+  animation: recommend-content-enter .68s cubic-bezier(.22, .8, .3, 1) both;
+}
+.react-guide-search-react .recommend-intro { animation-delay: .04s; }
+.react-guide-search-react .recommend-form-panel > .travel-search-field:nth-of-type(1) { animation-delay: .12s; }
+.react-guide-search-react .recommend-form-panel > .travel-search-field:nth-of-type(2) { animation-delay: .18s; }
+.react-guide-search-react .recommend-form-panel > .travel-search-field:nth-of-type(3) { animation-delay: .24s; }
+.react-guide-search-react .recommend-form-panel > .travel-search-field:nth-of-type(4) { animation-delay: .3s; }
+.react-guide-search-react .recommend-form-panel > .travel-search-field:nth-of-type(5) { animation-delay: .36s; }
+.react-guide-search-react .recommend-form-panel > .travel-preferences { animation-delay: .42s; }
+.react-guide-search-react .recommend-form-panel > .travel-guide-submit { animation-delay: .5s; }
+
+@keyframes recommend-content-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(-34px, 0, 0);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-guide-search-react .recommend-intro,
+  .react-guide-search-react .recommend-form-panel > .travel-search-field,
+  .react-guide-search-react .recommend-form-panel > .travel-preferences,
+  .react-guide-search-react .recommend-form-panel > .travel-guide-submit,
+  .react-guide-search-react .travel-region-picker,
+  .react-guide-search-react .travel-region-options button {
+    animation: none;
+  }
+}
