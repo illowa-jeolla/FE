@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import { animate, stagger } from "animejs";
 import { Link } from "react-router-dom";
 
 const features = [
@@ -10,8 +12,38 @@ const features = [
 ];
 
 export default function HomePage() {
+  const page = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const root = page.current;
+    const animations = [];
+    animations.push(animate(root.querySelectorAll(".home-hero__label, .home-hero h1, .home-hero p, .home-hero__actions"), {
+      opacity: [0, 1], y: [22, 0], delay: stagger(110), duration: 750, ease: "out(3)"
+    }));
+
+    if (!window.IntersectionObserver) return () => animations.forEach((animation) => animation.revert());
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(entry.target);
+        const targets = entry.target.classList.contains("home-feature-grid")
+          ? entry.target.querySelectorAll(".home-feature-card")
+          : entry.target;
+        animations.push(animate(targets, {
+          opacity: [0, 1], y: entry.target.classList.contains("home-feature-grid") ? 0 : [24, 0],
+          delay: entry.target.classList.contains("home-feature-grid") ? stagger(90) : 0,
+          duration: 650, ease: "out(3)"
+        }));
+      });
+    }, { threshold: 0.12 });
+    root.querySelectorAll(".home-section-heading, .home-feature-grid, .home-cta").forEach((element) => observer.observe(element));
+    return () => { observer.disconnect(); animations.forEach((animation) => animation.revert()); };
+  }, []);
+
   return (
-    <main className="home-main">
+    <main ref={page} className="home-main">
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero__content">
           <span className="home-hero__label">TRAVEL · LOCAL · WORK</span>

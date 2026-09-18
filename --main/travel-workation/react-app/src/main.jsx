@@ -6,6 +6,7 @@ import "../../styles.css";
 import "../../feature-pages.css";
 import "../../mypage.css";
 import "../../auth.css";
+import "../../home-redesign.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>

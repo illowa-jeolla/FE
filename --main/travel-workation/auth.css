@@ -99,3 +99,39 @@ body.auth-page .onboarding-main {
   .onboarding-logo { height: 70px; }
   .onboarding-copy { margin: 20px 0; }
 }
+
+/* First-visit introduction uses the same logo, teal and white as the auth screen. */
+.welcome-main { width: 100%; min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; background: #fff; }
+.welcome-content { position: relative; width: min(100%, 440px); min-height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #1c2928; }
+.welcome-scenes { position: relative; width: 100%; height: 260px; }
+.welcome-scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; }
+.welcome-logo, .welcome-choice-logo { width: 200px; height: 96px; object-fit: contain; }
+.welcome-logo, .welcome-scene .welcome-line, .welcome-step, .welcome-final { opacity: 0; }
+.welcome-line { width: 100%; margin: 22px 0 0; color: #647072; font-size: clamp(17px, 4vw, 22px); line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; word-break: keep-all; }
+.welcome-steps { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; }
+.welcome-step { padding: 10px 15px; border: 1px solid #d8e8e5; border-radius: 999px; background: #f5faf9; color: #326f68; font-size: 17px; font-weight: 700; }
+.welcome-final { width: 100%; margin: 0; color: #326f68; font-size: clamp(25px, 6vw, 34px); line-height: 1.42; font-weight: 800; letter-spacing: -.7px; overflow-wrap: anywhere; word-break: keep-all; }
+.welcome-skip, .welcome-replay { min-height: 44px; padding: 7px 12px; border: 0; background: transparent; color: #647072; font-size: 14px; font-weight: 600; cursor: pointer; }
+.welcome-skip { position: absolute; bottom: -50px; right: 0; }
+.welcome-choice { min-height: 440px; opacity: 0; }
+.welcome-choice-logo { margin-bottom: 30px; }
+.welcome-choice h1 { margin: 0; color: #326f68; font-size: clamp(24px, 5vw, 30px); line-height: 1.4; font-weight: 800; word-break: keep-all; }
+.welcome-choice p { margin: 14px 0 32px; color: #647072; font-size: 16px; line-height: 1.55; }
+.welcome-choice-actions { width: min(100%, 330px); display: grid; gap: 12px; }
+.welcome-choice-actions button { min-height: 53px; border-radius: 17px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.welcome-choice-primary { border: 1px solid #398b81; color: #fff; background: #398b81; }
+.welcome-choice-secondary { border: 1px solid #d8e8e5; color: #326f68; background: #fff; }
+.welcome-replay { margin-top: 18px; }
+.welcome-choice-primary:hover { background: #326f68; }
+.welcome-choice-secondary:hover { background: #f5faf9; }
+.welcome-choice-actions button:focus-visible, .welcome-replay:focus-visible, .welcome-skip:focus-visible { outline: 2px solid #267e74; outline-offset: 3px; }
+@media (max-width: 480px) {
+  .welcome-main { padding-inline: 20px; }
+  .welcome-content { min-height: 330px; }
+  .welcome-choice { min-height: 420px; }
+  .welcome-steps { gap: 6px; }
+  .welcome-step { padding: 9px 12px; font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-choice { opacity: 1; }
+}
