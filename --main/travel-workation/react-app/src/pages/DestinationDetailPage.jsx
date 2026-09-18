@@ -90,7 +90,7 @@ export default function DestinationDetailPage() {
   const averageRating = Number(place.averageRating ?? place.rating ?? 0);
 
   return <main className="feature-page-main destination-detail-react">
-    <section className="page-intro"><div><p className="eyebrow dark">{regionName} · 관광지</p><h1>{name}</h1></div><div className="page-intro-actions"><Link className="button" to="/map">지도로 돌아가기</Link><button className={`button${visited ? " button-primary" : ""}`} type="button" disabled={busy} onClick={toggleVisit}>{visited ? "✓ 방문 완료" : "방문 등록"}</button></div></section>
+    <section className="page-intro"><div><p className="eyebrow dark">{regionName} · 관광지</p><h1>{name}</h1></div><div className="page-intro-actions"><Link className="button" to="/recommend">관광지 추천으로 돌아가기</Link><button className={`button${visited ? " button-primary" : ""}`} type="button" disabled={busy} onClick={toggleVisit}>{visited ? "✓ 방문 완료" : "방문 등록"}</button></div></section>
     {message && <p className="place-action-message" role="status">{message}</p>}
     <section className="destination-hero-react"><img src={imagePath(place)} alt={`${name} 전경`} /><div><span>관광지 상세 정보</span><h2>{name}</h2><p>{valueOf(place, "description", "overview", "summary")}</p><div className="destination-score-react"><strong>★ {averageRating.toFixed(1)}</strong><span>리뷰 {place.reviewCount ?? reviews.length}개</span></div></div></section>
     <section className="destination-info-grid-react">
