@@ -41,7 +41,6 @@ function isAuthenticationFailure(response, payload = {}) {
   const message = String(errorValue(payload, "message")).toLowerCase();
   return response.status === 401
     || code.includes("AUTH_401")
-    || code.includes("AUTH_403")
     || code.includes("INVALID_TOKEN")
     || code.includes("EXPIRED_TOKEN")
     || message.includes("유효하지 않은 토큰")
@@ -54,6 +53,17 @@ let refreshInFlight = null;
 const requestInFlight = new Map();
 const GET_CACHE_MS = 30 * 1000;
 const MUTATION_DEDUPE_MS = 1000;
+
+export function clearApiCache() {
+  requestInFlight.clear();
+}
+
+function responseError(response, payload, fallbackMessage) {
+  const error = new Error(errorValue(payload, "message") || fallbackMessage);
+  error.status = response.status;
+  error.code = errorValue(payload, "code") || errorValue(payload, "errorCode");
+  return error;
+}
 
 function tokenNeedsRefresh(token) {
   try {
@@ -75,11 +85,11 @@ async function performTokenRefresh() {
     credentials: "include"
   });
   const csrfPayload = await parseResponse(csrfResponse);
-  if (!csrfResponse.ok) throw new Error(errorValue(csrfPayload, "message") || "CSRF 토큰을 발급받지 못했습니다.");
+  if (!csrfResponse.ok) throw responseError(csrfResponse, csrfPayload, "CSRF 토큰을 발급받지 못했습니다.");
 
   const cookieName = csrfPayload.data?.cookieName || "XSRF-TOKEN";
   const headerName = csrfPayload.data?.headerName || "X-XSRF-TOKEN";
-  const csrfToken = csrfPayload.data?.token || readCookie(cookieName);
+  const csrfToken = readCookie(cookieName);
   if (!csrfToken) throw new Error("CSRF 쿠키를 읽을 수 없습니다.");
   const storedRefreshToken = sessionStorage.getItem("refreshToken");
 
@@ -95,13 +105,14 @@ async function performTokenRefresh() {
     credentials: "include"
   });
   const refreshPayload = await parseResponse(refreshResponse);
-  if (!refreshResponse.ok) throw new Error(errorValue(refreshPayload, "message") || "로그인 세션을 갱신하지 못했습니다.");
+  if (!refreshResponse.ok) throw responseError(refreshResponse, refreshPayload, "로그인 세션을 갱신하지 못했습니다.");
 
   const accessToken = accessTokenFrom(refreshPayload);
   if (!accessToken) throw new Error("토큰 재발급 응답에 accessToken이 없습니다.");
   sessionStorage.setItem("accessToken", accessToken);
   const rotatedRefreshToken = refreshTokenFrom(refreshPayload);
   if (rotatedRefreshToken) sessionStorage.setItem("refreshToken", String(rotatedRefreshToken).replace(/^Bearer\s+/i, ""));
+  clearApiCache();
   return accessToken;
 }
 
@@ -109,7 +120,10 @@ export function refreshAccessToken() {
   if (!refreshInFlight) {
     refreshInFlight = performTokenRefresh()
       .catch((error) => {
-        clearSession();
+        if (error.status === 401) {
+          clearSession();
+          clearApiCache();
+        }
         throw error;
       })
       .finally(() => { refreshInFlight = null; });
@@ -135,6 +149,7 @@ export async function logoutFromBackend() {
     error.status = response.status;
     throw error;
   }
+  clearApiCache();
 }
 
 async function executeApiRequest(path, options = {}, retry = true) {
@@ -160,8 +175,10 @@ async function executeApiRequest(path, options = {}, retry = true) {
   if (isAuthenticationFailure(response, data) && retry && AUTH_API.enabled) {
     try {
       await refreshAccessToken();
-    } catch {
-      // 재발급 쿠키까지 만료된 경우에는 토큰 없이 한 번 재시도해 최종 상태를 확인합니다.
+    } catch (refreshError) {
+      const error = new Error(refreshError.message || "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
+      error.status = refreshError.status || 401;
+      throw error;
     }
     return executeApiRequest(path, options, false);
   }
