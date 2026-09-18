@@ -17,35 +17,35 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
+        target: "https://api.illowa-jeolla.cloud",
         changeOrigin: true,
         secure: true,
         headers: {
         }
       },
       "/assets": {
-        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
+        target: "https://api.illowa-jeolla.cloud",
         changeOrigin: true,
         secure: true,
         headers: {
         }
       },
       "/uploads": {
-        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
+        target: "https://api.illowa-jeolla.cloud",
         changeOrigin: true,
         secure: true,
         headers: {
         }
       },
       "/files": {
-        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
+        target: "https://api.illowa-jeolla.cloud",
         changeOrigin: true,
         secure: true,
         headers: {
         }
       },
       "/local-images": {
-        target: "http://illowa-jeolla-main-alb-778055198.ap-northeast-2.elb.amazonaws.com",
+        target: "https://api.illowa-jeolla.cloud",
         changeOrigin: true,
         secure: true,
         headers: {
