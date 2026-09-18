@@ -66,7 +66,7 @@ body.auth-page .onboarding-main {
   display: grid; place-items: center; background: #fff;
 }
 .onboarding-content { width: min(100%, 330px); text-align: center; }
-.onboarding-logo { width: 188px; height: 86px; object-fit: contain; display: block; margin: 0 auto; }
+.onboarding-logo { width: 148px; height: 148px; object-fit: contain; display: block; margin: 0 auto; }
 .onboarding-copy { margin: 30px 0; color: #647072; font-size: 16px; line-height: 1.55; letter-spacing: -.2px; }
 .onboarding-actions { display: grid; gap: 12px; }
 .onboarding-login {
@@ -96,7 +96,7 @@ body.auth-page .onboarding-main {
 
 @media (max-height: 620px) {
   body.auth-page .onboarding-main { place-items: start center; }
-  .onboarding-logo { height: 70px; }
+  .onboarding-logo { width: 112px; height: 112px; }
   .onboarding-copy { margin: 20px 0; }
 }
 
@@ -105,7 +105,7 @@ body.auth-page .onboarding-main {
 .welcome-content { position: relative; width: min(100%, 440px); min-height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #1c2928; }
 .welcome-scenes { position: relative; width: 100%; height: 260px; }
 .welcome-scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; }
-.welcome-logo, .welcome-choice-logo { width: 200px; height: 96px; object-fit: contain; }
+.welcome-logo, .welcome-choice-logo { width: 160px; height: 160px; object-fit: contain; }
 .welcome-logo, .welcome-scene .welcome-line, .welcome-step, .welcome-final { opacity: 0; }
 .welcome-line { width: 100%; margin: 22px 0 0; color: #647072; font-size: clamp(17px, 4vw, 22px); line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; word-break: keep-all; }
 .welcome-steps { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; }

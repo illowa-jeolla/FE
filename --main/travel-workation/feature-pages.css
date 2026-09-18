@@ -3050,3 +3050,38 @@ body:has(#gathering-form) .page-workspace { grid-template-columns: 460px minmax(
   .travel-result-map-page .travel-result-side-panel { left: 0 !important; top: 0 !important; bottom: 0 !important; width: 30% !important; max-height: none !important; padding: 92px clamp(20px, 2.4vw, 42px) 36px !important; border: 0 !important; border-radius: 0 !important; background: #fff !important; box-shadow: none !important; backdrop-filter: none !important; }
   .travel-result-map-page .travel-result-side-panel .page-status { display: none !important; }
 }
+
+/* Move the complete input group without changing its internal spacing. */
+.react-guide-search-react .recommend-form-panel { margin-top: 32px; }
+@media (max-width: 980px) {
+  .react-guide-search-react .recommend-form-panel { margin-top: 20px; }
+}
+
+/* One pink/coral family, four clearly ranked emphasis levels. */
+.ai-priority-slots > div:nth-child(1) { --rank-bg: #c44372; --rank-ink: #fff; --rank-border: #b53566; --rank-badge: #943054; }
+.ai-priority-slots > div:nth-child(2) { --rank-bg: #ed9fb9; --rank-ink: #582236; --rank-border: #cf7295; --rank-badge: #a83863; }
+.ai-priority-slots > div:nth-child(3) { --rank-bg: #f7cedd; --rank-ink: #653047; --rank-border: #dfa1b8; --rank-badge: #ac496f; }
+.ai-priority-slots > div:nth-child(4) { --rank-bg: #fff0f5; --rank-ink: #713c57; --rank-border: #eac3d2; --rank-badge: #ad5274; }
+.ai-priority-slots > div,
+.ai-priority-slots > div.is-filled { background: var(--rank-bg); color: var(--rank-ink); border-color: var(--rank-border); }
+.ai-priority-slots > div b,
+.ai-priority-slots > div.is-filled b { background: var(--rank-badge); }
+
+/* Prevent fixed desktop grid rows from creating implicit columns on phones. */
+@media (min-width: 761px) and (max-width: 1120px) {
+  .map-page-main:not(.is-job-search-mode) .map-results-panel { grid-row: 3; grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .map-page-main, .map-page-main.is-job-search-mode { width: 100%; height: auto; min-height: 0; padding: 14px; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .map-page-main > .job-view-switch,
+  .map-page-main > .map-controls-panel,
+  .map-page-main > .map-canvas-panel,
+  .map-page-main > .map-results-panel,
+  .map-page-main > .job-search-panel { grid-column: 1; grid-row: auto; position: relative; top: auto; width: 100%; height: auto; max-height: none; }
+  .map-page-main > .job-view-switch { width: fit-content; }
+  .map-page-main .map-canvas-panel { padding: 16px; }
+  .map-page-main .map-canvas-heading h2 { font-size: 16px; }
+  .map-page-main .jeolla-map { width: 100%; height: auto; min-height: 0; margin: 14px 0 0; aspect-ratio: auto; }
+  .map-page-main .region-illustration-map { width: 100%; aspect-ratio: 8 / 6.5; }
+  .map-page-main.is-job-search-mode .map-job-list { grid-template-columns: minmax(0, 1fr); }
+}

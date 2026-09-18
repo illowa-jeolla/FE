@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { externalJunnamJobPath, favoriteJob } from "../api/jobs";
+import { externalJunnamJobPath } from "../api/jobs";
 import { hasSession } from "../auth/session";
+import { favoriteKey, useJobFavorites } from "../hooks/useJobFavorites";
 import { useApi } from "../hooks/useApi";
 import { Status } from "../components/UI";
 import JobKakaoMap from "../components/JobKakaoMap";
@@ -30,8 +31,7 @@ export default function JunnamJobDetailPage() {
   const { jobKey } = useParams();
   const navigate = useNavigate();
   const { data: job, loading, error } = useApi(jobKey ? externalJunnamJobPath(jobKey) : "", { immediate: Boolean(jobKey) });
-  const [favoriteOverride, setFavoriteOverride] = useState(null);
-  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const favorites = useJobFavorites();
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const title = field(job, "title", "jobTitle", "일자리 상세");
   const category = field(job, "categoryName", "jobCategoryNm", "전남");
@@ -51,7 +51,6 @@ export default function JunnamJobDetailPage() {
   const excluded = ["제목", "상호", "연락처", "문의", "전화", "근무지역", "주소", "근무지", "급여", "임금", "연봉", "근무시간", "근무 시간", "마감일", "접수기간", "모집기간"];
   const details = parsed.entries.filter(([label]) => !excluded.some((item) => label.includes(item)));
   const valid = Boolean(job && (job.jobKey || job.rawFields?.jobKey || job.title));
-  const favorited = favoriteOverride ?? Boolean(job?.favorited || job?.favorite || job?.isFavorite);
   const favoriteExternalId = String(job?.jobKey || job?.rawFields?.jobKey || jobKey || "").slice(0, 100);
   const favoriteCompanyName = String(field(job, "companyName", "companyName") || writer || "").trim().slice(0, 255);
   const favoritePayload = {
@@ -64,17 +63,18 @@ export default function JunnamJobDetailPage() {
     ...(homepageUrl ? { sourceUrl: homepageUrl } : {})
   };
 
+  const favoriteIdentity = favoriteKey(favoritePayload);
+  const favorited = favorites.items.some((item) => favoriteKey(item) === favoriteIdentity);
+  const favoriteBusy = favorites.loading || favorites.pending.has(favoriteIdentity);
+
   async function toggleFavorite() {
     if (!hasSession()) { setFavoriteMessage("로그인 후 일자리를 찜할 수 있어요."); return; }
-    if (!favoritePayload.externalId || favoriteBusy || favorited) return;
-    setFavoriteBusy(true);
+    if (!favoritePayload.externalId || favoriteBusy) return;
     setFavoriteMessage("");
     try {
-      await favoriteJob(favoritePayload);
-      setFavoriteOverride(true);
-      setFavoriteMessage("마이페이지 찜한 일자리에 저장했습니다.");
+      const saved = await favorites.toggle(favoritePayload);
+      setFavoriteMessage(saved ? "마이페이지 찜한 일자리에 저장했습니다." : "찜을 취소했습니다.");
     } catch (requestError) { setFavoriteMessage(requestError.message); }
-    finally { setFavoriteBusy(false); }
   }
 
   function search(event) {
@@ -90,7 +90,7 @@ export default function JunnamJobDetailPage() {
         <div className="job-detail-card-head"><h2>일자리 검색</h2><span>외부 공고</span></div>
         <p className="job-detail-search-copy">원하는 지역을 선택하면 전남 공공 일자리 목록으로 이동해요.</p>
         <form className="job-detail-search-form" onSubmit={search}><label>지역<select name="region" defaultValue={category}><option value="">전체 지역</option>{["나주", "목포", "순천", "여수", "광양", "보성", "화순", "담양", "해남", "완도"].map((region) => <option key={region}>{region}</option>)}</select></label><div className="job-detail-secondary-actions"><button className="button button-primary job-detail-search-button" type="submit">조건으로 검색하기</button><Link className="button job-detail-back-button" to="/map?view=search">목록으로 돌아가기</Link></div></form>
-        <section className="job-apply-card"><div><p>지원 안내</p><h3>이 공고가 마음에 드나요?</h3><span>공고의 연락처와 접수 방법을 확인해 주세요.</span></div><div className="job-apply-actions">{tel && <a className="button button-primary" id="job-apply-open" href={`tel:${String(tel).replace(/[^0-9+]/g, "")}`}>전화 문의하기</a>}<button className={`button job-favorite-button${favorited ? " is-favorite" : ""}`} type="button" disabled={favoriteBusy || favorited} aria-pressed={favorited} aria-label={favorited ? "일자리 찜 완료" : "일자리 찜하기"} title={favorited ? "찜 완료" : "찜하기"} onClick={toggleFavorite}><i aria-hidden="true">{favorited ? "♥" : "♡"}</i><b>{favorited ? "찜 완료" : "찜하기"}</b></button></div>{favoriteMessage && <span role="status">{favoriteMessage}</span>}</section>
+        <section className="job-apply-card"><div><p>지원 안내</p><h3>이 공고가 마음에 드나요?</h3><span>공고의 연락처와 접수 방법을 확인해 주세요.</span></div><div className="job-apply-actions">{tel && <a className="button button-primary" id="job-apply-open" href={`tel:${String(tel).replace(/[^0-9+]/g, "")}`}>전화 문의하기</a>}<button className={`button job-favorite-button${favorited ? " is-favorite" : ""}`} type="button" disabled={favoriteBusy} aria-pressed={favorited} aria-label={favorited ? "일자리 찜취소" : "일자리 찜하기"} title={favorited ? "찜취소" : "찜하기"} onClick={toggleFavorite}><i aria-hidden="true">{favorited ? "♥" : "♡"}</i><b>{favorited ? "찜취소" : "찜하기"}</b></button></div>{(favoriteMessage || favorites.error) && <span role="status">{favoriteMessage || favorites.error}</span>}</section>
       </aside>
       <section className="job-detail-results">
         <p className="result-kind">공고 상세 정보</p>
