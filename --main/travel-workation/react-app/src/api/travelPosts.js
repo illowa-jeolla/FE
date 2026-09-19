@@ -56,8 +56,8 @@ export function deleteTravelPost(postId) {
 export function uploadTravelPostImage(postId, file) {
   if (!postId) throw new Error("이미지를 추가할 게시글 ID가 필요합니다.");
   if (!(file instanceof File)) throw new Error("업로드할 이미지 파일이 필요합니다.");
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("JPEG, PNG, WEBP 이미지만 업로드할 수 있습니다.");
-  if (file.size > 10 * 1024 * 1024) throw new Error("이미지 파일은 10MB 이하여야 합니다.");
+  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) throw new Error("사진 또는 동영상 파일만 업로드할 수 있습니다.");
+  if (file.size > 50 * 1024 * 1024) throw new Error("파일은 50MB 이하여야 합니다.");
   const formData = new FormData();
   formData.append("file", file);
   return apiRequest(`${POSTS_BASE}/${encodeURIComponent(postId)}/images`, {
@@ -156,8 +156,8 @@ export function publishTravelPostDraft(draftId) {
 export function uploadTravelPostDraftImage(draftId, file) {
   if (!draftId) throw new Error("이미지를 추가할 Draft ID가 필요합니다.");
   if (!(file instanceof File)) throw new Error("업로드할 이미지 파일이 필요합니다.");
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("JPEG, PNG, WEBP 이미지만 업로드할 수 있습니다.");
-  if (file.size > 10 * 1024 * 1024) throw new Error("이미지 파일은 10MB 이하여야 합니다.");
+  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) throw new Error("사진 또는 동영상 파일만 업로드할 수 있습니다.");
+  if (file.size > 50 * 1024 * 1024) throw new Error("파일은 50MB 이하여야 합니다.");
   const formData = new FormData();
   formData.append("file", file);
   return apiRequest(`${DRAFTS_BASE}/${encodeURIComponent(draftId)}/images`, {

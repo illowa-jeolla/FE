@@ -1,7 +1,6 @@
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import SiteLayout from "./components/SiteLayout";
 import AuthPage from "./pages/AuthPage";
-import CommunityDetailPage from "./pages/CommunityDetailPage";
 import CommunityPage from "./pages/CommunityPage";
 import CommunityWritePage from "./pages/CommunityWritePage";
 import DestinationDetailPage from "./pages/DestinationDetailPage";
@@ -30,6 +29,11 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function LegacyCommunityPostRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/community?post=${encodeURIComponent(id || "")}`} replace />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -47,9 +51,8 @@ export default function App() {
         <Route path="jobs/:id" element={<Navigate to="/jobs" replace />} />
         <Route path="local-fit" element={<LocalFitPage />} />
         <Route path="community" element={<CommunityPage />} />
-        <Route path="community/write" element={<CommunityWritePage />} />
         <Route path="community/:id/edit" element={<CommunityWritePage />} />
-        <Route path="community/:id" element={<CommunityDetailPage />} />
+        <Route path="community/:id" element={<LegacyCommunityPostRedirect />} />
         <Route path="gatherings" element={<GatheringsPage />} />
         <Route path="gatherings/write" element={<GatheringWritePage />} />
         <Route path="gatherings/:id/edit" element={<GatheringWritePage />} />
