@@ -39,12 +39,12 @@ export default function App() {
         <Route path="travel-guide" element={<TravelGuidePage />} />
         <Route path="travel-guide/:guideId" element={<TravelGuidePage />} />
         <Route path="travel-guide/draft/:draftId" element={<TravelGuidePage />} />
-        <Route path="map" element={<MapPage />} />
+        <Route path="map" element={<Navigate to="/jobs" replace />} />
         <Route path="destinations/:id" element={<DestinationDetailPage />} />
-        <Route path="jobs" element={<Navigate to="/map?view=search" replace />} />
+        <Route path="jobs" element={<MapPage />} />
         <Route path="jobs/tour/:employmentInfoNo" element={<TourJobDetailPage />} />
         <Route path="jobs/junnam/:jobKey" element={<JunnamJobDetailPage />} />
-        <Route path="jobs/:id" element={<Navigate to="/map?view=search" replace />} />
+        <Route path="jobs/:id" element={<Navigate to="/jobs" replace />} />
         <Route path="local-fit" element={<LocalFitPage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/write" element={<CommunityWritePage />} />

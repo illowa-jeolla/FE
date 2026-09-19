@@ -2,7 +2,11 @@ import { apiRequest } from "./client";
 
 const API_BASE = "/api/v1";
 const jobBatchCache = new Map();
+const allJobCache = new Map();
 const JOB_CACHE_MS = 5 * 60 * 1000;
+const JOB_PAGE_SIZE = 20;
+const ALL_JOB_PAGE_SIZE = 100;
+const ALL_JOB_MAX_PAGES = 50;
 
 function queryString(params = {}) {
   const query = new URLSearchParams();
@@ -29,6 +33,10 @@ export function externalTourJobsPath({ pageNo = 1, numOfRows = 12, arrange = "D"
 
 export function getExternalTourJobs(params = {}) {
   return apiRequest(externalTourJobsPath(params));
+}
+
+function getExternalTourRegionJobs({ pageNo = 1, numOfRows = ALL_JOB_PAGE_SIZE, regionCode, region = "" }) {
+  return apiRequest(`${API_BASE}/jobs/external/tour${queryString({ pageNo, numOfRows, arrange: "D", regnCd: regionCode, wrkpAdresText: region })}`);
 }
 
 export function externalTourJobPath(employmentInfoNo) {
@@ -120,11 +128,11 @@ function responseItems(data) {
   return [];
 }
 
-async function fetchJobBatch(fetchPage, batchPage) {
-  const data = await fetchPage(batchPage, 12);
+async function fetchJobBatch(fetchPage, batchPage, pageSize = JOB_PAGE_SIZE) {
+  const data = await fetchPage(batchPage, pageSize);
   const items = responseItems(data);
   const total = Number(data?.totalCount ?? data?.totalElements ?? data?.page?.totalElements);
-  return { items, hasMore: Number.isFinite(total) ? batchPage * 12 < total : items.length >= 12 };
+  return { items, total: Number.isFinite(total) ? total : items.length, hasMore: Number.isFinite(total) ? batchPage * pageSize < total : items.length >= pageSize };
 }
 
 export async function getExternalJobsBatch({ region = "", page = 1 } = {}) {
@@ -133,23 +141,70 @@ export async function getExternalJobsBatch({ region = "", page = 1 } = {}) {
   const cached = jobBatchCache.get(cacheKey);
   if (cached && Date.now() - cached.createdAt < JOB_CACHE_MS) return cached.promise;
 
-  const promise = fetchJobBatch(
-    (pageNo, numOfRows) => getExternalTourJobs({ pageNo, numOfRows, arrange: "D", region: normalizedRegion }),
-    page
-  ).then(async (tourBatch) => {
-    const tourJobs = tourBatch.items.map((job) => normalizeExternalJob(job, "tour"));
-    if (tourJobs.length) return { items: tourJobs, hasMore: tourBatch.hasMore };
-    const junnamBatch = await fetchJobBatch(
-      (startPage, size) => getExternalJunnamJobs({ startPage, pageSize: size, numOfRows: size, region: normalizedRegion }),
-      page
-    );
-    return { items: junnamBatch.items.map((job) => normalizeExternalJob(job, "junnam")), hasMore: junnamBatch.hasMore };
+  const promise = Promise.all([
+    fetchJobBatch((pageNo, size) => getExternalTourRegionJobs({ pageNo, numOfRows: size, regionCode: "5", region: normalizedRegion }), page),
+    fetchJobBatch((pageNo, size) => getExternalTourRegionJobs({ pageNo, numOfRows: size, regionCode: "38", region: normalizedRegion }), page),
+    fetchJobBatch((startPage, size) => getExternalJunnamJobs({ startPage, pageSize: size, numOfRows: size, region: normalizedRegion }), page)
+  ]).then(([gwangju, jeonnam, junnam]) => {
+    const combined = [
+      ...gwangju.items.map((job) => normalizeExternalJob(job, "tour")),
+      ...jeonnam.items.map((job) => normalizeExternalJob(job, "tour")),
+      ...junnam.items.map((job) => normalizeExternalJob(job, "junnam"))
+    ];
+    const seen = new Set();
+    const items = combined.filter((job) => job.id && !seen.has(job.id) && seen.add(job.id));
+    items.sort((left, right) => String(right.registeredAt || right.insertedAt || right.rawFields?.jobInsertDt || "").localeCompare(String(left.registeredAt || left.insertedAt || left.rawFields?.jobInsertDt || "")));
+    return { items, total: gwangju.total + jeonnam.total + junnam.total, hasMore: gwangju.hasMore || jeonnam.hasMore || junnam.hasMore };
   }).catch((error) => {
     jobBatchCache.delete(cacheKey);
     throw error;
   });
 
   jobBatchCache.set(cacheKey, { createdAt: Date.now(), promise });
+  return promise;
+}
+
+async function fetchAllPages(fetchPage) {
+  const first = await fetchPage(1, ALL_JOB_PAGE_SIZE);
+  const firstItems = responseItems(first);
+  const total = Number(first?.totalCount ?? first?.totalElements ?? first?.page?.totalElements ?? firstItems.length);
+  const pageCount = Math.min(ALL_JOB_MAX_PAGES, Math.max(1, Math.ceil(total / ALL_JOB_PAGE_SIZE)));
+  const items = [...firstItems];
+  const remaining = Array.from({ length: pageCount - 1 }, (_, index) => index + 2);
+  for (let index = 0; index < remaining.length; index += 4) {
+    const pages = await Promise.all(remaining.slice(index, index + 4).map((pageNo) => fetchPage(pageNo, ALL_JOB_PAGE_SIZE)));
+    pages.forEach((data) => items.push(...responseItems(data)));
+  }
+  return items;
+}
+
+export function getAllExternalJobs({ region = "" } = {}) {
+  const normalizedRegion = String(region || "").trim();
+  const cacheKey = normalizedRegion || "전체";
+  const now = Date.now();
+  for (const [key, entry] of allJobCache) {
+    if (now - entry.createdAt >= JOB_CACHE_MS) allJobCache.delete(key);
+  }
+  const cached = allJobCache.get(cacheKey);
+  if (cached) return cached.promise;
+
+  const promise = Promise.all([
+    fetchAllPages((pageNo, size) => getExternalTourRegionJobs({ pageNo, numOfRows: size, regionCode: "5", region: normalizedRegion })),
+    fetchAllPages((pageNo, size) => getExternalTourRegionJobs({ pageNo, numOfRows: size, regionCode: "38", region: normalizedRegion })),
+    fetchAllPages((startPage, size) => getExternalJunnamJobs({ startPage, pageSize: size, numOfRows: size, region: normalizedRegion }))
+  ]).then(([gwangju, jeonnam, junnam]) => {
+    const combined = [
+      ...gwangju.map((job) => normalizeExternalJob(job, "tour")),
+      ...jeonnam.map((job) => normalizeExternalJob(job, "tour")),
+      ...junnam.map((job) => normalizeExternalJob(job, "junnam"))
+    ];
+    const seen = new Set();
+    return combined.filter((job) => job.id && !seen.has(job.id) && seen.add(job.id));
+  }).catch((error) => {
+    allJobCache.delete(cacheKey);
+    throw error;
+  });
+  allJobCache.set(cacheKey, { createdAt: now, promise });
   return promise;
 }
 

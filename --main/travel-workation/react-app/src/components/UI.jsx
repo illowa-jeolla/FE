@@ -1,5 +1,6 @@
 import BrandCharacter from "./BrandCharacter";
 import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { externalJobDetailPath } from "../api/jobs";
 
 export function PageIntro({ eyebrow, title, description, action }) {
@@ -15,7 +16,32 @@ export function PageIntro({ eyebrow, title, description, action }) {
   );
 }
 
-export function Status({ loading, error, empty, children }) {
+export function Status({ loading, error, empty, children, loadingVariant = "character" }) {
+  const [plainPhase, setPlainPhase] = useState(loadingVariant === "plain" && loading ? "loading" : "hidden");
+  const hasShownPlainLoading = useRef(loadingVariant === "plain" && loading);
+
+  useEffect(() => {
+    if (loadingVariant !== "plain") return undefined;
+    if (loading) {
+      hasShownPlainLoading.current = true;
+      setPlainPhase("loading");
+      return undefined;
+    }
+    if (error || empty) {
+      setPlainPhase("hidden");
+      return undefined;
+    }
+    if (!hasShownPlainLoading.current) {
+      setPlainPhase("hidden");
+      return undefined;
+    }
+    setPlainPhase("success");
+    const leaveTimer = window.setTimeout(() => setPlainPhase("leaving"), 650);
+    const hideTimer = window.setTimeout(() => setPlainPhase("hidden"), 910);
+    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(hideTimer); };
+  }, [loading, loadingVariant, error, empty]);
+
+  if (loadingVariant === "plain" && plainPhase !== "hidden") return <div className={`page-status job-detail-loading is-visible is-${plainPhase}`} role="status">{plainPhase === "loading" ? <i aria-hidden="true" /> : <b aria-hidden="true">✓</b>}<strong>{plainPhase === "loading" ? "LOADING" : "성공"}</strong><span>{plainPhase === "loading" ? "일자리를 불러오는 중입니다." : "일자리를 불러왔습니다."}</span></div>;
   if (loading) return <div className="page-status is-visible" role="status"><BrandCharacter pose="loading" />데이터를 불러오는 중입니다.</div>;
   if (error) return <div className="page-status is-visible is-error" role="alert"><BrandCharacter pose="error" />{error}</div>;
   if (empty) return <div className="page-status is-visible"><BrandCharacter pose="empty" />조건에 맞는 결과가 없습니다.</div>;

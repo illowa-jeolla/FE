@@ -237,6 +237,7 @@ export default function RecommendPage() {
 
   return <main className="travel-guide-main react-travel-guide-main">
     <form className={`travel-search-bar react-guide-search-react${isSubmitting ? " is-submitting" : ""}`} onSubmit={submit}>
+      <div className="recommend-background-image" aria-hidden="true" />
       <header className="recommend-intro">
         <span>JOURNEY TO JEOLLA</span>
         <h1>취향 따라, 전라도 한 바퀴</h1>
