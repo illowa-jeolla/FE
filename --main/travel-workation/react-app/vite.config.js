@@ -2,6 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
+const backendOrigin = "https://api.illowa-jeolla.cloud";
+const proxyOptions = {
+  target: backendOrigin,
+  changeOrigin: true,
+  secure: true,
+  headers: { Origin: "https://illowa-jeolla.cloud" },
+  cookieDomainRewrite: ""
+};
+
 export default defineConfig({
   base: "/",
   plugins: [react()],
@@ -16,41 +25,11 @@ export default defineConfig({
       allow: [path.resolve("..")]
     },
     proxy: {
-      "/api": {
-        target: "https://api.illowa-jeolla.cloud",
-        changeOrigin: true,
-        secure: true,
-        headers: {
-        }
-      },
-      "/assets": {
-        target: "https://api.illowa-jeolla.cloud",
-        changeOrigin: true,
-        secure: true,
-        headers: {
-        }
-      },
-      "/uploads": {
-        target: "https://api.illowa-jeolla.cloud",
-        changeOrigin: true,
-        secure: true,
-        headers: {
-        }
-      },
-      "/files": {
-        target: "https://api.illowa-jeolla.cloud",
-        changeOrigin: true,
-        secure: true,
-        headers: {
-        }
-      },
-      "/local-images": {
-        target: "https://api.illowa-jeolla.cloud",
-        changeOrigin: true,
-        secure: true,
-        headers: {
-        }
-      }
+      "/api": { ...proxyOptions },
+      "/assets": { ...proxyOptions },
+      "/uploads": { ...proxyOptions },
+      "/files": { ...proxyOptions },
+      "/local-images": { ...proxyOptions }
     }
   }
 });

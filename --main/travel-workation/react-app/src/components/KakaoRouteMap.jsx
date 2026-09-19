@@ -5,22 +5,93 @@ import { getTourPlaceDetail } from "../api/travelRecommendations";
 
 function homepageUrl(value) { const text = String(value || ""); const href = text.match(/href=["']<?([^"'>]+)>?["']/i)?.[1]; return String(href || text.match(/https?:\/\/[^\s"<]+/i)?.[0] || "").replace(/^<|>$/g, "").replace(/&amp;/g, "&"); }
 
-export default function KakaoRouteMap({ guide, active, onSelect }) {
+function focusRoute(map, path, maps, onSettled) {
+  if (!map || !path?.length) return;
+  const latitudes = path.map((point) => point.getLat());
+  const longitudes = path.map((point) => point.getLng());
+  const minLat = Math.min(...latitudes);
+  const maxLat = Math.max(...latitudes);
+  const minLng = Math.min(...longitudes);
+  const maxLng = Math.max(...longitudes);
+  const center = new maps.LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
+  const span = Math.max(maxLat - minLat, (maxLng - minLng) * Math.cos(center.getLat() * Math.PI / 180));
+  const level = span < .006 ? 4 : span < .014 ? 5 : span < .032 ? 6 : span < .07 ? 7 : span < .15 ? 8 : 9;
+  let centeringFinished = false;
+  const finishCentering = () => {
+    if (centeringFinished) return;
+    centeringFinished = true;
+    maps.event.removeListener(map, "idle", finishCentering);
+    let completed = false;
+    const complete = () => {
+      if (completed) return;
+      completed = true;
+      maps.event.removeListener(map, "idle", complete);
+      onSettled?.();
+    };
+    maps.event.addListener(map, "idle", complete);
+    map.panTo(center);
+    window.setTimeout(complete, 420);
+  };
+  maps.event.addListener(map, "idle", finishCentering);
+  map.setLevel(level, { animate: true });
+  map.panTo(center);
+  window.setTimeout(finishCentering, 760);
+}
+
+export default function KakaoRouteMap({ guide, active, focusKey, onSelect, onPreviewChange }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const polylineRef = useRef(null);
   const activePolylineRef = useRef(null);
+  const routeAnimationRef = useRef(0);
+  const focusRequestRef = useRef(0);
+  const lastFocusKeyRef = useRef(focusKey);
   const routePositionsRef = useRef([]);
   const routeEstimatedRef = useRef([]);
   const selectRef = useRef(onSelect);
+  const previewRef = useRef(onPreviewChange);
   const [error, setError] = useState("");
   const spots = guide?.spots || [];
   const routeSegments = guide?.routeSegments || [];
 
-  function fitRouteWithoutCard(map, bounds) { map.setBounds(bounds, 80, 80, 80, 80); }
-
   useEffect(() => { selectRef.current = onSelect; }, [onSelect]);
+  useEffect(() => { previewRef.current = onPreviewChange; }, [onPreviewChange]);
+
+  function clearActiveRoute() {
+    if (routeAnimationRef.current) cancelAnimationFrame(routeAnimationRef.current);
+    routeAnimationRef.current = 0;
+    activePolylineRef.current?.setMap(null);
+    activePolylineRef.current = null;
+  }
+
+  function routeAnimationPoints(path, maps) {
+    if (path.length !== 2) return path;
+    const [start, end] = path;
+    return Array.from({ length: 37 }, (_, index) => {
+      const ratio = index / 36;
+      return new maps.LatLng(start.getLat() + (end.getLat() - start.getLat()) * ratio, start.getLng() + (end.getLng() - start.getLng()) * ratio);
+    });
+  }
+
+  function animateActiveRoute(map, sourcePath, maps, estimated) {
+    clearActiveRoute();
+    const path = routeAnimationPoints(sourcePath, maps);
+    activePolylineRef.current = new maps.Polyline({ map, path: [], strokeWeight: 8, strokeColor: "#1677ff", strokeOpacity: .96, strokeStyle: estimated ? "shortdash" : "solid" });
+    const startedAt = performance.now();
+    const duration = 1520;
+    const draw = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - (1 - progress) ** 3;
+      const count = Math.max(2, Math.ceil(eased * path.length));
+      activePolylineRef.current?.setPath(path.slice(0, count));
+      if (progress < 1) routeAnimationRef.current = requestAnimationFrame(draw);
+      else {
+        routeAnimationRef.current = 0;
+      }
+    };
+    routeAnimationRef.current = requestAnimationFrame(draw);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -47,16 +118,27 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
       const bounds = new maps.LatLngBounds();
       const startLocation = coordinates(guide?.routeStart || guide?.hotel);
       const destinationLocation = coordinates(guide?.routeDestination || guide?.hotel);
+      const hotelLocation = coordinates(guide?.hotel);
       const fallbackNodes = [startLocation ? new maps.LatLng(startLocation.latitude, startLocation.longitude) : null];
-      const destinationMarkerLocation = coordinates(guide?.routeDestination);
-      const destinationOverlay = destinationMarkerLocation ? (() => {
+      const sameLocation = (left, right) => left && right && Math.abs(left.latitude - right.latitude) < .00001 && Math.abs(left.longitude - right.longitude) < .00001;
+      const createRoutePointOverlay = (item, location, type, fallbackLabel) => {
+        if (!location) return null;
         const content = document.createElement("div");
-        content.className = "travel-map-destination-marker";
-        const destinationImage = guide?.routeDestination?.imageUrl || guide?.routeDestination?.thumbnailUrl || guide?.routeDestination?.firstImage;
-        if (destinationImage) { const image = document.createElement("img"); image.src = destinationImage; image.alt = ""; content.append(image); }
-        const label = document.createElement("span"); label.textContent = guide?.routeDestination?.name || guide?.destinationLabel || "목적지"; content.append(label);
-        return new maps.CustomOverlay({ map, position: new maps.LatLng(destinationMarkerLocation.latitude, destinationMarkerLocation.longitude), content, zIndex: 5, xAnchor: 0.5, yAnchor: 1 });
-      })() : null;
+        content.className = `travel-map-route-marker is-${type}`;
+        const badge = document.createElement("span"); badge.className = "travel-map-route-badge";
+        const imageUrl = item?.imageUrl || item?.thumbnailUrl || item?.firstImage;
+        if (imageUrl && type !== "hotel") {
+          const image = document.createElement("img"); image.src = imageUrl; image.alt = "";
+          image.addEventListener("error", () => image.remove()); badge.append(image);
+        }
+        const icon = document.createElement("i"); icon.textContent = type === "hotel" ? "⌂" : type === "start" ? "S" : "E"; badge.append(icon);
+        const label = document.createElement("small"); label.className = "travel-map-route-label"; label.textContent = item?.name || fallbackLabel;
+        content.append(badge, label);
+        return { marker: new maps.CustomOverlay({ map, position: new maps.LatLng(location.latitude, location.longitude), content, zIndex: 5, xAnchor: 0.5, yAnchor: 1 }), position: new maps.LatLng(location.latitude, location.longitude), index: type === "destination" ? spots.length : -2 };
+      };
+      const hotelOverlay = createRoutePointOverlay(guide?.hotel, hotelLocation, "hotel", "숙소");
+      const startOverlay = !sameLocation(startLocation, hotelLocation) ? createRoutePointOverlay(guide?.routeStart, startLocation, "start", "출발지") : null;
+      const destinationOverlay = !sameLocation(destinationLocation, hotelLocation) && !sameLocation(destinationLocation, startLocation) ? createRoutePointOverlay(guide?.routeDestination, destinationLocation, "destination", guide?.destinationLabel || "도착지") : null;
       const markers = locatedSpots.map(({ spot, index, location }) => {
         const position = new maps.LatLng(location.latitude, location.longitude);
         bounds.extend(position);
@@ -123,14 +205,55 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
             }
           } catch { detailRequested = false; }
         };
-        content.addEventListener("mouseenter", () => { marker.setZIndex?.(100); loadDetail(); });
-        content.addEventListener("mouseleave", () => marker.setZIndex?.(6));
-        content.addEventListener("focusin", () => { marker.setZIndex?.(100); loadDetail(); });
-        content.addEventListener("focusout", () => marker.setZIndex?.(6));
-        button.addEventListener("click", () => selectRef.current?.(index));
-        const marker = new maps.CustomOverlay({ map, position, content, zIndex: 6, xAnchor: 0.5, yAnchor: 1 });
+        let previewCloseTimer = 0;
+        const openPreview = () => {
+          window.clearTimeout(previewCloseTimer);
+          [...(containerRef.current?.querySelectorAll(".travel-map-place-marker.is-preview-open") || [])].forEach((element) => {
+            if (element !== content) element.classList.remove("is-preview-open");
+          });
+          content.classList.add("is-preview-open");
+          previewRef.current?.(index);
+          marker.setZIndex?.(100);
+          loadDetail();
+        };
+        const schedulePreviewClose = () => {
+          window.clearTimeout(previewCloseTimer);
+          previewCloseTimer = window.setTimeout(() => {
+            if (content.classList.contains("is-preview-pinned")) return;
+            if (content.matches(":hover") || content.contains(document.activeElement)) return;
+            content.classList.remove("is-preview-open");
+            const pinnedPreview = containerRef.current?.querySelector(".travel-map-place-marker.is-preview-pinned");
+            if (pinnedPreview) pinnedPreview.classList.add("is-preview-open");
+            previewRef.current?.(null);
+            marker.setZIndex?.(6);
+          }, 130);
+        };
+        content.addEventListener("mouseenter", openPreview);
+        content.addEventListener("mouseleave", schedulePreviewClose);
+        content.addEventListener("focusin", openPreview);
+        content.addEventListener("focusout", schedulePreviewClose);
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          window.clearTimeout(previewCloseTimer);
+          [...(containerRef.current?.querySelectorAll(".travel-map-place-marker.is-preview-pinned") || [])].forEach((element) => element.classList.remove("is-preview-pinned", "is-preview-open"));
+          content.classList.add("is-preview-pinned", "is-preview-open");
+          button.blur();
+          previewRef.current?.(null);
+          marker.setZIndex?.(100);
+          selectRef.current?.(index, { focusMap: false });
+        });
+        const marker = new maps.CustomOverlay({ map, position, content, zIndex: 6, xAnchor: 0.5, yAnchor: 1, clickable: true });
         return { marker, position, index, content };
       });
+      const dismissPreviews = () => {
+        [...(containerRef.current?.querySelectorAll(".travel-map-place-marker.is-preview-open, .travel-map-place-marker.is-preview-pinned") || [])].forEach((element) => element.classList.remove("is-preview-open", "is-preview-pinned"));
+        markersRef.current.forEach(({ marker }) => marker.setZIndex?.(6));
+        previewRef.current?.(null);
+        if (containerRef.current?.contains(document.activeElement)) document.activeElement?.blur?.();
+      };
+      maps.event.addListener(map, "click", dismissPreviews);
+      maps.event.addListener(map, "dragstart", dismissPreviews);
+      maps.event.addListener(map, "zoom_start", dismissPreviews);
       fallbackNodes.push(destinationLocation ? new maps.LatLng(destinationLocation.latitude, destinationLocation.longitude) : null);
       const routePositions = Array.from({ length: spots.length + 1 }, (_, index) => {
         const backendPath = (routeSegments[index]?.path || []).map((point) => coordinates(point)).filter(Boolean).map((point) => new maps.LatLng(point.latitude, point.longitude));
@@ -139,6 +262,9 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
       });
       const routeEstimated = routePositions.map((segment, index) => Boolean(routeSegments[index]?.estimated || (!routeSegments[index]?.path?.length && segment.length > 1)));
       const path = routePositions.filter((segment) => segment.length > 1).flatMap((segment, index) => index ? segment.slice(1) : segment);
+      const overviewBounds = new maps.LatLngBounds();
+      path.forEach((position) => overviewBounds.extend(position));
+      if (!path.length) locatedSpots.forEach(({ location }) => overviewBounds.extend(new maps.LatLng(location.latitude, location.longitude)));
       const polyline = new maps.Polyline({
         map,
         path,
@@ -147,20 +273,20 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
         strokeOpacity: 0.78,
         strokeStyle: "solid"
       });
-      if (locatedSpots.length > 1) map.setBounds(bounds, 70, 70, 70, 70);
       mapRef.current = map;
       markersRef.current = markers;
-      if (destinationOverlay) markersRef.current.push({ marker: destinationOverlay, position: new maps.LatLng(destinationMarkerLocation.latitude, destinationMarkerLocation.longitude), index: -1 });
+      [hotelOverlay, startOverlay, destinationOverlay].filter(Boolean).forEach((overlay) => markersRef.current.push(overlay));
       polylineRef.current = polyline;
       routePositionsRef.current = routePositions;
       routeEstimatedRef.current = routeEstimated;
-      activePolylineRef.current = new maps.Polyline({ map, path: routePositionsRef.current[active] || [], strokeWeight: 7, strokeColor: "#bd4f82", strokeOpacity: .96, strokeStyle: routeEstimatedRef.current[active] ? "shortdash" : "solid" });
-      const initialPath = routePositionsRef.current[active] || [];
-      if (initialPath.length > 1) {
-        const initialBounds = new maps.LatLngBounds();
-        initialPath.forEach((position) => initialBounds.extend(position));
-        fitRouteWithoutCard(map, initialBounds);
-      }
+      const showInitialRoute = () => {
+        maps.event.removeListener(map, "idle", showInitialRoute);
+        if (cancelled) return;
+        const initialPath = routePositions[0] || [];
+        if (initialPath.length > 1) animateActiveRoute(map, initialPath, maps, routeEstimated[0]);
+      };
+      maps.event.addListener(map, "idle", showInitialRoute);
+      map.setBounds(overviewBounds, 90, 90, 90, 90);
     }).catch((loadError) => {
       if (!cancelled) setError(loadError.message);
     });
@@ -169,10 +295,9 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
       cancelled = true;
       markersRef.current.forEach(({ marker }) => marker.setMap(null));
       polylineRef.current?.setMap(null);
-      activePolylineRef.current?.setMap(null);
+      clearActiveRoute();
       markersRef.current = [];
       polylineRef.current = null;
-      activePolylineRef.current = null;
       routePositionsRef.current = [];
       routeEstimatedRef.current = [];
       mapRef.current = null;
@@ -180,18 +305,22 @@ export default function KakaoRouteMap({ guide, active, onSelect }) {
   }, [guide]);
 
   useEffect(() => {
-    const selected = markersRef.current.find((item) => item.index === active);
     if (mapRef.current && window.kakao?.maps && routePositionsRef.current.length) {
       const activePath = routePositionsRef.current[active] || [];
-      activePolylineRef.current?.setMap(null);
-      activePolylineRef.current = new window.kakao.maps.Polyline({ map: mapRef.current, path: activePath, strokeWeight: 7, strokeColor: "#bd4f82", strokeOpacity: .96, strokeStyle: routeEstimatedRef.current[active] ? "shortdash" : "solid" });
-      if (activePath.length > 1) {
-        const activeBounds = new window.kakao.maps.LatLngBounds();
-        activePath.forEach((position) => activeBounds.extend(position));
-        fitRouteWithoutCard(mapRef.current, activeBounds);
-      } else if (selected) mapRef.current.panTo(selected.position);
+      const requestId = ++focusRequestRef.current;
+      const shouldMoveMap = focusKey !== lastFocusKeyRef.current;
+      lastFocusKeyRef.current = focusKey;
+      clearActiveRoute();
+      const selected = markersRef.current.find((item) => item.index === active);
+      if (activePath.length > 1 && shouldMoveMap) focusRoute(mapRef.current, activePath, window.kakao.maps, () => {
+          if (focusRequestRef.current === requestId) animateActiveRoute(mapRef.current, activePath, window.kakao.maps, routeEstimatedRef.current[active]);
+        });
+      else if (activePath.length > 1) animateActiveRoute(mapRef.current, activePath, window.kakao.maps, routeEstimatedRef.current[active]);
+      else {
+        if (selected && shouldMoveMap) mapRef.current.panTo(selected.position);
+      }
     }
-  }, [active]);
+  }, [active, focusKey]);
 
   return <>
     <div className="kakao-route-map-react" ref={containerRef} aria-label="카카오 지도 기반 추천 관광지 동선" />

@@ -4,7 +4,7 @@ import { getSessionUser, hasSession } from "../auth/session";
 
 const navigation = [
   ["관광지 추천", "/recommend"],
-  ["지역·일자리", "/map"],
+  ["지역·일자리", "/jobs"],
   ["AI 매칭", "/local-fit"],
   ["여행 공유", "/community"],
   ["게더링", "/gatherings"]
@@ -17,19 +17,19 @@ export default function SiteLayout() {
     user: getSessionUser()
   }));
   const location = useLocation();
-  const isMapPage = location.pathname === "/map";
   const signedIn = session.status === "authenticated";
   const storedName = String(session.user?.name || "").trim();
   const accountLabel = !storedName || /^[?\uFFFD]+$/.test(storedName) ? "마이페이지" : storedName;
 
   useEffect(() => {
-    const classes = ["feature-page", "auth-page", "map-page", "travel-guide-page", "travel-result-page", "mypage-page", "job-detail-page"];
+    const classes = ["feature-page", "auth-page", "map-page", "travel-guide-page", "travel-result-page", "mypage-page", "job-detail-page", "local-fit-page"];
     classes.forEach((name) => document.body.classList.remove(name));
     if (location.pathname === "/auth" || location.pathname === "/oauth/callback") document.body.classList.add("auth-page");
-    else if (location.pathname === "/map") document.body.classList.add("map-page");
+    else if (location.pathname === "/jobs") document.body.classList.add("feature-page");
     else if (location.pathname === "/mypage" || location.pathname.startsWith("/mypage/")) document.body.classList.add("feature-page", "mypage-page");
     else if (location.pathname.startsWith("/jobs/")) document.body.classList.add("feature-page", "job-detail-page");
     else if (location.pathname === "/recommend") document.body.classList.add("feature-page", "travel-guide-page");
+    else if (location.pathname === "/local-fit") document.body.classList.add("feature-page", "local-fit-page");
     else if (location.pathname === "/travel-guide") document.body.classList.add("feature-page", "travel-guide-page", "travel-result-page");
     else if (location.pathname !== "/") document.body.classList.add("feature-page");
     return () => classes.forEach((name) => document.body.classList.remove(name));
@@ -43,8 +43,7 @@ export default function SiteLayout() {
     <div className="app-shell">
       <header className="site-header">
         <Link className="brand" to="/" aria-label="일로와전라 홈">
-          <span className="brand-mark">일</span>
-          <span>일로와전라</span>
+          <img className="brand-logo" src="/mobile-assets/illowa-character-logo.png" alt="일로와전라" />
         </Link>
         <button className="mobile-menu-button" type="button" onClick={() => setOpen((value) => !value)} aria-label="메뉴 열기" aria-expanded={open}>
           <span aria-hidden="true">{open ? "×" : "☰"}</span>

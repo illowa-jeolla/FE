@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import BrandCharacter from "../components/BrandCharacter";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { animate } from "animejs";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { clearApiCache, postJson } from "../api/client";
-import { saveLoginSession } from "../auth/session";
+import { hasSession, saveLoginSession } from "../auth/session";
 import { AUTH_API, authApiUrl } from "../config";
+import FirstVisitOnboarding, { ONBOARDING_SEEN_KEY } from "./FirstVisitOnboarding";
 
 function KakaoIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.25c-5.3 0-9.6 3.4-9.6 7.6 0 2.7 1.8 5.05 4.5 6.4l-1.15 4.22c-.1.38.32.68.65.46l4.95-3.28c.22.02.43.02.65.02 5.3 0 9.6-3.4 9.6-7.82S17.3 3.25 12 3.25Z" /></svg>;
@@ -19,6 +22,8 @@ function GoogleIcon() {
 
 export default function AuthPage() {
   const [view, setView] = useState("login");
+  const [authSelected, setAuthSelected] = useState(false);
+  const authContent = useRef(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,11 +32,18 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const requestedReturnTo = searchParams.get("returnTo") || "/";
   const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/";
+  const [initialChoice] = useState(() => localStorage.getItem(ONBOARDING_SEEN_KEY) === "1");
 
   useEffect(() => {
     document.body.classList.add("auth-page");
     return () => document.body.classList.remove("auth-page");
   }, []);
+
+  useLayoutEffect(() => {
+    if (!authSelected || !authContent.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const animation = animate(authContent.current, { opacity: [0, 1], y: [10, 0], duration: 380, ease: "out(3)" });
+    return () => animation.revert();
+  }, [authSelected]);
 
   function startSocialLogin(provider) {
     if (socialLoginStarting) return;
@@ -89,10 +101,19 @@ export default function AuthPage() {
     }
   }
 
+  if (hasSession()) return <Navigate to={returnTo === "/auth" ? "/" : returnTo} replace />;
+
+  if (!authSelected) {
+    return <FirstVisitOnboarding initialChoice={initialChoice} onSelect={(selectedView) => {
+      setView(selectedView);
+      setAuthSelected(true);
+    }} />;
+  }
+
   return (
     <main className="onboarding-main">
-      <section className="onboarding-content" aria-labelledby="onboarding-title">
-        <img className="onboarding-logo" src="/mobile-assets/ilowa-jeolla-logo-cropped.png" alt="일로와 전라" />
+      <section ref={authContent} className="onboarding-content" aria-labelledby="onboarding-title">
+        <div className="brand-auth-art"><img className="onboarding-logo" src="/mobile-assets/illowa-character-logo.png" alt="일로와 전라" /><BrandCharacter pose="welcome" /></div>
         <h1 id="onboarding-title" className="sr-only">일로와 전라 시작하기</h1>
         <p className="onboarding-copy">전라도 여행과 일자리를 한 곳에서 찾아요<br />나에게 꼭 맞는 로컬 라이프를 시작해요</p>
         <div className="onboarding-actions">
