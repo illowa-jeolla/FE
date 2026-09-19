@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { externalTourJobPath } from "../api/jobs";
 import { Status } from "../components/UI";
 import { useApi } from "../hooks/useApi";
@@ -45,6 +45,9 @@ function BackendDataRows({ job }) {
 export default function TourJobDetailPage() {
   const { employmentInfoNo } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = location.state?.from === "ai-match" ? "/local-fit" : "/jobs";
+  const returnLabel = location.state?.from === "ai-match" ? "← AI 매칭으로 돌아가기" : "← 목록으로 돌아가기";
   const path = employmentInfoNo ? externalTourJobPath(employmentInfoNo) : "";
   const { data: job, loading, error } = useApi(path, { immediate: Boolean(path) });
   const detailUrl = safeExternalUrl(value(job, "detailUrl", ""));
@@ -80,11 +83,11 @@ export default function TourJobDetailPage() {
     if (pageLeaving) return;
     setPageLeaving(true);
     const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
-    window.setTimeout(() => navigate("/jobs"), delay);
+    window.setTimeout(() => navigate(returnPath), delay);
   }
 
   return <main className={`job-detail-main albamon-job-detail-main${valid ? " is-content-ready" : ""}${pageLeaving ? " is-page-leaving" : ""}`}>
-    <Link className="job-detail-fixed-back" to="/jobs" onClick={returnToJobs}>← 목록으로 돌아가기</Link>
+    <Link className="job-detail-fixed-back" to={returnPath} onClick={returnToJobs}>{returnLabel}</Link>
     {!loading && <section className="job-detail-intro"><div><p className="eyebrow dark">광주·전남 관광인 일자리</p><h1>{job?.title || "관광인 일자리 상세"}</h1><strong>{value(job, "companyName", value(job, "enterpriseTypeName", "관광 관련 기업"))}</strong></div><div className="page-intro-actions">{detailUrl && <a className="button button-primary" href={detailUrl} target="_blank" rel="noreferrer">원문 보기 ↗</a>}</div></section>}
     <Status loading={loading} error={error} empty={!valid} loadingVariant="plain">{valid && <><nav className="job-detail-tabs" aria-label="공고 상세 메뉴">{[["tour-work", "근무조건"], ["tour-recruit", "모집조건"], ["tour-location", "근무지역"], ["tour-apply", "지원방법"], ["tour-company", "기업정보"]].map(([id, label]) => <a className={activeSection === id ? "is-active" : ""} href={`#${id}`} aria-current={activeSection === id ? "location" : undefined} key={id}>{label}</a>)}</nav><div className="job-detail-results job-detail-results-wide">
       <article className="job-detail-hero-card" id="tour-work"><p className="eyebrow">근무조건</p><h2>{job.title}</h2><div className="job-detail-metrics"><div><span>급여</span><strong>{value(job, "wageAmount", "공고 확인")}</strong></div><div><span>근무 시간</span><strong>{value(job, "workTimeContent", "시간 협의")}</strong></div><div><span>접수 마감</span><strong>{value(job, "receiptDeadlineDate", "채용 시 마감")}</strong></div></div></article>

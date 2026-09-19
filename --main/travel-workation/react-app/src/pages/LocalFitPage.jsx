@@ -5,6 +5,7 @@ import { externalJobDetailPath, getAllExternalJobs } from "../api/jobs";
 import { getRegions } from "../api/regions";
 import { hasSession } from "../auth/session";
 import { asList } from "../hooks/useApi";
+import mountainGreenLandscape from "../../../assets/mountain-green.jpg";
 
 const priorityOptions = [
   ["JOB", "커리어·일"], ["HOUSING", "주거·생활비"], ["TOURISM", "환경·여가"], ["COMMUNITY", "관계·정착"]
@@ -26,6 +27,7 @@ const jobGroups = {
 const jobOptions = Object.keys(jobGroups);
 const requiredPriorities = priorityOptions.map(([value]) => value);
 const AI_MATCH_CACHE_KEY = "illowa:ai-match:latest:v1";
+const AI_MATCH_HISTORY_KEY = "illowa:ai-match:history:v1";
 const lowerMarqueeImages = [
   "https://www.yeosu.go.kr/tour/build/images/p131/p1319544/p1319544439314-1.jpg/666x1x70/666x1_p1319544439314-1.jpg",
   "https://tgroup.vn/uploads/images/thao-nhi/jeollanam-do-han-quoc-tgroup-travel-1.jpg",
@@ -80,6 +82,19 @@ function readAiMatchCache() {
 
 function writeAiMatchCache(value) {
   sessionStorage.setItem(AI_MATCH_CACHE_KEY, JSON.stringify(value));
+  try {
+    const key = JSON.stringify((value.results || []).map((item) => [item.rank, item.region?.name, item.scores?.overall]));
+    const previous = JSON.parse(sessionStorage.getItem(AI_MATCH_HISTORY_KEY) || "[]");
+    const history = [{ ...value, cacheKey: key }, ...previous.filter((item) => item.cacheKey !== key)].slice(0, 2);
+    sessionStorage.setItem(AI_MATCH_HISTORY_KEY, JSON.stringify(history));
+  } catch { sessionStorage.removeItem(AI_MATCH_HISTORY_KEY); }
+}
+
+function readAiMatchHistory() {
+  try {
+    const history = JSON.parse(sessionStorage.getItem(AI_MATCH_HISTORY_KEY) || "[]");
+    return Array.isArray(history) ? history.filter((item) => item && Array.isArray(item.results)) : [];
+  } catch { return []; }
 }
 
 function formConditions(form, preferredRegionId, priorities, jobInterests) {
@@ -96,31 +111,182 @@ export default function LocalFitPage() {
   const restoredMatch = useRef(readAiMatchCache()).current;
   const pollGeneration = useRef(0);
   const regionPickerRef = useRef(null);
+  const pickerCloseTimers = useRef([]);
+  const jobGroupScrollRef = useRef(null);
+  const jobGroupDragRef = useRef(null);
+  const jobGroupScrollTargetRef = useRef(0);
+  const jobGroupScrollFrameRef = useRef(null);
+  const resultPageRef = useRef(null);
   const [regions, setRegions] = useState([]);
   const [status, setStatus] = useState(restoredMatch?.status || "");
   const [results, setResults] = useState(restoredMatch?.results || []);
   const [selected, setSelected] = useState(() => restoredMatch?.results?.find((result) => result.rank === restoredMatch.selectedRank) || restoredMatch?.results?.[0] || null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  // `/local-fit`에 다시 진입할 때는 저장된 결과 상세가 아니라 매칭 화면을 먼저 보여준다.
+  // 결과는 입력 화면 우측 하단의 최근 매칭 카드에서 다시 열 수 있다.
+  const [editingMatch, setEditingMatch] = useState(true);
   const [resolvingJob, setResolvingJob] = useState("");
   const [analysisStep, setAnalysisStep] = useState(0);
   const [priorities, setPriorities] = useState(restoredMatch?.conditions?.priorities || []);
   const [priorityPickerOpen, setPriorityPickerOpen] = useState(false);
+  const [priorityPickerClosing, setPriorityPickerClosing] = useState(false);
   const [jobInterests, setJobInterests] = useState(restoredMatch?.conditions?.desiredJobs || []);
   const [jobQuery, setJobQuery] = useState("");
   const [jobPickerOpen, setJobPickerOpen] = useState(false);
+  const [savedResultCards, setSavedResultCards] = useState(() => readAiMatchHistory());
+  const [savedResultNotice, setSavedResultNotice] = useState(() => readAiMatchHistory().length > 0);
+  const [jobPickerClosing, setJobPickerClosing] = useState(false);
+  const [jobGroupScroll, setJobGroupScroll] = useState({ top: 0, height: 40, visible: false });
   const [activeJobGroup, setActiveJobGroup] = useState(jobOptions[0]);
   const [preferredRegionId, setPreferredRegionId] = useState(() => String(restoredMatch?.conditions?.preferredRegionId || ""));
   const [thought, setThought] = useState(restoredMatch?.conditions?.thought || "");
   const [regionPickerOpen, setRegionPickerOpen] = useState(false);
+  const [regionPickerClosing, setRegionPickerClosing] = useState(false);
+  const [regionValueAnimating, setRegionValueAnimating] = useState(false);
   const [regionQuery, setRegionQuery] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     getRegions().then((data) => setRegions(asList(data, "regions"))).catch(() => {});
     if (restoredMatch?.scrollY) requestAnimationFrame(() => window.scrollTo(0, restoredMatch.scrollY));
-    return () => { pollGeneration.current += 1; };
+    return () => {
+      pollGeneration.current += 1;
+      pickerCloseTimers.current.forEach((timer) => clearTimeout(timer));
+    };
   }, []);
+
+  const closeJobPicker = () => {
+    if (jobPickerClosing) return;
+    setJobPickerClosing(true);
+    pickerCloseTimers.current.push(setTimeout(() => {
+      setJobPickerOpen(false);
+      setJobPickerClosing(false);
+    }, 280));
+  };
+
+  const closePriorityPicker = () => {
+    if (priorityPickerClosing) return;
+    setPriorityPickerClosing(true);
+    pickerCloseTimers.current.push(setTimeout(() => {
+      setPriorityPickerOpen(false);
+      setPriorityPickerClosing(false);
+    }, 280));
+  };
+
+  const closeRegionPicker = (nextRegionId) => {
+    if (regionPickerClosing) return;
+    if (nextRegionId !== undefined) {
+      setPreferredRegionId(String(nextRegionId));
+      setRegionValueAnimating(false);
+      requestAnimationFrame(() => setRegionValueAnimating(true));
+      pickerCloseTimers.current.push(setTimeout(() => setRegionValueAnimating(false), 520));
+    }
+    setRegionPickerClosing(true);
+    pickerCloseTimers.current.push(setTimeout(() => {
+      setRegionPickerOpen(false);
+      setRegionPickerClosing(false);
+    }, 260));
+  };
+
+  const updateJobGroupScrollbar = (element = jobGroupScrollRef.current) => {
+    if (!element) return;
+    const { clientHeight, scrollHeight, scrollTop } = element;
+    if (scrollHeight <= clientHeight) {
+      setJobGroupScroll({ top: 0, height: clientHeight, visible: false });
+      return;
+    }
+    const trackHeight = Math.max(0, clientHeight - 16);
+    const height = Math.max(36, trackHeight * (clientHeight / scrollHeight));
+    const top = (scrollTop / (scrollHeight - clientHeight)) * (trackHeight - height);
+    setJobGroupScroll({ top, height, visible: true });
+  };
+
+  const moveJobGroupScrollbar = (event) => {
+    if (!jobGroupDragRef.current || !jobGroupScrollRef.current) return;
+    const { track, offset } = jobGroupDragRef.current;
+    const bounds = track.getBoundingClientRect();
+    const maxTop = bounds.height - jobGroupScroll.height;
+    const nextTop = Math.min(maxTop, Math.max(0, event.clientY - bounds.top - offset));
+    const list = jobGroupScrollRef.current;
+    list.scrollTop = maxTop > 0 ? (nextTop / maxTop) * (list.scrollHeight - list.clientHeight) : 0;
+    jobGroupScrollTargetRef.current = list.scrollTop;
+  };
+
+  const startJobGroupScrollbarDrag = (event) => {
+    const track = event.currentTarget;
+    const thumb = track.firstElementChild;
+    const thumbBounds = thumb.getBoundingClientRect();
+    jobGroupDragRef.current = {
+      track,
+      offset: event.target === thumb ? event.clientY - thumbBounds.top : jobGroupScroll.height / 2
+    };
+    track.setPointerCapture(event.pointerId);
+    moveJobGroupScrollbar(event);
+  };
+
+  useEffect(() => {
+    if (!jobPickerOpen) return undefined;
+    const element = jobGroupScrollRef.current;
+    jobGroupScrollTargetRef.current = element?.scrollTop || 0;
+    const animateScroll = () => {
+      if (!element) return;
+      const distance = jobGroupScrollTargetRef.current - element.scrollTop;
+      if (Math.abs(distance) < .5) {
+        element.scrollTop = jobGroupScrollTargetRef.current;
+        jobGroupScrollFrameRef.current = null;
+        return;
+      }
+      element.scrollTop += distance * .2;
+      updateJobGroupScrollbar(element);
+      jobGroupScrollFrameRef.current = requestAnimationFrame(animateScroll);
+    };
+    const handleWheel = (event) => {
+      if (!element) return;
+      event.preventDefault();
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1;
+      const delta = Math.max(-60, Math.min(60, event.deltaY * unit));
+      const maxScroll = element.scrollHeight - element.clientHeight;
+      jobGroupScrollTargetRef.current = Math.max(0, Math.min(maxScroll, jobGroupScrollTargetRef.current + delta * .35));
+      if (jobGroupScrollFrameRef.current === null) jobGroupScrollFrameRef.current = requestAnimationFrame(animateScroll);
+    };
+    const frame = requestAnimationFrame(() => updateJobGroupScrollbar(element));
+    element?.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      cancelAnimationFrame(frame);
+      if (jobGroupScrollFrameRef.current !== null) cancelAnimationFrame(jobGroupScrollFrameRef.current);
+      jobGroupScrollFrameRef.current = null;
+      element?.removeEventListener("wheel", handleWheel);
+    };
+  }, [jobPickerOpen]);
+
+  useEffect(() => {
+    const root = resultPageRef.current;
+    if (!root || !results.length || editingMatch) return undefined;
+    const targets = [...root.querySelectorAll(".ai-result-section, .ai-result-conditions-new, .ai-result-job-list > article, .ai-result-place-list > article")];
+    targets.forEach((target, index) => {
+      target.classList.add("ai-scroll-reveal");
+      target.style.setProperty("--reveal-order", index % 4);
+    });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, { root, threshold: .12, rootMargin: "0px 0px -6% 0px" });
+    targets.forEach((target) => observer.observe(target));
+    const frame = requestAnimationFrame(() => root.classList.add("is-reveal-ready"));
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      root.classList.remove("is-reveal-ready");
+      targets.forEach((target) => {
+        target.classList.remove("ai-scroll-reveal", "is-visible");
+        target.style.removeProperty("--reveal-order");
+      });
+    };
+  }, [results, editingMatch, selected]);
 
   useEffect(() => {
     if (!results.length) return;
@@ -145,7 +311,7 @@ export default function LocalFitPage() {
   useEffect(() => {
     if (!regionPickerOpen) return undefined;
     const closeOnOutsideClick = (event) => {
-      if (!regionPickerRef.current?.contains(event.target)) setRegionPickerOpen(false);
+      if (!regionPickerRef.current?.contains(event.target)) closeRegionPicker();
     };
     document.addEventListener("pointerdown", closeOnOutsideClick);
     return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
@@ -163,6 +329,7 @@ export default function LocalFitPage() {
       if (currentStatus === "COMPLETED" || currentStatus === "REPLACED") {
         const list = resultsOf(current);
         setResults(list);
+        setEditingMatch(false);
         if (list[0]) setSelected(list[0]);
         setStatus(currentStatus); setMessage(completedMessage(currentStatus));
         return;
@@ -186,7 +353,8 @@ export default function LocalFitPage() {
     }
     if (conditions.thought.length > 100) { setMessage("생각과 추가 조건을 100자 이하로 입력해 주세요."); return; }
     setRegionPickerOpen(false); setJobPickerOpen(false); setPriorityPickerOpen(false);
-    sessionStorage.removeItem(AI_MATCH_CACHE_KEY);
+    setSavedResultNotice(false);
+    setSavedResultCards([]);
     setLoading(true); setResults([]); setSelected(null); setMessage("AI가 지역과 일자리를 분석하고 있어요.");
     try {
       const created = await createAiMatch(conditions);
@@ -198,6 +366,26 @@ export default function LocalFitPage() {
   }
 
   function selectResult(result) { setSelected(result); }
+
+  function returnToMatchForm() {
+    pollGeneration.current += 1;
+    setMessage("");
+    setEditingMatch(true);
+    const history = readAiMatchHistory();
+    setSavedResultCards(history);
+    setSavedResultNotice(history.length > 0);
+  }
+
+  function reopenSavedMatch(cached = savedResultCards[0]) {
+    if (!cached) { setSavedResultNotice(false); return; }
+    const cachedResults = cached.results || [];
+    setResults(cachedResults);
+    setSelected(cachedResults.find((result) => result.rank === cached.selectedRank) || cachedResults[0] || null);
+    setStatus(cached.status || "COMPLETED");
+    setEditingMatch(false);
+    setSavedResultNotice(false);
+    setSavedResultCards([]);
+  }
 
   async function openMatchedJob(job, index) {
     const resolvingKey = String(job.externalId || `${job.title}-${index}`);
@@ -221,7 +409,7 @@ export default function LocalFitPage() {
       if (detailPath === "/jobs") throw new Error("연결된 원본 공고를 찾지 못했습니다.");
       const cached = readAiMatchCache();
       if (cached) writeAiMatchCache({ ...cached, scrollY: window.scrollY });
-      navigate(detailPath);
+      navigate(detailPath, { state: { from: "ai-match" } });
     } catch (error) {
       setMessage(error.message || "공고 상세 정보를 불러오지 못했습니다.");
     } finally {
@@ -267,7 +455,7 @@ export default function LocalFitPage() {
     ["주변 관광지", item.places?.map?.((place) => place.name).join(" · ") || "추천 결과 없음", `${item.places?.length || 0}곳`, item.tourismStatus?.message || primaryPlace?.reason || "추천 가능한 관광지 정보가 없습니다."]
   ];
 
-  if (results.length) {
+  if (results.length && !editingMatch) {
     const residence = item.residence || item.recommendation?.residence || item.region || {};
     const residenceName = residence.residenceName || residence.name || item.region?.name || "추천 생활권";
     const residenceReason = residence.reason || residence.description || item.regionStatus?.message || item.summary || "선택한 생활 조건을 바탕으로 추천한 생활권입니다.";
@@ -280,9 +468,13 @@ export default function LocalFitPage() {
       ["생활·관광 적합도", Number(item.scores?.tourism) || 0]
     ];
 
-    return <main className="ai-match-result-page-new">
+    return <main className="ai-match-result-page-new" ref={resultPageRef}>
+      <div className="ai-result-moving-backdrop" aria-hidden="true">
+        <div className="ai-result-backdrop-row ai-result-backdrop-row-top">{[...lowerMarqueeImages, ...lowerMarqueeImages].map((src, index) => <img key={`result-bg-top-${index}`} src={src} alt="" />)}</div>
+        <div className="ai-result-backdrop-row ai-result-backdrop-row-bottom">{[...lowerMarqueeImages, ...lowerMarqueeImages].reverse().map((src, index) => <img key={`result-bg-bottom-${index}`} src={src} alt="" />)}</div>
+      </div>
       <div className="ai-result-shell">
-        <header className="ai-result-hero-new">
+        <header className="ai-result-hero-new" style={{ "--ai-result-landscape": `url("${mountainGreenLandscape}")` }}>
           <div><span>AI JEOLLA LIFE MATCH</span><h1>{residenceName}</h1><p>{item.summary || residenceReason}</p></div>
           <div className="ai-result-score-new"><strong>{score}</strong><span>점</span><small>종합 매칭</small></div>
         </header>
@@ -300,7 +492,7 @@ export default function LocalFitPage() {
 
         <section className="ai-result-section">
           <header><span>02</span><div><small>추천 일자리</small><h2>{item.jobs?.length ? `${item.jobs.length}개의 일자리 후보` : "추천 일자리"}</h2></div></header>
-          {item.jobs?.length ? <div className="ai-result-job-list">{item.jobs.map((job, index) => { const resolvingKey = String(job.externalId || `${job.title}-${index}`); const isResolving = resolvingJob === resolvingKey; return <article key={job.externalId || job.jobKey || job.employmentInfoNo || `${job.title}-${index}`}><div><small>{job.companyName || job.company || "지역 기업"}</small><h3>{job.title || "일자리 정보"}</h3></div><dl><div><dt>지역</dt><dd>{job.region?.name || job.region || item.region?.name || "확인 필요"}</dd></div><div><dt>근무 형태</dt><dd>{job.workType || job.employmentType || "공고 확인"}</dd></div><div><dt>적합도</dt><dd>{job.matchScore ?? item.scores?.job ?? 0}점</dd></div></dl>{job.reason && <p>{job.reason}</p>}<button className="ai-result-job-link" type="button" disabled={Boolean(resolvingJob)} onClick={() => openMatchedJob(job, index)}>{isResolving ? "실제 공고 찾는 중" : "공고 상세 보기"} <span>{isResolving ? "…" : "→"}</span></button></article>; })}</div> : <p className="ai-result-empty-new">현재 조건에서 연결된 일자리 정보가 없습니다.</p>}
+          {item.jobs?.length ? <div className="ai-result-job-list">{item.jobs.map((job, index) => { const resolvingKey = String(job.externalId || `${job.title}-${index}`); const isResolving = resolvingJob === resolvingKey; const openJob = () => { if (!resolvingJob) openMatchedJob(job, index); }; return <article className={isResolving ? "is-resolving" : ""} role="link" tabIndex={resolvingJob ? -1 : 0} aria-label={`${job.title || "일자리"} 공고 상세 보기`} key={job.externalId || job.jobKey || job.employmentInfoNo || `${job.title}-${index}`} onClick={openJob} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openJob(); } }}><div><small>{job.companyName || job.company || "지역 기업"}</small><h3>{job.title || "일자리 정보"}</h3></div><dl><div><dt>지역</dt><dd>{job.region?.name || job.region || item.region?.name || "확인 필요"}</dd></div><div><dt>근무 형태</dt><dd>{job.workType || job.employmentType || "공고 확인"}</dd></div><div><dt>적합도</dt><dd>{job.matchScore ?? item.scores?.job ?? 0}점</dd></div></dl>{job.reason && <p>{job.reason}</p>}<span className="ai-result-job-link">{isResolving ? "실제 공고 찾는 중" : "공고 상세 보기"} <span>{isResolving ? "…" : "→"}</span></span></article>; })}</div> : <p className="ai-result-empty-new">현재 조건에서 연결된 일자리 정보가 없습니다.</p>}
         </section>
 
         <section className="ai-result-section">
@@ -308,14 +500,15 @@ export default function LocalFitPage() {
           {item.places?.length ? <div className="ai-result-place-list">{item.places.map((place, index) => <article key={`${place.name}-${index}`}><b>{String(index + 1).padStart(2, "0")}</b><div><h3>{place.name}</h3><p>{place.category || place.region || place.reason || "생활권 주변 추천 장소"}</p></div></article>)}</div> : <p className="ai-result-empty-new">추천 가능한 주변 관광지 정보가 없습니다.</p>}
         </section>
 
-        <section className="ai-result-conditions-new"><div><small>선호 지역</small><strong>{selectedRegion?.name || item.region?.name || "전체"}</strong></div><div><small>선택 직무</small><strong>{jobInterests.join(" · ") || "선택 정보 없음"}</strong></div><div><small>생활 우선순위</small><strong>{priorities.map((value, index) => `${index + 1}. ${priorityOptions.find(([key]) => key === value)?.[1]}`).join(" · ")}</strong></div></section>
+        <section className="ai-result-conditions-new"><div><small>선호 지역</small><strong className="ai-condition-region">{selectedRegion?.name || item.region?.name || "전체"}</strong></div><div><small>선택 직무</small><strong>{jobInterests.join(" · ") || "선택 정보 없음"}</strong></div><div><small>생활 우선순위</small><strong>{priorities.map((value, index) => `${index + 1}. ${priorityOptions.find(([key]) => key === value)?.[1]}`).join("  ·  ") || "선택 정보 없음"}</strong></div></section>
 
-        <footer className="ai-result-footer-new"><p>조건을 바꾸면 새로운 생활권과 일자리를 다시 비교할 수 있어요.</p><button type="button" onClick={() => { sessionStorage.removeItem(AI_MATCH_CACHE_KEY); setResults([]); setSelected(null); setMessage(""); setStatus(""); }}>조건 수정하고 다시 매칭</button></footer>
       </div>
+      <button className="ai-result-fixed-back" type="button" onClick={returnToMatchForm}>← 매칭으로 돌아가기</button>
     </main>;
   }
 
-  return <main className={`ai-match-main${results.length ? " ai-result-ready" : " ai-no-result"}`}>
+  return <main className={`ai-match-main${results.length && !editingMatch ? " ai-result-ready" : " ai-no-result"}`}>
+    {savedResultNotice && <div className="ai-saved-result-notice" role="status">{savedResultCards.map((cached, index) => { const cachedItem = cached.results?.find((result) => result.rank === cached.selectedRank) || cached.results?.[0] || {}; return <button className="ai-saved-result-card" type="button" key={cached.cacheKey || index} onClick={() => reopenSavedMatch(cached)}><small>{index === 0 ? "최근 매칭" : "이전 매칭"}</small><div className="ai-saved-result-card-main"><strong>{cachedItem.region?.name || "지역 선택"}</strong><em>{cachedItem.scores?.overall ?? "-"}점</em></div><i>열어보기 <span>→</span></i></button>; })}</div>}
     {isDailyLimitMessage && <div className="ai-limit-toast" role="alert" aria-live="assertive"><span aria-hidden="true">!</span><p><strong>오늘의 AI 매칭을 모두 사용했어요</strong><small>{message}</small></p></div>}
     <section className="ai-match-marquee">
       <div className="ai-marquee-row ai-marquee-top">{[
@@ -350,13 +543,13 @@ export default function LocalFitPage() {
           <h2>나에게 맞는 전라도 생활을 찾아보세요</h2>
           <small>AI가 어울리는 생활권을 찾아드려요.</small>
         </header>
-        <div className={`ai-select-field ai-region-field${regionPickerOpen ? " is-open" : ""}`} ref={regionPickerRef}><span>선호 지역</span><button className="ai-select-trigger" type="button" aria-expanded={regionPickerOpen} aria-controls="ai-region-picker" onClick={() => { setRegionQuery(""); setRegionPickerOpen((current) => !current); }}><span className={selectedRegion ? "" : "is-placeholder"}>{selectedRegion?.name || ""}</span><i className="ai-open-chevron" aria-hidden="true" /></button>{regionPickerOpen && <section className="ai-region-dropdown" id="ai-region-picker" aria-label="선호 지역 선택"><label className="ai-region-dropdown-search"><i aria-hidden="true" /><input autoFocus value={regionQuery} onChange={(event) => setRegionQuery(event.target.value)} placeholder="지역 이름 검색" /></label><div className="ai-region-options">{filteredRegions.map((region, index) => { const regionId = region.regionId || region.id; const isSelected = String(regionId) === String(preferredRegionId); return <button className={isSelected ? "is-selected" : ""} style={{ "--region-index": index }} type="button" key={regionId || region.name} onClick={() => { setPreferredRegionId(String(regionId)); setRegionPickerOpen(false); }}><span>{region.name}</span>{isSelected && <i>✓</i>}</button>; })}</div>{!filteredRegions.length && <p className="ai-picker-empty">검색 결과가 없어요.</p>}</section>}</div>
-        <div className={`ai-job-field${jobPickerOpen ? " is-open" : ""}`}><span>희망 직무</span><button className="ai-select-trigger" type="button" onClick={() => setJobPickerOpen(true)}>{jobInterests.length ? <span className="ai-job-summary" aria-label={jobInterests.join(", ")}>{jobInterests.slice(0, 2).map((job) => <b key={job}>{job}</b>)}{jobInterests.length > 2 && <b className="ai-summary-more" aria-hidden="true">…</b>}</span> : <span className="ai-job-placeholder" />}<i className="ai-open-chevron" aria-hidden="true" /></button></div>
-        <div className={`ai-select-field${priorityPickerOpen ? " is-open" : ""}`}><span>생활 우선순위</span><button className="ai-select-trigger" type="button" onClick={() => setPriorityPickerOpen(true)}>{priorities.length ? <span className="ai-priority-summary" aria-label={priorities.map((value, index) => `${index + 1}. ${priorityOptions.find(([key]) => key === value)?.[1]}`).join(", ")}>{priorities.slice(0, 2).map((value, index) => <b key={value}>{index + 1}. {priorityOptions.find(([key]) => key === value)?.[1]}</b>)}{priorities.length > 2 && <b className="ai-summary-more" aria-hidden="true">…</b>}</span> : <span className="is-placeholder" />}<i className="ai-open-chevron" aria-hidden="true" /></button></div>
+        <div className={`ai-select-field ai-region-field${regionPickerOpen ? " is-open" : ""}`} ref={regionPickerRef}><span>선호 지역</span><button className="ai-select-trigger" type="button" aria-expanded={regionPickerOpen} aria-controls="ai-region-picker" onClick={() => { setRegionQuery(""); if (regionPickerOpen) closeRegionPicker(); else { setRegionPickerClosing(false); setRegionPickerOpen(true); } }}><span className={`${selectedRegion ? "" : "is-placeholder"}${regionValueAnimating ? " is-revealing" : ""}`}>{selectedRegion?.name || ""}</span><i className="ai-open-chevron" aria-hidden="true" /></button>{regionPickerOpen && <section className={`ai-region-dropdown${regionPickerClosing ? " is-closing" : ""}`} id="ai-region-picker" aria-label="선호 지역 선택"><label className="ai-region-dropdown-search"><i aria-hidden="true" /><input autoFocus value={regionQuery} onChange={(event) => setRegionQuery(event.target.value)} placeholder="지역 이름 검색" /></label><div className="ai-region-options">{filteredRegions.map((region, index) => { const regionId = region.regionId || region.id; const isSelected = String(regionId) === String(preferredRegionId); return <button className={isSelected ? "is-selected" : ""} style={{ "--region-index": index }} type="button" key={regionId || region.name} onClick={() => closeRegionPicker(regionId)}><span>{region.name}</span>{isSelected && <i>✓</i>}</button>; })}</div>{!filteredRegions.length && <p className="ai-picker-empty">검색 결과가 없어요.</p>}</section>}</div>
+        <div className={`ai-job-field${jobPickerOpen ? " is-open" : ""}`}><span>희망 직무</span><button className="ai-select-trigger" type="button" onClick={() => { setJobPickerClosing(false); setJobPickerOpen(true); }}>{jobInterests.length ? <span className="ai-job-summary" aria-label={jobInterests.join(", ")}>{jobInterests.slice(0, 2).map((job) => <b key={job}>{job}</b>)}{jobInterests.length > 2 && <b className="ai-summary-more" aria-hidden="true">…</b>}</span> : <span className="ai-job-placeholder" />}<i className="ai-open-chevron" aria-hidden="true" /></button></div>
+        <div className={`ai-select-field${priorityPickerOpen ? " is-open" : ""}`}><span>생활 우선순위</span><button className="ai-select-trigger" type="button" onClick={() => { setPriorityPickerClosing(false); setPriorityPickerOpen(true); }}>{priorities.length ? <span className="ai-priority-summary" aria-label={priorities.map((value, index) => `${index + 1}. ${priorityOptions.find(([key]) => key === value)?.[1]}`).join(", ")}>{priorities.slice(0, 2).map((value, index) => <b key={value}>{index + 1}. {priorityOptions.find(([key]) => key === value)?.[1]}</b>)}{priorities.length > 2 && <b className="ai-summary-more" aria-hidden="true">…</b>}</span> : <span className="is-placeholder" />}<i className="ai-open-chevron" aria-hidden="true" /></button></div>
         <label className="ai-thought-field"><span>생각과 추가 조건</span><textarea name="thought" maxLength="100" placeholder="" value={thought} onChange={(event) => setThought(event.target.value)} /></label>
         <button className="ai-match-submit" type="submit" disabled={loading}>{loading ? "AI가 분석하고 있어요" : "AI 전라도 라이프 매칭 시작"}</button><div className={`page-status${message && !isDailyLimitMessage ? " is-visible" : ""}`}>{isDailyLimitMessage ? "" : message}{status && status !== "COMPLETED" && !isDailyLimitMessage ? ` (${status})` : ""}</div>
       </form></section>
-      {results.length ? <section className="ai-match-panel ai-match-result-panel">
+      {results.length && !editingMatch ? <section className="ai-match-panel ai-match-result-panel">
         <div className="score-overview"><div className="score-ring" style={{ "--score": `${score}%` }}><div><strong>{score}</strong><span>%</span></div></div><div className="score-copy"><p className="eyebrow dark">AI 지역·일자리 매칭 결과</p><h3>{item.region?.name ? `${item.region.name} ${score}% 매칭` : "조건을 입력해 주세요"}</h3><p>{item.summary || "생활 조건을 입력하면 지역과 일자리를 함께 추천합니다."}</p></div></div>
         <img className="ai-match-photo" src={primaryPlace?.imageUrl || "/assets/JvLTt.jpeg"} alt={primaryPlace?.name || "전라도 바다 생활권 풍경"} />
         {results.length > 1 && <div className="ai-match-result-tabs">{results.map((result) => <button className={item.rank === result.rank ? "is-active" : ""} type="button" key={result.rank} onClick={() => selectResult(result)}>#{result.rank} {result.region?.name} · {result.scores?.overall || 0}점</button>)}</div>}
@@ -364,7 +557,7 @@ export default function LocalFitPage() {
       </section> : null}
     </div>
     {loading && <div className="ai-processing"><div className="ai-analysis-modal" role="dialog" aria-modal="true" aria-labelledby="ai-analysis-title"><div className="ai-model-badge">AI · 관광데이터 × 지역 일자리</div><span className="ai-analysis-pulse" aria-hidden="true"><i /><i /><i /></span><h2 id="ai-analysis-title">전라도 생활권을 매칭하고 있어요</h2><p>관광데이터와 채용정보를 결합해 살 곳·일자리·주변 관광지를 찾고 있어요.</p><div className="ai-analysis-steps">{["희망 생활 조건 분석", "지역 관광데이터 매칭", "일자리·생활권 결합", "최종 추천 결과 생성"].map((label, index) => <div className={`ai-analysis-step${index < analysisStep ? " is-complete" : index === analysisStep ? " is-active" : ""}`} key={label}><span>{index + 1}</span><strong>{label}</strong><i>{index < analysisStep ? "✓" : index === analysisStep ? "●" : "○"}</i></div>)}</div><div className="ai-analysis-progress"><span style={{ width: `${(analysisStep + 1) * 25}%` }} /></div><small>{analysisStep === 3 ? "추천 결과를 정리하고 있어요" : "잠시만 기다려 주세요"} · {analysisStep + 1} / 4 단계</small></div></div>}
-    {jobPickerOpen && <div className="ai-picker-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setJobPickerOpen(false); }}><section className="ai-job-dialog" role="dialog" aria-modal="true" aria-labelledby="job-picker-title"><div className="ai-picker-title"><div><small>희망 직무 선택</small><h2 id="job-picker-title">원하는 업·직종을 선택해 주세요</h2></div><button type="button" aria-label="닫기" onClick={() => setJobPickerOpen(false)}>×</button></div><div className="ai-modal-search"><span aria-hidden="true">⌕</span><input autoFocus value={jobQuery} onChange={(event) => setJobQuery(event.target.value)} placeholder="업·직종 키워드 검색" /></div><div className="ai-job-browser"><nav>{jobOptions.map((group) => <button className={!jobQuery && activeJobGroup === group ? "is-active" : ""} type="button" key={group} onClick={() => { setActiveJobGroup(group); setJobQuery(""); }}>{group}</button>)}</nav><div><h3>{jobQuery ? "검색 결과" : activeJobGroup}</h3><div className="ai-job-detail-options">{visibleJobs.map((job) => <button className={jobInterests.includes(job) ? "is-selected" : ""} type="button" key={job} onClick={() => toggleJob(job)}>{job}{jobInterests.includes(job) && <span>✓</span>}</button>)}</div></div></div><div className="ai-job-selection-status"><div>{jobInterests.length ? jobInterests.map((job) => <button type="button" key={job} onClick={() => toggleJob(job)}>{job}<span aria-hidden="true">×</span></button>) : <span>선택한 직무가 없습니다.</span>}</div><strong>{jobInterests.length}개 선택됨</strong></div><div className="ai-job-dialog-footer"><span /><button type="button" disabled={!jobInterests.length} onClick={() => setJobPickerOpen(false)}>선택 완료</button></div></section></div>}
-    {priorityPickerOpen && <div className="ai-picker-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPriorityPickerOpen(false); }}><section className="ai-priority-dialog" role="dialog" aria-modal="true" aria-labelledby="priority-picker-title"><div className="ai-picker-title"><div><small>생활 우선순위 선택</small><h2 id="priority-picker-title">중요한 순서대로 선택해 주세요</h2><p>선택한 항목이 1번부터 차례대로 들어갑니다.</p></div><button type="button" aria-label="닫기" onClick={() => setPriorityPickerOpen(false)}>×</button></div><div className="ai-priority-slots">{[0, 1, 2, 3].map((index) => { const value = priorities[index]; const label = priorityOptions.find(([key]) => key === value)?.[1]; return <div className={value ? "is-filled" : ""} key={index}><b>{index + 1}</b>{label && <span>{label}</span>}</div>; })}</div><div className="ai-priority-choices">{priorityOptions.map(([value, label]) => { const rank = priorities.indexOf(value); return <button className={rank >= 0 ? "is-selected" : ""} type="button" key={value} onClick={() => togglePriority(value)}><span>{label}</span>{rank >= 0 && <b>{rank + 1}순위 ✓</b>}</button>; })}</div><div className="ai-job-dialog-footer"><button className="ai-priority-reset" type="button" disabled={!priorities.length} onClick={() => setPriorities([])}>다시 선택</button><button type="button" disabled={priorities.length !== 4} onClick={() => setPriorityPickerOpen(false)}>선택 완료</button></div></section></div>}
+    {jobPickerOpen && <div className={`ai-picker-overlay ai-job-picker-overlay${jobPickerClosing ? " is-closing" : ""}`} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeJobPicker(); }}><section className="ai-job-dialog" role="dialog" aria-modal="true" aria-labelledby="job-picker-title"><div className="ai-picker-title"><div><small>희망 직무 선택</small><h2 id="job-picker-title">원하는 업·직종을 선택해 주세요</h2></div><button type="button" aria-label="닫기" onClick={closeJobPicker}>×</button></div><div className="ai-modal-search"><span aria-hidden="true">⌕</span><input autoFocus value={jobQuery} onChange={(event) => setJobQuery(event.target.value)} placeholder="업·직종 키워드 검색" /></div><div className="ai-job-browser"><div className="ai-job-groups-scroll-shell"><nav ref={jobGroupScrollRef} onScroll={(event) => updateJobGroupScrollbar(event.currentTarget)}>{jobOptions.map((group) => <button className={!jobQuery && activeJobGroup === group ? "is-active" : ""} type="button" key={group} onClick={() => { setActiveJobGroup(group); setJobQuery(""); }}>{group}</button>)}</nav>{jobGroupScroll.visible && <span className="ai-job-groups-scrollbar" aria-hidden="true" onPointerDown={startJobGroupScrollbarDrag} onPointerMove={moveJobGroupScrollbar} onPointerUp={(event) => { jobGroupDragRef.current = null; event.currentTarget.releasePointerCapture(event.pointerId); }} onPointerCancel={() => { jobGroupDragRef.current = null; }}><i style={{ height: `${jobGroupScroll.height}px`, transform: `translateY(${jobGroupScroll.top}px)` }} /></span>}</div><div><h3>{jobQuery ? "검색 결과" : activeJobGroup}</h3><div className="ai-job-detail-options">{visibleJobs.map((job) => <button className={jobInterests.includes(job) ? "is-selected" : ""} type="button" key={job} onClick={() => toggleJob(job)}>{job}{jobInterests.includes(job) && <span>✓</span>}</button>)}</div></div></div><div className="ai-job-selection-status"><div>{jobInterests.length ? jobInterests.map((job) => <button type="button" key={job} onClick={() => toggleJob(job)}>{job}<span aria-hidden="true">×</span></button>) : <span>선택한 직무가 없습니다.</span>}</div><strong>{jobInterests.length}개 선택됨</strong></div><div className="ai-job-dialog-footer"><span /><button type="button" disabled={!jobInterests.length} onClick={closeJobPicker}>선택 완료</button></div></section></div>}
+    {priorityPickerOpen && <div className={`ai-picker-overlay${priorityPickerClosing ? " is-closing" : ""}`} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closePriorityPicker(); }}><section className="ai-priority-dialog" role="dialog" aria-modal="true" aria-labelledby="priority-picker-title"><div className="ai-picker-title"><div><small>생활 우선순위 선택</small><h2 id="priority-picker-title">중요한 순서대로 선택해 주세요</h2><p>선택한 항목이 1번부터 차례대로 들어갑니다.</p></div><button type="button" aria-label="닫기" onClick={closePriorityPicker}>×</button></div><div className="ai-priority-slots">{[0, 1, 2, 3].map((index) => { const value = priorities[index]; const label = priorityOptions.find(([key]) => key === value)?.[1]; return <div className={value ? "is-filled" : ""} key={index}><b>{index + 1}</b>{label && <span>{label}</span>}</div>; })}</div><div className="ai-priority-choices">{priorityOptions.map(([value, label]) => { const rank = priorities.indexOf(value); return <button className={rank >= 0 ? "is-selected" : ""} type="button" key={value} onClick={() => togglePriority(value)}><span>{label}</span>{rank >= 0 && <b>{rank + 1}순위 ✓</b>}</button>; })}</div><div className="ai-job-dialog-footer"><button className="ai-priority-reset" type="button" disabled={!priorities.length} onClick={() => setPriorities([])}>다시 선택</button><button type="button" disabled={priorities.length !== 4} onClick={closePriorityPicker}>선택 완료</button></div></section></div>}
   </main>;
 }

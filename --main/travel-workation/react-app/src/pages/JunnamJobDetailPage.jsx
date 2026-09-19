@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { externalJunnamJobPath } from "../api/jobs";
 import { hasSession } from "../auth/session";
 import { favoriteKey, useJobFavorites } from "../hooks/useJobFavorites";
@@ -40,6 +40,9 @@ function BackendDataRows({ job }) {
 export default function JunnamJobDetailPage() {
   const { jobKey } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = location.state?.from === "ai-match" ? "/local-fit" : "/jobs";
+  const returnLabel = location.state?.from === "ai-match" ? "← AI 매칭으로 돌아가기" : "← 목록으로 돌아가기";
   const { data: job, loading, error } = useApi(jobKey ? externalJunnamJobPath(jobKey) : "", { immediate: Boolean(jobKey) });
   const favorites = useJobFavorites();
   const [favoriteMessage, setFavoriteMessage] = useState("");
@@ -124,12 +127,12 @@ export default function JunnamJobDetailPage() {
     if (pageLeaving) return;
     setPageLeaving(true);
     const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
-    window.setTimeout(() => navigate("/jobs"), delay);
+    window.setTimeout(() => navigate(returnPath), delay);
   }
 
   return <main className={`job-detail-main junnam-job-detail-main${valid ? " is-content-ready" : ""}${pageLeaving ? " is-page-leaving" : ""}`}>
     {favoriteToast && <div className="job-favorite-toast" key={favoriteToast.id} role="status"><span aria-hidden="true">♥</span>{favoriteToast.text}</div>}
-    <Link className="job-detail-fixed-back" to="/jobs" onClick={returnToJobs}>← 목록으로 돌아가기</Link>
+    <Link className="job-detail-fixed-back" to={returnPath} onClick={returnToJobs}>{returnLabel}</Link>
     {!loading && <section className="job-detail-intro"><div><p className="eyebrow dark">전남 공공 일자리</p><h1>{title}</h1><strong>{writer}</strong></div><p>{insertedAt} 등록 · 조회 {readCount}</p></section>}
     <Status loading={loading} error={error} empty={!valid} loadingVariant="plain">{valid && <><nav className="job-detail-tabs" aria-label="공고 상세 메뉴">{[["working-conditions", "근무조건"], ["recruitment-conditions", "모집조건"], ["work-location", "근무지역"], ["application-guide", "지원방법"]].map(([id, label]) => <a className={activeSection === id ? "is-active" : ""} href={`#${id}`} aria-current={activeSection === id ? "location" : undefined} key={id}>{label}</a>)}</nav><div className="job-detail-workspace job-detail-workspace-full">
       <section className="job-detail-results">
