@@ -1,124 +1,74 @@
-import BrandCharacter from "../components/BrandCharacter";
-import RegionIllustrationMap from "../components/RegionIllustrationMap";
-import { useEffect, useRef } from "react";
-import { animate, stagger } from "animejs";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import RegionIllustrationMap from "../components/RegionIllustrationMap";
+import AuthenticatedImage from "../components/AuthenticatedImage";
+import { getTravelPosts } from "../api/travelPosts";
+import { postImages } from "./communityUtils";
+import "../styles/home-refresh.css";
 
-const features = [
-  { icon: "⌕", tag: "일자리 탐색", title: "지역 일자리 검색", description: "전라남도 지역과 공고 제목으로 원하는 일자리를 빠르게 찾아보세요.", label: "일자리 검색", path: "/jobs", featured: true },
-  { icon: "✦", tag: "취향에 맞는 여행", title: "관광지 추천", description: "어제 정리한 날짜와 여행 조건을 바탕으로 나에게 맞는 전라도 여행 코스를 추천받아 보세요.", label: "관광지 추천받기", path: "/recommend" },
-  { icon: "◎", tag: "나의 여행 기록", title: "로컬 핏", description: "여행 경험을 기록하면 취향과 지역의 궁합을 점수로 확인하고, 다음 여행지를 발견할 수 있어요.", label: "로컬 핏 확인하기", path: "/local-fit" },
-  { icon: "▣", tag: "머물며 일하기", title: "일자리 추천", description: "선택한 지역과 로컬 핏을 바탕으로 행사, 축제, 팝업 등 여행 중 가능한 일자리를 찾아보세요.", label: "일자리 찾아보기", path: "/jobs" },
-  { icon: "◇", tag: "생생한 여행 이야기", title: "여행 공유", description: "최근 여행 사진과 후기를 둘러보고, 직접 경험한 전라도의 순간을 다른 여행자와 나눠보세요.", label: "여행 이야기 보기", path: "/community" },
-  { icon: "♧", tag: "함께하는 로컬 경험", title: "게더링", description: "같은 지역에 머무는 사람들과 식사, 산책, 관광 모임을 만들거나 원하는 모임에 참여해 보세요.", label: "모임 둘러보기", path: "/gatherings" }
+const destinations = [
+  { name: "여수", meta: "바다 · 야경", image: "/images/jeolla-coast-background.png", path: "/recommend", action: "여행 추천 만들기" },
+  { name: "순천", meta: "정원 · 생태", image: "/images/suncheon-garden-v1.png", path: "/recommend", action: "여행 추천 만들기" },
+  { name: "목포", meta: "항구 · 근대문화", image: "/images/local-jobs-folk-performance.png", path: "/recommend", action: "여행 추천 만들기" },
+  { name: "담양", meta: "대나무 · 산책", image: "/images/local-jobs-traditional.jpeg", path: "/recommend", action: "여행 추천 만들기" },
+  { name: "보성", meta: "차밭 · 초록", image: "/images/boseong-green-tea-v1.png", path: "/recommend", action: "여행 추천 만들기" },
+  { name: "신안", meta: "섬 · 고요함", image: "/images/island-coast-cutout.png", path: "/recommend", action: "여행 추천 만들기" }
 ];
+
+const themes = [
+  ["자연", "숲과 들판 사이, 천천히 걷는 하루", "/images/local-jobs-traditional.jpeg", "/recommend"],
+  ["바다", "수평선이 가까운 남도의 오후", "/images/island-coast-cutout.png", "/recommend"],
+  ["맛집", "지역의 맛을 가장 가까이에서", "/images/local-jobs-folk-performance.png", "/jobs"],
+  ["역사", "오래된 골목과 새로운 시선", "/images/local-jobs-traditional.jpeg", "/community"]
+];
+
+const introGallery = [
+  ["여수", "/images/jeolla-coast-background.png"],
+  ["순천", "/images/island-coast-cutout.png"],
+  ["담양", "/images/local-jobs-traditional.jpeg"],
+  ["전남의 하루", "/images/home-hanok-village-v1.png"]
+];
+
+function Reveal({ children, className = "" }) { return <div className={`home-reveal ${className}`}>{children}</div>; }
 
 export default function HomePage() {
   const page = useRef(null);
-
+  const [sharedPosts, setSharedPosts] = useState([]);
+  useEffect(() => { let active = true; getTravelPosts({ page: 0, size: 30 }).then((data) => { if (active) setSharedPosts(Array.isArray(data?.content) ? data.content : Array.isArray(data?.posts) ? data.posts : []); }).catch(() => {}); return () => { active = false; }; }, []);
+  const sharedThemes = [
+    ["자연", "자연 속에서 발견한 오늘의 여행", "/images/local-jobs-traditional.jpeg"],
+    ["바다", "수평선 가까이에서 보낸 하루", "/images/island-coast-cutout.png"],
+    ["맛집", "전남의 맛을 기록한 여행", "/images/local-jobs-folk-performance.png"],
+    ["역사", "오래된 골목과 새로운 시선", "/images/local-jobs-traditional.jpeg"]
+  ].map(([name, copy, fallback]) => {
+    const post = sharedPosts.find((item) => `${item.title || ""} ${item.concept || ""} ${item.content || ""}`.includes(name));
+    return { name, copy: post?.title || copy, fallback, post, image: postImages(post || {})[0] };
+  });
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
     const root = page.current;
-    const animations = [];
-    animations.push(animate(root.querySelectorAll(".home-hero__label, .home-hero h1, .home-hero p, .home-hero__actions"), {
-      opacity: [0, 1], y: [22, 0], delay: stagger(110), duration: 750, ease: "out(3)"
-    }));
-
-    if (!window.IntersectionObserver) return () => animations.forEach((animation) => animation.revert());
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        observer.unobserve(entry.target);
-        const targets = entry.target.classList.contains("home-feature-grid")
-          ? entry.target.querySelectorAll(".home-feature-card")
-          : entry.target;
-        animations.push(animate(targets, {
-          opacity: [0, 1], y: entry.target.classList.contains("home-feature-grid") ? 0 : [24, 0],
-          delay: entry.target.classList.contains("home-feature-grid") ? stagger(90) : 0,
-          duration: 650, ease: "out(3)"
-        }));
-      });
-    }, { threshold: 0.12 });
-    root.querySelectorAll(".home-section-heading, .home-feature-grid, .home-cta").forEach((element) => observer.observe(element));
-    return () => { observer.disconnect(); animations.forEach((animation) => animation.revert()); };
-  }, []);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const root = page.current;
-    const cleanup = [];
-    const controls = [
-      ...root.querySelectorAll(".home-animated-link"),
-      ...document.querySelectorAll(".site-header > .button, .site-header .mobile-menu-button")
-    ];
-    controls.forEach((link) => {
-      const enter = () => animate(link, { scale: 1.035, y: -3, duration: 230, ease: "out(3)" });
-      const leave = () => animate(link, { scale: 1, y: 0, duration: 230, ease: "out(3)" });
-      link.addEventListener("pointerenter", enter);
-      link.addEventListener("pointerleave", leave);
-      link.addEventListener("blur", leave);
-      cleanup.push(() => {
-        link.removeEventListener("pointerenter", enter);
-        link.removeEventListener("pointerleave", leave);
-        link.removeEventListener("blur", leave);
-      });
-    });
-
-    const mapCard = root.querySelector(".home-feature-card--featured");
-    const mapScene = root.querySelector(".home-map-scene");
-    const pins = root.querySelectorAll(".home-map-pin");
-    if (mapCard && mapScene) {
-      const enter = () => {
-        animate(mapScene, { scale: 1.045, y: -7, duration: 430, ease: "out(3)" });
-        animate(pins, { scale: [1, 1.14], delay: stagger(70), duration: 350, ease: "out(3)" });
-      };
-      const leave = () => {
-        animate(mapScene, { scale: 1, y: 0, duration: 430, ease: "out(3)" });
-        animate(pins, { scale: 1, duration: 260, ease: "out(3)" });
-      };
-      mapCard.addEventListener("pointerenter", enter);
-      mapCard.addEventListener("pointerleave", leave);
-      cleanup.push(() => {
-        mapCard.removeEventListener("pointerenter", enter);
-        mapCard.removeEventListener("pointerleave", leave);
-      });
+    if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      root?.querySelectorAll(".home-reveal").forEach((item) => item.classList.add("is-visible"));
+      return undefined;
     }
-    return () => cleanup.forEach((dispose) => dispose());
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    }), { threshold: 0.14 });
+    root.querySelectorAll(".home-reveal").forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
   }, []);
 
-  return (
-    <main ref={page} className="home-main">
-      <section className="home-hero" aria-labelledby="home-title">
-        <div className="home-hero__content">
-          <span className="home-hero__label">TRAVEL · LOCAL · WORK</span>
-          <h1 id="home-title">전라도에서,<br />여행하듯 일해보세요</h1>
-          <p>여행지를 발견하고, 나와 지역의 궁합을 알아보고, 머무는 동안 할 수 있는 일까지 연결해 드려요.</p>
-          <div className="home-hero__actions">
-            <a className="home-button home-button--primary home-animated-link" href="#features">시작하기</a>
-            <Link className="home-button home-button--secondary home-animated-link" to="/jobs">내게 맞는 일자리 보기</Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="home-features" id="features">
-        <div className="home-section-heading">
-          <span>WHAT CAN I DO?</span>
-          <h2>원하는 기능으로 바로 이동하세요</h2>
-          <p>긴 설명을 따라 내려갈 필요 없이, 지금 필요한 기능을 선택하면 해당 페이지에서 바로 시작할 수 있어요.</p>
-        </div>
-        <div className="home-feature-grid">
-          {features.map(({ icon, tag, title, description, label, path, featured }, index) => (
-            <article className={`home-feature-card${featured ? " home-feature-card--featured" : ""}`} key={path}>
-              <div className="home-feature-card__icon" aria-hidden="true"><BrandCharacter pose={["travel", "photo", "welcome", "work", "photo", "gathering"][index]} /></div>
-              <span className="home-feature-card__tag">{tag}</span><h3>{title}</h3><p>{description}</p>
-              <Link className="home-feature-card__button home-animated-link" to={path}><span>{label}</span><span aria-hidden="true">→</span></Link>
-              {featured && <div className="home-map-scene" aria-label="전라남도 지도"><RegionIllustrationMap items={[]} /></div>}
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="home-cta"><div><span>어디서부터 시작할지 고민된다면</span><h2>지역별 일자리부터 가볍게 살펴보세요</h2></div><Link className="button button-light home-animated-link" to="/jobs">지역 일자리 검색 →</Link></section>
-    </main>
-  );
+  return <main ref={page} className="home-main home-refresh">
+    <section className="home-editorial-hero" aria-labelledby="home-title">
+      <div className="home-hero-photo" aria-hidden="true" /><div className="home-hero-overlay" aria-hidden="true" />
+      <div className="home-hero-copy"><p className="home-eyebrow">JEOLLANAMDO · TRAVEL CURATION</p><h1 id="home-title"><span className="home-hero-line home-hero-line--first">당신의 하루를</span><span className="home-hero-line home-hero-line--second"><em>당신의 방식으로</em></span></h1><p className="home-hero-lede">취향에 맞는 여행지를 발견하고,<br />머무는 곳에서 새로운 일상을 시작해보세요.</p><div className="home-hero-actions"><Link className="home-cta-button" to="/recommend">여행 추천 시작하기 <span aria-hidden="true">↗</span></Link><a className="home-text-link" href="#destinations">전남 둘러보기 <span aria-hidden="true">↓</span></a></div></div>
+      <div className="home-hero-index" aria-hidden="true"><span>SCROLL TO EXPLORE</span><b>01 / 06</b></div>
+    </section>
+    <section className="home-intro-section"><Reveal><p className="home-eyebrow">ONE PLACE, MANY DIRECTIONS</p><h2><span>여행의 이유는 달라도,</span><span><em>시작은 전남</em>에서</span></h2><p className="home-intro-copy">바다와 정원, 골목과 섬. 일로와전라는 여행자의 취향과 지역의 매력을 이어 한 번의 검색으로 나만의 전남을 찾게 해요.</p></Reveal><div className="home-intro-gallery" aria-label="전남 여행 풍경"><div className="home-intro-gallery-track">{[...introGallery, ...introGallery].map(([name, image], index) => <div className="home-intro-gallery-card" key={`${name}-${index}`}><img src={image} alt={`${name} 여행 풍경`} /></div>)}</div></div></section>
+    <section id="destinations" className="home-destination-section"><Reveal className="home-section-heading"><p className="home-eyebrow">PLACES TO BEGIN</p><h2>어디로 떠나볼까요?</h2><p>지금 가장 만나고 싶은 전남의 장면을 골라보세요.</p></Reveal><div className="home-destination-rail">{destinations.map((item, index) => <Link className="home-destination-card" to={`${item.path}?region=${encodeURIComponent(item.name)}`} key={item.name}><img src={item.image} alt={`${item.name} 여행 풍경`} loading={index > 1 ? "lazy" : "eager"} /><span className="home-card-number">0{index + 1}</span><div><p>{item.meta}</p><h3>{item.name}</h3><span>{item.action} <b aria-hidden="true">↗</b></span></div></Link>)}</div></section>
+    <section className="home-service-section"><Reveal className="home-section-heading"><p className="home-eyebrow">A BETTER WAY TO TRAVEL</p><h2>여행을 고르는 순간부터<br />동선이 달라집니다.</h2></Reveal><div className="home-service-list"><Reveal className="home-service-row"><div className="home-service-visual home-service-visual--map"><div className="home-map-label">전남 여행 동선 <b>01</b></div><RegionIllustrationMap items={[]} /></div><div className="home-service-copy"><span>01 · PERSONAL ROUTE</span><h3>숙소 위치를 중심으로<br />가장 자연스러운 동선</h3><p>머무는 곳과 여행 날짜를 바탕으로 이동 시간을 줄이고, 하루의 리듬을 살린 여행 가이드를 만들어드려요.</p><Link to="/recommend">나만의 동선 만들기 ↗</Link></div></Reveal><Reveal className="home-service-row home-service-row--reverse"><div className="home-service-visual home-service-visual--photo"><img src="/images/curated-places-jeonnam-v1.png" alt="전남의 해안 마을과 전통 풍경" loading="lazy" /><span>LOCAL MOMENTS</span></div><div className="home-service-copy"><span>02 · CURATED PLACES</span><h3>취향에 맞는 장소를<br />한 번에 발견하기</h3><p>자연, 맛집, 역사, 바다. 좋아하는 테마를 고르면 전남의 매력적인 장소를 한 화면에 모아볼 수 있어요.</p><Link to="/community">여행 이야기 둘러보기 ↗</Link></div></Reveal></div></section>
+    <section className="home-theme-section"><Reveal className="home-section-heading"><p className="home-eyebrow">FROM OUR COMMUNITY</p><h2>오늘의 여행 공유</h2><p>여행 공유 게시글의 제목과 내용에서 자연·바다·맛집·역사를 찾아 최신 기록을 보여드려요.</p></Reveal><div className="home-theme-grid">{sharedThemes.map(({ name, copy, fallback, post, image }, index) => <Link className="home-theme-card" to={post ? `/community/${post.postId || post.id}` : "/community"} key={name}>{image ? <AuthenticatedImage src={image} alt={`${name} 여행 공유`} /> : <img src={fallback} alt={`${name} 여행 풍경`} loading="lazy" />}<div><span>0{index + 1}</span><h3>{name}</h3><p>{copy}</p></div></Link>)}</div></section>
+    <section className="home-final-cta"><div className="home-final-cta-photo" aria-hidden="true" /><div className="home-final-cta-overlay" aria-hidden="true" /><Reveal><p className="home-eyebrow">YOUR NEXT JEOLLA</p><h2>이번 여행,<br /><em>어디로 떠날까요?</em></h2><Link className="home-cta-button" to="/recommend">여행 추천 시작하기 <span aria-hidden="true">↗</span></Link></Reveal></section>
+  </main>;
 }

@@ -1,6 +1,6 @@
 import BrandCharacter from "../components/BrandCharacter";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getRegions } from "../api/regions";
 import { searchAccommodations } from "../api/travelRecommendations";
 import { asList } from "../hooks/useApi";
@@ -58,10 +58,12 @@ function LocationResultCard({ item, onSelect }) {
 
 export default function RecommendPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedRegion = searchParams.get("region") || "";
   const regionPickerRef = useRef(null);
   const dateTriggerRef = useRef(null);
   const [selectedThemes, setSelectedThemes] = useState([]);
-  const [region, setRegion] = useState("");
+  const [region, setRegion] = useState(requestedRegion);
   const [regionRecords, setRegionRecords] = useState([]);
   const [regionOpen, setRegionOpen] = useState(false);
   const [regionQuery, setRegionQuery] = useState("");
@@ -105,6 +107,7 @@ export default function RecommendPage() {
       const data = await getRegions();
       const list = asList(data, "regions");
       setRegionRecords(list); setRegionOptions(["전라도 전체", ...list.map((item) => item.name)]);
+      if (requestedRegion && list.some((item) => item.name === requestedRegion)) setRegion(requestedRegion);
     } catch (error) { setRegionRecords([]); setRegionOptions([]); setRegionError(error.message || "여행 지역을 불러오지 못했습니다."); }
     finally { setRegionSearching(false); }
   }
