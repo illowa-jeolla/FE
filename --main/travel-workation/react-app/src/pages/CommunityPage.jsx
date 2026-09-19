@@ -7,8 +7,7 @@ import AuthenticatedImage from "../components/AuthenticatedImage";
 import CommunityDetailPage from "./CommunityDetailPage";
 import { getRegions } from "../api/regions";
 import { publishTravelPostDraft, saveTravelPostDraft, startTravelPostDraft, uploadTravelPostDraftImage } from "../api/travelPosts";
-
-let communityPageCache = null;
+import { clearCommunityPageCache, readCommunityPageCache, writeCommunityPageCache } from "./communityPageCache";
 
 function PostCard({ post, onOpen }) {
   const images = postImages(post);
@@ -65,8 +64,12 @@ export default function CommunityPage() {
     setSelectedPostId(new URLSearchParams(location.search).get("post") || "");
   }, [location.search]);
   useEffect(() => {
-    if (communityPageCache?.data) setData(communityPageCache.data);
-    run(path).then((result) => { communityPageCache = { data: result }; }).catch(() => {});
+    const cachedPosts = readCommunityPageCache();
+    if (cachedPosts) {
+      setData(cachedPosts);
+      return;
+    }
+    run(path).then(writeCommunityPageCache).catch(() => {});
   }, []);
   useEffect(() => {
     document.documentElement.classList.add("community-scroll-hidden");
@@ -188,9 +191,9 @@ export default function CommunityPage() {
       }
       await saveTravelPostDraft(draftId, { regionId: Number(values.regionId), title: values.title.trim(), concept: values.concept?.trim() || "", content: values.content.trim(), imageIds });
       const result = await publishTravelPostDraft(draftId);
-      communityPageCache = null;
+      clearCommunityPageCache();
       const refreshedPosts = await run(path);
-      communityPageCache = { data: refreshedPosts };
+      writeCommunityPageCache(refreshedPosts);
       selectedMedia.forEach((item) => { if (item.preview) URL.revokeObjectURL(item.preview); });
       setComposeMessage(""); setPublishComplete(true);
       await new Promise((resolve) => window.setTimeout(resolve, 950));
@@ -230,7 +233,7 @@ export default function CommunityPage() {
       </div>
     </section>
     <section className="community-stories-section" id="community-stories" ref={postsSectionRef}>
-      <Status loading={loading} error={error} empty={!displayedPosts.length}>
+      <Status loading={loading && !displayedPosts.length} error={displayedPosts.length ? "" : error} empty={!displayedPosts.length}>
         <div className="post-feed">{postColumns.map((column, columnIndex) => <div className="post-feed-column" key={columnIndex}>{column.map((post) => <PostCard post={post} onOpen={(postId) => { setSelectedPostId(String(postId)); navigate(`/community?post=${encodeURIComponent(postId)}`); }} key={post.postId || post.id} />)}</div>)}</div>
       </Status>
     </section>

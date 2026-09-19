@@ -246,6 +246,10 @@ export default function RecommendPage() {
         <h1>취향 따라, 전라도 한 바퀴</h1>
         <p>머무는 곳과 날짜를 고르면 나만의 여행이 시작돼요.</p>
       </header>
+      <aside className="recommend-side-copy" aria-hidden="true">
+        <span>CURATED JOURNEY · JEOLLA</span>
+        <strong><i>FOLLOW THE RHYTHM</i><i>OF JEOLLA</i></strong>
+      </aside>
       <div className="recommend-birds" aria-hidden="true"><i /><i /><i /></div>
       <div className="recommend-birds recommend-birds--two" aria-hidden="true"><i /><i /><i /></div>
       <div className="recommend-birds recommend-birds--three" aria-hidden="true"><i /><i /><i /></div>

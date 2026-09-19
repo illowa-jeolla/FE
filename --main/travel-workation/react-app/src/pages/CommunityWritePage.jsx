@@ -6,6 +6,7 @@ import { hasSession } from "../auth/session";
 import AuthenticatedImage from "../components/AuthenticatedImage";
 import { asList } from "../hooks/useApi";
 import { normalizeImageUrl } from "./communityUtils";
+import { clearCommunityPageCache } from "./communityPageCache";
 
 const draftIdOf = (data) => data?.draftId || data?.postId || data?.id;
 const regionIdOf = (region) => region?.regionId || region?.id;
@@ -64,7 +65,7 @@ export default function CommunityWritePage() {
   async function submit(event) {
     event.preventDefault(); const action = event.nativeEvent.submitter?.value || "publish"; const values = Object.fromEntries(new FormData(event.currentTarget));
     setBusy(true); setError(false); setMessage("이미지와 여행 기록을 저장하는 중입니다.");
-    try { await persist(values, true); if (editing) { navigate(`/community/${postId}`); return; } if (action === "draft") { setMessage("임시저장했습니다."); return; } const result = await publishTravelPostDraft(draftId); navigate(`/community/${result.postId || draftId}`); }
+    try { await persist(values, true); if (editing) { clearCommunityPageCache(); navigate(`/community/${postId}`); return; } if (action === "draft") { setMessage("임시저장했습니다."); return; } const result = await publishTravelPostDraft(draftId); clearCommunityPageCache(); navigate(`/community/${result.postId || draftId}`); }
     catch (e) { setError(true); setMessage(e.message); } finally { setBusy(false); }
   }
 

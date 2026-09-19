@@ -7,6 +7,7 @@ import { asList, useApi } from "../hooks/useApi";
 import { postImages } from "./communityUtils";
 import AuthenticatedImage from "../components/AuthenticatedImage";
 import EmojiPicker from "emoji-picker-react";
+import { clearCommunityPageCache } from "./communityPageCache";
 
 function relativeTime(value) { if (!value) return "방금"; const date = new Date(value); if (Number.isNaN(date.getTime())) return "방금"; const minutes = Math.max(1, Math.floor((Date.now() - date.getTime()) / 60000)); if (minutes < 60) return `${minutes}분 전`; if (minutes < 1440) return `${Math.floor(minutes / 60)}시간 전`; return `${Math.floor(minutes / 1440)}일 전`; }
 
@@ -128,7 +129,7 @@ export default function CommunityDetailPage({ postId = "", onClose }) {
       }
     } finally { setBusy(false); }
   }
-  async function removePost() { if (!requireLogin() || !window.confirm("이 게시글을 삭제할까요?")) return; setBusy(true); try { await deleteTravelPost(id); if (onClose) onClose(); else navigate("/community"); } catch (e) { setMessage(e.message); setBusy(false); } }
+  async function removePost() { if (!requireLogin() || !window.confirm("이 게시글을 삭제할까요?")) return; setBusy(true); try { await deleteTravelPost(id); clearCommunityPageCache(); if (onClose) onClose(); else navigate("/community"); } catch (e) { setMessage(e.message); setBusy(false); } }
   function moveGallery(direction) {
     if (images.length < 2 || galleryMove) return;
     setGalleryMove({ from: activeImage, to: (activeImage + direction + images.length) % images.length, direction });
