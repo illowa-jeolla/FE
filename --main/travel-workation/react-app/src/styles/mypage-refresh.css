@@ -1,0 +1,94 @@
+/* MyPage-only root; existing data, actions and shared styles stay unchanged. */
+.mypage-main.mypage-refresh { position:relative; isolation:isolate; width:min(1344px,100%); padding:48px 32px 88px; display:grid; grid-template-columns:280px minmax(0,1fr); gap:28px; align-items:start; }
+.mypage-main.mypage-refresh::before,.mypage-main.mypage-refresh::after { content:""; position:absolute; z-index:-1; pointer-events:none; border-radius:50%; filter:blur(2px); opacity:.4; animation:mypage-orb 16s ease-in-out infinite alternate; }
+.mypage-main.mypage-refresh::before { width:420px; height:420px; top:30px; right:-180px; background:radial-gradient(circle,#fbdce8 0,transparent 70%); }
+.mypage-main.mypage-refresh::after { width:360px; height:360px; bottom:80px; left:-180px; background:radial-gradient(circle,#d9f1e9 0,transparent 70%); animation-delay:-6s; }
+.mypage-refresh .mypage-profile-card { grid-column:1; grid-row:1; display:block; padding:28px 22px; border-radius:24px; background:linear-gradient(160deg,#fff5fa,#fffafc 65%,#edf7f3); text-align:center; }
+.mypage-refresh .mypage-avatar { width:112px; height:112px; margin:0 auto 22px; padding:12px; border:1px solid #efdae4; border-radius:50%; background:#fff; }
+.mypage-refresh .mypage-avatar-initials { display:grid; width:100%; height:100%; place-items:center; border-radius:18px; background:linear-gradient(145deg,#f5dce8,#d9eee8); color:#86375c; font-size:42px; font-weight:800; }
+.mypage-refresh .mypage-profile-copy { min-width:0; }
+.mypage-refresh .mypage-profile-copy > span { font-size:11px; }
+.mypage-refresh .mypage-profile-copy h1 { margin:10px 0; font-size:clamp(21px,2.2vw,30px); letter-spacing:-.05em; overflow-wrap:anywhere; }
+.mypage-refresh .mypage-profile-copy p { color:#755f6a; font-size:13px; overflow-wrap:anywhere; }
+.mypage-refresh .mypage-profile-copy .mypage-profile-description { margin-bottom:10px; font-size:15px; line-height:1.7; word-break:keep-all; }
+.mypage-refresh .mypage-profile-actions { margin-top:22px; }
+.mypage-refresh .mypage-profile-actions button { min-height:40px; width:100%; padding:0 16px; border:1px solid #e4ccd8; border-radius:12px; background:#fff; color:#755f6a; }
+.mypage-refresh .mypage-layout { grid-column:2; grid-row:1; display:grid; grid-template-columns:180px minmax(0,1fr); gap:28px; margin-top:0; align-items:start; }
+.mypage-refresh .mypage-layout > .mypage-tabs { display:flex; flex-direction:column; padding:10px 0; gap:4px; border:0; background:#fff; border-radius:18px; }
+.mypage-refresh .mypage-layout > .mypage-tabs button { min-height:54px; padding:12px 16px; grid-template-columns:42px minmax(0,1fr) auto; gap:12px; border:1px solid transparent; border-radius:12px; color:#755f6a; background:transparent; font-size:14px; box-shadow:none; transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease; }
+.mypage-refresh .mypage-tabs .mypage-tab-character .brand-character { width:44px; height:52px; transition:transform .18s ease; }
+.mypage-refresh .mypage-tab-mark { display:grid; width:42px; height:42px; place-items:center; border-radius:50%; background:#f9edf3; color:#a34871; font-size:12px; font-weight:800; letter-spacing:.08em; transition:transform .18s ease,background .18s ease; }
+.mypage-refresh .mypage-tabs .mypage-tab-label { color:inherit; margin:0; }
+.mypage-refresh .mypage-layout > .mypage-tabs button.is-active { border-color:#c9769e; background:#fff0f7; color:#86375c; box-shadow:inset 0 0 0 1px #c9769e; }
+.mypage-refresh .mypage-tabs button > b { min-width:28px; padding:5px; border-radius:9px; background:#f8eff3; text-align:center; color:#86375c; font-size:14px; }
+.mypage-refresh .mypage-layout > .mypage-panels .mypage-panel { min-height:560px; padding:40px; border-radius:22px; box-shadow:0 8px 24px rgba(74,40,58,.035); }
+.mypage-refresh .mypage-panel h2 { font-size:28px; margin:10px 0; }
+.mypage-refresh .mypage-panel > p { font-size:14px; color:#755f6a; line-height:1.7; }
+.mypage-refresh .mypage-kicker { font-size:11px; }
+.mypage-refresh #nickname-form { max-width:680px; gap:20px; }
+.mypage-refresh #nickname-form label { min-width:0; font-size:13px; }
+.mypage-refresh #nickname-form input { width:100%; min-width:0; font-size:16px; }
+.mypage-refresh #nickname-form button { font-size:14px; background:#a34871; color:#fff; }
+.mypage-refresh .mypage-empty { min-height:260px; padding:28px 16px; border:1px dashed #e4ccd8; border-radius:18px; background:#fffafd; text-align:center; line-height:1.7; }
+.mypage-refresh .mypage-empty p { margin:0; }
+.mypage-refresh .mypage-card-list { gap:20px; }
+.mypage-refresh :is(button,a,input):focus-visible { outline:3px solid #a34871!important; outline-offset:4px; }
+.mypage-refresh button { cursor:pointer; }
+.mypage-refresh button:disabled { cursor:wait; }
+.mypage-refresh button:active:not(:disabled) { transform:translateY(1px); }
+.mypage-refresh .mypage-profile-card,.mypage-refresh .mypage-tabs button,.mypage-refresh .mypage-panel { animation:mypage-rise .65s cubic-bezier(.2,.7,.2,1) both; }
+.mypage-refresh .mypage-tabs button:nth-child(2) { animation-delay:.05s; }.mypage-refresh .mypage-tabs button:nth-child(3) { animation-delay:.1s; }.mypage-refresh .mypage-tabs button:nth-child(4) { animation-delay:.15s; }.mypage-refresh .mypage-tabs button:nth-child(5) { animation-delay:.2s; }.mypage-refresh .mypage-tabs button:nth-child(6) { animation-delay:.25s; }
+@keyframes mypage-rise { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes mypage-orb { from{transform:translate(0,0) scale(1)} to{transform:translate(-18px,22px) scale(1.08)} }
+@media(hover:hover) and (pointer:fine) {
+.mypage-refresh .mypage-layout > .mypage-tabs button:hover { transform:translateY(-3px); border-color:#dfa2be; box-shadow:0 12px 24px rgba(91,44,68,.09); }
+.mypage-refresh .mypage-tabs button:hover .brand-character { transform:translateY(-2px); }
+.mypage-refresh .mypage-tabs button:hover .mypage-tab-mark { transform:scale(1.08) rotate(-4deg); background:#f5dce8; }
+.mypage-refresh :is(.mypage-guide-card,.mypage-story-card,.mypage-favorite-job,.mypage-gathering-card):hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(91,44,68,.1); }
+.mypage-refresh .mypage-profile-actions button:hover { background:#fff0f7; }
+}
+@media(max-width:900px) {
+.mypage-main.mypage-refresh { grid-template-columns:1fr; }
+.mypage-refresh .mypage-profile-card,.mypage-refresh .mypage-layout { grid-column:1; }
+.mypage-refresh .mypage-profile-card { text-align:left; }
+.mypage-refresh .mypage-avatar { margin:0 0 18px; }
+.mypage-refresh .mypage-profile-card { grid-template-columns:80px minmax(0,1fr); padding:28px; gap:20px; }
+.mypage-refresh .mypage-avatar { width:80px; height:88px; }
+.mypage-refresh .mypage-profile-actions { grid-column:2; }
+.mypage-refresh .mypage-layout > .mypage-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.mypage-refresh .mypage-layout { grid-template-columns:1fr; }
+.mypage-refresh .mypage-layout > .mypage-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:540px) {
+.mypage-main.mypage-refresh { padding:28px 20px 56px; }
+.mypage-refresh .mypage-profile-card { padding:24px; grid-template-columns:1fr; gap:16px; }
+.mypage-refresh .mypage-profile-actions { grid-column:1; }
+.mypage-refresh .mypage-layout > .mypage-tabs { grid-template-columns:1fr; gap:10px; }
+.mypage-refresh .mypage-layout > .mypage-tabs button { min-height:76px; padding:12px 16px; }
+.mypage-refresh .mypage-layout > .mypage-panels .mypage-panel { padding:24px 18px; }
+.mypage-refresh .mypage-panel h2 { font-size:24px; }
+.mypage-refresh .mypage-gathering-filters { flex-wrap:wrap; }
+.mypage-refresh .mypage-card-list { grid-template-columns:minmax(0,1fr); }
+}
+@media(prefers-reduced-motion:reduce) { .mypage-main.mypage-refresh * { animation:none!important; transition:none!important; transform:none!important; } }
+.mypage-refresh .mypage-tabs button .mypage-tab-label { font-size:14px; font-weight:750; letter-spacing:0; }
+
+/* Google Account-inspired account workspace: quiet surfaces, clear hierarchy, local accent. */
+.mypage-main.mypage-refresh { max-width:1440px; background:#fff; color:#202124; }
+.mypage-main.mypage-refresh::before,.mypage-main.mypage-refresh::after { display:none; }
+.mypage-refresh .mypage-profile-card { border:1px solid #dadce0; border-radius:16px; background:#fff; box-shadow:none; text-align:left; }
+.mypage-refresh .mypage-avatar { width:88px; height:88px; margin:0 auto 20px; border-color:#dadce0; }
+.mypage-refresh .mypage-avatar-initials { background:#fce8ef; color:#a34871; font-size:34px; }
+.mypage-refresh .mypage-profile-copy > span,.mypage-refresh .mypage-kicker { color:#5f6368; font-size:11px; letter-spacing:.12em; }
+.mypage-refresh .mypage-profile-copy h1 { color:#202124; font-size:23px; line-height:1.35; }
+.mypage-refresh .mypage-profile-copy p { color:#5f6368; }
+.mypage-refresh .mypage-layout { grid-template-columns:190px minmax(0,1fr); gap:36px; }
+.mypage-refresh .mypage-layout > .mypage-tabs { background:transparent; }
+.mypage-refresh .mypage-layout > .mypage-tabs button { color:#3c4043; border-radius:10px; font-weight:500; }
+.mypage-refresh .mypage-layout > .mypage-tabs button.is-active { color:#8c315b; background:#fce8ef; box-shadow:none; }
+.mypage-refresh .mypage-tab-mark { width:30px; height:30px; background:#f1f3f4; color:#5f6368; font-size:10px; }
+.mypage-refresh .mypage-layout > .mypage-panels .mypage-panel { min-height:600px; padding:34px 40px; border:1px solid #dadce0; border-radius:16px; box-shadow:none; background:#fff; }
+.mypage-refresh .mypage-panel h2 { color:#202124; font-size:28px; font-weight:600; }
+.mypage-refresh .mypage-panel > p { color:#5f6368; }
+.mypage-refresh #nickname-form input { border-color:#dadce0; border-radius:8px; }
+.mypage-refresh #nickname-form button { border-radius:20px; background:#a34871; }

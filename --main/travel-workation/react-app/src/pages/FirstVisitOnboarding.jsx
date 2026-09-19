@@ -1,3 +1,4 @@
+import "../styles/welcome-sizing.css";
 import BrandCharacter from "../components/BrandCharacter";
 import { useEffect, useRef, useState } from "react";
 import { animate, createScope, createTimeline, stagger } from "animejs";
