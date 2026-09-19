@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { deleteTravelPostDraft, deleteTravelPostDraftImage, deleteTravelPostImage, getTravelPost, publishTravelPostDraft, saveTravelPostDraft, startTravelPostDraft, updateTravelPost, uploadTravelPostDraftImage, uploadTravelPostImage } from "../api/travelPosts";
 import { getRegions } from "../api/regions";
 import { hasSession } from "../auth/session";
@@ -12,7 +12,7 @@ const regionIdOf = (region) => region?.regionId || region?.id;
 const imagesOf = (data) => Array.isArray(data?.images) ? [...data.images].sort((left, right) => Number(left?.displayOrder || 0) - Number(right?.displayOrder || 0)).map((item) => ({ imageId: typeof item === "object" ? item.imageId || item.id : null, preview: normalizeImageUrl(typeof item === "string" ? item : item.imageUrl || item.url), file: null })).filter((item) => item.preview) : [];
 
 export default function CommunityWritePage() {
-  const navigate = useNavigate(); const { id: postId } = useParams(); const editing = Boolean(postId); const fileRef = useRef(null); const formRef = useRef(null);
+  const navigate = useNavigate(); const location = useLocation(); const { id: postId } = useParams(); const editing = Boolean(postId); const fileRef = useRef(null); const formRef = useRef(null);
   const [regions, setRegions] = useState([]); const [images, setImages] = useState([]); const [draftId, setDraftId] = useState("");
   const [removedImageIds, setRemovedImageIds] = useState([]);
   const [message, setMessage] = useState(""); const [error, setError] = useState(false); const [busy, setBusy] = useState(false); const [exitOpen, setExitOpen] = useState(false);
@@ -22,7 +22,9 @@ export default function CommunityWritePage() {
     let cancelled = false; setBusy(true);
     Promise.all([getRegions(), editing ? getTravelPost(postId) : startTravelPostDraft()]).then(([regionData, record]) => {
       if (cancelled) return;
-      setRegions(asList(regionData, "regions")); setImages(imagesOf(record));
+      setRegions(asList(regionData, "regions"));
+      const initialMedia = editing ? [] : (location.state?.initialMedia || []).slice(0, 5).map((file) => ({ file, preview: URL.createObjectURL(file), imageId: null, mediaType: file.type.startsWith("video/") ? "video" : "image" }));
+      setImages([...imagesOf(record), ...initialMedia].slice(0, 5));
       if (!editing) setDraftId(String(draftIdOf(record) || ""));
       setTimeout(() => { const form = formRef.current; if (!form || cancelled) return; const regionId = record.regionId || record.region?.regionId || record.region?.id; if (regionId) form.elements.regionId.value = String(regionId); form.elements.title.value = record.title || ""; form.elements.concept.value = record.concept || ""; form.elements.content.value = record.content || ""; }, 0);
       setMessage(editing ? "게시글 내용을 불러왔습니다." : record.resumed ? "작성 중이던 임시 글을 불러왔습니다." : "새 여행 기록을 준비했습니다.");
@@ -32,9 +34,9 @@ export default function CommunityWritePage() {
 
   function chooseFiles(event) {
     const files = [...event.target.files].slice(0, 5 - images.length); event.target.value = "";
-    if (files.some((file) => file.size > 10 * 1024 * 1024)) { setError(true); setMessage("사진은 한 장당 10MB 이하로 선택해 주세요."); return; }
-    if (files.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type))) { setError(true); setMessage("JPEG, PNG, WEBP 이미지만 선택할 수 있습니다."); return; }
-    setError(false); setImages((current) => [...current, ...files.map((file) => ({ file, preview: URL.createObjectURL(file), imageId: null }))].slice(0, 5));
+    if (files.some((file) => file.size > 50 * 1024 * 1024)) { setError(true); setMessage("파일은 한 개당 50MB 이하로 선택해 주세요."); return; }
+    if (files.some((file) => !file.type.startsWith("image/") && !file.type.startsWith("video/"))) { setError(true); setMessage("사진 또는 동영상 파일만 선택할 수 있습니다."); return; }
+    setError(false); setImages((current) => [...current, ...files.map((file) => ({ file, preview: URL.createObjectURL(file), imageId: null, mediaType: file.type.startsWith("video/") ? "video" : "image" }))].slice(0, 5));
   }
 
   async function removeImage(image, index) {
@@ -86,7 +88,7 @@ export default function CommunityWritePage() {
 
   return <main className="community-write-main"><header className="community-subpage-header"><div><p className="eyebrow dark">여행 기록</p><h1>{editing ? "여행 기록을 다듬어 보세요" : "지금의 여행을 기록하고 공유해요"}</h1></div><p>{editing ? "사진과 내용을 한 화면에서 수정할 수 있어요." : "사진과 짧은 기록을 남겨보세요."}</p></header>
     <form className="community-write-card" ref={formRef} onSubmit={submit}><div><p className="eyebrow dark">{editing ? "게시글 수정" : "새 게시글"}</p><h2>{editing ? "여행 글 수정하기" : "여행 글 작성하기"}</h2><span>사진과 지역, 지금의 분위기를 기록해 주세요.</span></div>
-      <section className="community-photo-upload"><strong>사진 업로드</strong><p>첫 번째 사진이 대표로 보여져요 · 최대 5장 · 장당 10MB</p><input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={chooseFiles} hidden /><div className="photo-preview-grid">{images.map((image, index) => <div className="photo-preview-card" key={image.imageId || image.preview}><AuthenticatedImage src={image.preview} alt={`여행 사진 ${index + 1}`} />{index === 0 && <span>대표</span>}<button type="button" disabled={busy} onClick={() => removeImage(image, index)}>×</button></div>)}{images.length < 5 && <button className="photo-add-card" type="button" disabled={busy} onClick={() => fileRef.current?.click()}><span>＋</span><b>사진 추가</b></button>}</div></section>
+      <section className="community-photo-upload"><strong>사진·동영상 업로드</strong><p>첫 번째 사진이 대표로 보여져요 · 최대 5개</p><input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={chooseFiles} hidden /><div className="photo-preview-grid">{images.map((image, index) => <div className="photo-preview-card" key={image.imageId || image.preview}>{image.mediaType === "video" ? <video src={image.preview} muted controls /> : <AuthenticatedImage src={image.preview} alt={`여행 사진 ${index + 1}`} />}{index === 0 && <span>대표</span>}<button type="button" disabled={busy} onClick={() => removeImage(image, index)}>×</button></div>)}{images.length < 5 && <button className="photo-add-card" type="button" disabled={busy} onClick={() => fileRef.current?.click()}><span>＋</span><b>미디어 추가</b></button>}</div></section>
       <label>제목<input name="title" maxLength="200" placeholder="예: 노을을 품은 드라이브" required /></label>
       <div className="form-row"><label>지역<select name="regionId" required><option value="">지역 선택</option>{regions.map((item) => { const regionId = regionIdOf(item); return <option value={regionId} key={regionId || item.name}>{item.name}</option>; })}</select></label><label>여행 콘셉트<input name="concept" maxLength="100" placeholder="예: 노을 드라이브" /></label></div>
       <label>여행 내용<textarea name="content" placeholder="현장의 분위기와 여행 팁을 남겨보세요." required /></label>

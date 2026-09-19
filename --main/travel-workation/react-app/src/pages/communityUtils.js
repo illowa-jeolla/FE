@@ -13,11 +13,21 @@ export function normalizeImageUrl(value) {
 }
 
 export function postImages(post) {
-  if (Array.isArray(post.images)) return post.images.map((image) => normalizeImageUrl(typeof image === "string" ? image : image.imageUrl || image.url)).filter(Boolean);
+  const imageValue = (image) => normalizeImageUrl(typeof image === "string" ? image : image?.imageUrl || image?.url || image?.path || image?.fileUrl || image?.thumbnailUrl);
+  if (Array.isArray(post.images)) return post.images.map(imageValue).filter(Boolean);
   if (Array.isArray(post.imageUrls)) return post.imageUrls.map(normalizeImageUrl).filter(Boolean);
-  if (post.thumbnailUrl) return [normalizeImageUrl(post.thumbnailUrl)].filter(Boolean);
-  try { const parsed = JSON.parse(post.images_data || "[]"); if (parsed.length) return parsed.map(normalizeImageUrl).filter(Boolean); } catch {}
-  return post.image_data ? [normalizeImageUrl(post.image_data)].filter(Boolean) : [];
+  if (Array.isArray(post.media)) return post.media.map(imageValue).filter(Boolean);
+  if (Array.isArray(post.attachments)) return post.attachments.map(imageValue).filter(Boolean);
+  for (const raw of [post.images, post.images_data, post.image_data]) {
+    if (!raw) continue;
+    try {
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      const values = Array.isArray(parsed) ? parsed : [parsed];
+      const images = values.map(imageValue).filter(Boolean);
+      if (images.length) return images;
+    } catch {}
+  }
+  return [post.thumbnailUrl, post.imageUrl, post.firstImage, post.firstImageUrl].map(normalizeImageUrl).filter(Boolean);
 }
 
 export function readFiles(files) {
