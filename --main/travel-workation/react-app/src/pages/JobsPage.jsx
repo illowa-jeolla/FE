@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Status } from "../components/UI";
 import { getRegions } from "../api/regions";
-import { externalJunnamJobsPath, externalTourJobsPath } from "../api/jobs";
+import { externalJunnamJobsPath, externalTourJobsPath, filterCurrentJobs } from "../api/jobs";
 import { asList, useApi } from "../hooks/useApi";
 
 export const workTypes = ["상근", "주 5일", "시간제", "주말 근무", "단기 근무", "원격·재택"];
@@ -38,7 +38,7 @@ export default function JobsPage() {
   const [calendarCursor, setCalendarCursor] = useState(new Date(todayRef.current.getFullYear(), todayRef.current.getMonth(), 1));
   const [regionRecords, setRegionRecords] = useState([]);
   const { data, loading, error, run } = useApi(null, { immediate: false });
-  const jobs = Array.isArray(data?.content) ? data.content : asList(data, "jobs");
+  const jobs = filterCurrentJobs(Array.isArray(data?.content) ? data.content : asList(data, "jobs"));
   const set = (key) => (event) => setFilters((value) => ({ ...value, [key]: event.target.value }));
   useEffect(() => {
     function closePicker(event) { if (!filterRef.current?.contains(event.target)) { setOpenPicker(""); setRegionQuery(""); } }
@@ -63,7 +63,7 @@ export default function JobsPage() {
       <fieldset><legend>여행 기간</legend><button className="job-date-trigger" type="button" aria-expanded={dateOpen} onClick={openDatePicker}><span className="job-picker-icon">▦</span><strong>{filters.tripStart && filters.tripEnd ? `${displayDate(filters.tripStart)} → ${displayDate(filters.tripEnd)}` : "날짜를 선택해 주세요"}</strong><i /></button></fieldset>
       <div className="job-search-two-fields"><label className="job-picker-field">일하는 방식<button className="job-picker-trigger" type="button" aria-expanded={openPicker === "work"} onClick={() => setOpenPicker((current) => current === "work" ? "" : "work")}><span>{filters.workType || "근무 방식 선택"}</span><i /></button>{openPicker === "work" && <section className="job-option-popover job-work-popover"><div>{workTypes.map((item) => <button className={filters.workType === item ? "is-selected" : ""} type="button" key={item} onClick={() => { setFilters((current) => ({ ...current, workType: item })); setOpenPicker(""); }}><span>{item}</span>{filters.workType === item && <i>✓</i>}</button>)}</div></section>}</label><label>희망 시간<button className="job-time-trigger" type="button" aria-expanded={timeOpen} onClick={() => { const [start = "09:00", end = "18:00"] = filters.time.split("~"); setDraftTimeStart(start); setDraftTimeEnd(end); setTimeOpen(true); }}><span className="job-picker-icon">◷</span><strong>{filters.time || "시간을 선택해 주세요"}</strong><i /></button></label></div>
       <button className="button button-primary" type="submit" disabled={loading}>{loading ? "검색 중..." : "조건으로 검색하기"}</button>
-    </form></section><section className="page-panel jobs-results-panel"><p className="result-kind">{filters.region ? `${filters.region} 일자리` : "전체 일자리"} · {data?.totalElements ?? data?.totalCount ?? jobs.length}건</p><Status loading={loading} error={error} empty={!jobs.length}><div className="result-list">{jobs.map((job) => {
+    </form></section><section className="page-panel jobs-results-panel"><p className="result-kind">{filters.region ? `${filters.region} 일자리` : "전체 일자리"} · {jobs.length}건</p><Status loading={loading} error={error} empty={!jobs.length}><div className="result-list">{jobs.map((job) => {
       const raw = job.rawFields || {};
       const externalKey = raw.jobKey || job.jobKey;
       const tourKey = job.employmentInfoNo || raw.employmentInfoNo || job.id;
