@@ -6,6 +6,7 @@ import { searchAccommodations } from "../api/travelRecommendations";
 import { asList } from "../hooks/useApi";
 import { KAKAO_MAP_JAVASCRIPT_KEY } from "../config";
 import { searchKakaoPlaces } from "../components/kakaoMaps";
+import { jeonnamRegionName } from "../data/jeonnam";
 
 const themes = [
   { value: "NATURE_HEALING", label: "자연·힐링" },
@@ -69,7 +70,7 @@ export default function RecommendPage() {
   const [regionQuery, setRegionQuery] = useState("");
   const [debouncedRegionQuery, setDebouncedRegionQuery] = useState("");
   const [regionFiltering, setRegionFiltering] = useState(false);
-  const [regionOptions, setRegionOptions] = useState(["전라도 전체"]);
+  const [regionOptions, setRegionOptions] = useState(["전남 전체"]);
   const [regionSearching, setRegionSearching] = useState(false);
   const [regionError, setRegionError] = useState("");
   const [hotel, setHotel] = useState("");
@@ -105,9 +106,10 @@ export default function RecommendPage() {
     setRegionError("");
     try {
       const data = await getRegions();
-      const list = asList(data, "regions");
-      setRegionRecords(list); setRegionOptions(["전라도 전체", ...list.map((item) => item.name)]);
+      const list = asList(data, "regions").filter((item) => jeonnamRegionName(item.name));
+      setRegionRecords(list); setRegionOptions(["전남 전체", ...list.map((item) => item.name)]);
       if (requestedRegion && list.some((item) => item.name === requestedRegion)) setRegion(requestedRegion);
+      else if (requestedRegion) setRegion("");
     } catch (error) { setRegionRecords([]); setRegionOptions([]); setRegionError(error.message || "여행 지역을 불러오지 못했습니다."); }
     finally { setRegionSearching(false); }
   }
@@ -259,9 +261,9 @@ export default function RecommendPage() {
             <i className="travel-region-chevron" aria-hidden="true"><i /></i>
           </button>
         </div>
-        {regionOpen && <section className="travel-region-picker" id="travel-region-picker" aria-label="전라도 지역 선택">
+        {regionOpen && <section className="travel-region-picker" id="travel-region-picker" aria-label="전남 지역 선택">
           <label className="travel-region-search"><i aria-hidden="true" /><input value={regionQuery} onChange={(event) => setRegionQuery(event.target.value)} placeholder="지역 이름 검색" autoComplete="off" aria-label="지역 이름 검색" /></label>
-          <div className="travel-region-options">{regionSearching || regionFiltering ? <div className="hotel-search-loading" role="status" aria-label="지역 검색 중"><BrandCharacter pose="loading" /><small>검색 중</small></div> : regionError ? <p className="travel-region-empty" role="alert">{regionError}</p> : regionOptions.filter((item) => item !== "전라도 전체" && item.toLocaleLowerCase().includes(debouncedRegionQuery.toLocaleLowerCase())).length ? regionOptions.filter((item) => item !== "전라도 전체" && item.toLocaleLowerCase().includes(debouncedRegionQuery.toLocaleLowerCase())).map((item, index) => <button className={region === item ? "is-selected" : ""} style={{ "--region-index": index }} type="button" key={item} onClick={() => { setRegion(item); setRegionQuery(""); setAccommodation(null); setStartLocation(null); setEndLocation(null); setHotel(""); setRegionOpen(false); }}><span>{item}</span>{region === item && <i>✓</i>}</button>) : <p className="travel-region-empty">검색 결과가 없어요.</p>}</div>
+          <div className="travel-region-options">{regionSearching || regionFiltering ? <div className="hotel-search-loading" role="status" aria-label="지역 검색 중"><BrandCharacter pose="loading" /><small>검색 중</small></div> : regionError ? <p className="travel-region-empty" role="alert">{regionError}</p> : regionOptions.filter((item) => item !== "전남 전체" && item.toLocaleLowerCase().includes(debouncedRegionQuery.toLocaleLowerCase())).length ? regionOptions.filter((item) => item !== "전남 전체" && item.toLocaleLowerCase().includes(debouncedRegionQuery.toLocaleLowerCase())).map((item, index) => <button className={region === item ? "is-selected" : ""} style={{ "--region-index": index }} type="button" key={item} onClick={() => { setRegion(item); setRegionQuery(""); setAccommodation(null); setStartLocation(null); setEndLocation(null); setHotel(""); setRegionOpen(false); }}><span>{item}</span>{region === item && <i>✓</i>}</button>) : <p className="travel-region-empty">검색 결과가 없어요.</p>}</div>
         </section>}
       </div>
       <button className={`travel-search-field travel-date-trigger${dateOpen ? " is-open" : ""}`} type="button" ref={dateTriggerRef} onClick={openCalendar}><span>여행 날짜 <small>선택</small></span><div><i className="travel-field-icon travel-field-icon-calendar" aria-hidden="true" /><strong>{startDate && endDate ? <><span className="travel-date-value">{shortDate(new Date(`${startDate}T00:00:00`))}</span><i>→</i><span className="travel-date-value">{shortDate(new Date(`${endDate}T00:00:00`))}</span><em>{Math.round((new Date(`${endDate}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000)}박</em></> : <span className="travel-date-placeholder">날짜 선택</span>}</strong><i className="travel-date-arrow" aria-hidden="true" /></div></button>

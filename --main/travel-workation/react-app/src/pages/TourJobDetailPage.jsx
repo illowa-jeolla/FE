@@ -4,9 +4,19 @@ import { externalTourJobPath } from "../api/jobs";
 import { Status } from "../components/UI";
 import { useApi } from "../hooks/useApi";
 
+function plainText(content) {
+  return String(content ?? "")
+    .replace(/<br\s*\/?>(\s*)/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+}
+
 function value(job, key, fallback = "-") {
   const result = job?.[key] ?? job?.rawFields?.[key];
-  return result === undefined || result === null || result === "" ? fallback : result;
+  return result === undefined || result === null || result === "" ? fallback : plainText(result);
 }
 
 function codeValue(job, key) {
@@ -29,7 +39,7 @@ function safeExternalUrl(url) {
 }
 
 function DetailRows({ rows }) {
-  return <div className="job-accordion-body">{rows.filter(([, content]) => content && content !== "-").map(([label, content]) => <p key={label}><strong>{label}</strong> · {content}</p>)}</div>;
+  return <div className="job-accordion-body">{rows.map(([label, content]) => [label, plainText(content)]).filter(([, content]) => content && content !== "-").map(([label, content]) => <p key={label}><strong>{label}</strong> · {content}</p>)}</div>;
 }
 
 function BackendDataRows({ job }) {
@@ -37,7 +47,7 @@ function BackendDataRows({ job }) {
   delete values.rawFields;
   const labels = { employmentInfoNo: "공고 번호", title: "공고 제목", companyName: "기업명", enterpriseTypeName: "기업 유형", departmentName: "담당 부서", workplaceAddress: "근무지 주소", workplaceDetailAddress: "상세 주소", workplaceZipcode: "우편번호", recruitCount: "채용 인원", receiptDeadlineDate: "접수 마감일", wageAmount: "급여", salaryTypeCode: "급여 형태", workTimeContent: "근무 시간", laborTimeContent: "근로 시간", workStyleContent: "근무 형태", careerDivisionCode: "경력 구분", careerStartMonths: "최소 경력", careerEndMonths: "최대 경력", educationCode: "학력", bonusIncluded: "상여금 포함", bonusRate: "상여금 비율", fourMajorInsurance: "4대 보험", welfareEtcContent: "복리후생", dutyContent: "업무 내용", selectionMethodContent: "전형 방법", receptionMethod: "접수 방법", etcReceptionMethodDescription: "접수 안내", submissionDocumentContent: "제출 서류", foreignLanguageLevel: "외국어", majorName: "관련 전공", licenseContent: "자격·우대", etcPreferenceContent: "기타 우대", computerAbilityContent: "컴퓨터 활용", militaryServiceExperience: "병역", managerName: "담당자", managerTelNo: "담당자 연락처", managerFaxNo: "팩스", companyIntroContent: "기업 소개", companyAddress: "기업 주소", primaryBusinessContent: "주요 사업", workerCountInfo: "근로자 수", capitalAmount: "자본금", annualSalesAmount: "연 매출", detailUrl: "원문 링크" };
   const seen = new Set();
-  const rows = Object.entries(values).filter(([, content]) => content !== undefined && content !== null && content !== "").map(([key, content]) => [labels[key] || key, typeof content === "object" ? JSON.stringify(content) : String(content)]).filter(([, content]) => { const normalized = content.replace(/\s+/g, " ").trim(); if (seen.has(normalized)) return false; seen.add(normalized); return true; });
+  const rows = Object.entries(values).filter(([, content]) => content !== undefined && content !== null && content !== "").map(([key, content]) => [labels[key] || key, plainText(typeof content === "object" ? JSON.stringify(content) : content)]).filter(([, content]) => { const normalized = content.replace(/\s+/g, " ").trim(); if (seen.has(normalized)) return false; seen.add(normalized); return true; });
   if (!rows.length) return null;
   return <section className="job-backend-data"><h2>공고 제공 정보</h2><p>공고 등록 기관에서 함께 제공한 상세 정보입니다.</p><div>{rows.map(([label, content], index) => <dl className={content.length > 180 ? "is-long" : ""} key={`${label}-${index}`}><dt>{label}</dt><dd>{/^https?:\/\//.test(content) ? <a href={content} target="_blank" rel="noreferrer">원문에서 확인하기 ↗</a> : label === "공고 원문" ? <p className="job-source-content">{content}</p> : content.length > 180 ? <details><summary>전체 내용 보기</summary><p>{content}</p></details> : content}</dd></dl>)}</div></section>;
 }
