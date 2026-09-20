@@ -8,6 +8,31 @@ const JOB_PAGE_SIZE = 20;
 const ALL_JOB_PAGE_SIZE = 100;
 const ALL_JOB_MAX_PAGES = 50;
 
+function firstValue(job, keys) {
+  const raw = job?.rawFields || {};
+  return keys.map((key) => job?.[key] ?? raw[key]).find((value) => value !== undefined && value !== null && String(value).trim() !== "");
+}
+
+function parseJobDate(value) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  const match = text.match(/(20\d{2})[./-]?(\d{1,2})[./-]?(\d{1,2})?/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3] || 1));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function isCurrentJob(job, today = new Date()) {
+  const deadline = parseJobDate(firstValue(job, ["receiptDeadlineDate", "deadline", "jobEndDt", "jobCloseDt", "applyEndDate", "endDate", "closeDate"]));
+  if (deadline && deadline < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return false;
+  const registered = parseJobDate(firstValue(job, ["registeredAt", "insertedAt", "jobInsertDt", "createdAt", "created_at"]));
+  return !registered || registered.getFullYear() >= today.getFullYear();
+}
+
+export function filterCurrentJobs(jobs) {
+  return (Array.isArray(jobs) ? jobs : []).filter((job) => isCurrentJob(job));
+}
+
 function queryString(params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -152,7 +177,7 @@ export async function getExternalJobsBatch({ region = "", page = 1 } = {}) {
       ...junnam.items.map((job) => normalizeExternalJob(job, "junnam"))
     ];
     const seen = new Set();
-    const items = combined.filter((job) => job.id && !seen.has(job.id) && seen.add(job.id));
+    const items = combined.filter((job) => job.id && isCurrentJob(job) && !seen.has(job.id) && seen.add(job.id));
     items.sort((left, right) => String(right.registeredAt || right.insertedAt || right.rawFields?.jobInsertDt || "").localeCompare(String(left.registeredAt || left.insertedAt || left.rawFields?.jobInsertDt || "")));
     return { items, total: gwangju.total + jeonnam.total + junnam.total, hasMore: gwangju.hasMore || jeonnam.hasMore || junnam.hasMore };
   }).catch((error) => {

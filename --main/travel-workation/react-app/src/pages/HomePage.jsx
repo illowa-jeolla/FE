@@ -16,10 +16,10 @@ const destinations = [
 ];
 
 const themes = [
-  ["자연", "숲과 들판 사이, 천천히 걷는 하루", "/images/local-jobs-traditional.jpeg", "/recommend"],
-  ["바다", "수평선이 가까운 남도의 오후", "/images/island-coast-cutout.png", "/recommend"],
-  ["맛집", "지역의 맛을 가장 가까이에서", "/images/local-jobs-folk-performance.png", "/jobs"],
-  ["역사", "오래된 골목과 새로운 시선", "/images/local-jobs-traditional.jpeg", "/community"]
+  ["자연", "숲과 들판 사이, 천천히 걷는 하루", "/images/community-nature-v2.png", "/recommend"],
+  ["바다", "수평선이 가까운 남도의 오후", "/images/community-sea-v2.png", "/recommend"],
+  ["맛집", "지역의 맛을 가장 가까이에서", "/images/community-food-v2.png", "/jobs"],
+  ["역사", "오래된 골목과 새로운 시선", "/images/community-history-v2.png", "/community"]
 ];
 
 const introGallery = [
@@ -36,10 +36,10 @@ export default function HomePage() {
   const [sharedPosts, setSharedPosts] = useState([]);
   useEffect(() => { let active = true; getTravelPosts({ page: 0, size: 30 }).then((data) => { if (active) setSharedPosts(Array.isArray(data?.content) ? data.content : Array.isArray(data?.posts) ? data.posts : []); }).catch(() => {}); return () => { active = false; }; }, []);
   const sharedThemes = [
-    ["자연", "자연 속에서 발견한 오늘의 여행", "/images/local-jobs-traditional.jpeg"],
-    ["바다", "수평선 가까이에서 보낸 하루", "/images/island-coast-cutout.png"],
-    ["맛집", "전남의 맛을 기록한 여행", "/images/local-jobs-folk-performance.png"],
-    ["역사", "오래된 골목과 새로운 시선", "/images/local-jobs-traditional.jpeg"]
+    ["자연", "자연 속에서 발견한 오늘의 여행", "/images/community-nature-v2.png"],
+    ["바다", "수평선 가까이에서 보낸 하루", "/images/community-sea-v2.png"],
+    ["맛집", "전남의 맛을 기록한 여행", "/images/community-food-v2.png"],
+    ["역사", "오래된 골목과 새로운 시선", "/images/community-history-v2.png"]
   ].map(([name, copy, fallback]) => {
     const post = sharedPosts.find((item) => `${item.title || ""} ${item.concept || ""} ${item.content || ""}`.includes(name));
     return { name, copy: post?.title || copy, fallback, post, image: postImages(post || {})[0] };
