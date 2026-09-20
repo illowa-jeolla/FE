@@ -3,8 +3,7 @@
 .welcome-main .welcome-intro .welcome-scenes { height:360px; }
 .welcome-main .welcome-intro .welcome-steps { width:100%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(12px,3vw,32px); }
 .welcome-main .welcome-intro .welcome-step { padding:24px 12px; border-radius:32px; font-size:clamp(19px,2.2vw,28px); line-height:1.5; }
-.welcome-main .welcome-intro .welcome-step .brand-character { width:112px; height:130px; max-width:100%; margin:0 auto 18px; border-radius:0; }
-.welcome-main .welcome-intro .welcome-step .brand-character canvas { width:100%; height:100%; object-fit:contain; }
+.welcome-main .welcome-intro .welcome-step-character { width:112px; height:130px; max-width:100%; margin:0 auto 18px; display:block; object-fit:contain; object-position:center; }
 .welcome-main .welcome-intro .welcome-line { margin-top:30px; font-size:clamp(17px,2vw,24px); }
 .welcome-main .welcome-intro .welcome-skip { bottom:-24px; }
 @media(max-width:600px) {
@@ -12,7 +11,7 @@
 .welcome-main .welcome-intro .welcome-scenes { height:270px; }
 .welcome-main .welcome-intro .welcome-steps { gap:8px; }
 .welcome-main .welcome-intro .welcome-step { padding:16px 5px; border-radius:22px; font-size:clamp(15px,4vw,19px); }
-.welcome-main .welcome-intro .welcome-step .brand-character { width:68px; height:80px; margin-bottom:12px; }
+.welcome-main .welcome-intro .welcome-step-character { width:68px; height:80px; margin-bottom:12px; }
 .welcome-main .welcome-intro .welcome-line { margin-top:24px; font-size:17px; }
 .welcome-main .welcome-intro .welcome-skip { bottom:-16px; }
 }
@@ -20,7 +19,5 @@
 .welcome-main .welcome-content.welcome-intro { min-height:300px; }
 .welcome-main .welcome-intro .welcome-scenes { height:260px; }
 .welcome-main .welcome-intro .welcome-step { padding:12px; }
-.welcome-main .welcome-intro .welcome-step .brand-character { width:80px; height:92px; margin-bottom:8px; }
+.welcome-main .welcome-intro .welcome-step-character { width:80px; height:92px; margin-bottom:8px; }
 }
-/* The resting asset includes wide side margins; crop those margins without stretching. */
-.welcome-main .welcome-intro .welcome-step .brand-character--empty canvas { width:200%; max-width:none; margin-left:-50%; object-fit:contain; object-position:center; }

@@ -1,4 +1,3 @@
-import BrandCharacter from "../components/BrandCharacter";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { animate } from "animejs";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
@@ -113,7 +112,7 @@ export default function AuthPage() {
   return (
     <main className="onboarding-main">
       <section ref={authContent} className="onboarding-content" aria-labelledby="onboarding-title">
-        <div className="brand-auth-art"><img className="onboarding-logo" src="/mobile-assets/illowa-character-logo-v2.png" alt="일로와 전라" /><BrandCharacter pose="welcome" /></div>
+        <div className="brand-auth-art"><img className="onboarding-logo" src="/mobile-assets/illowa-official-main-logo.png" alt="일로와 전라" /></div>
         <h1 id="onboarding-title" className="sr-only">일로와 전라 시작하기</h1>
         <p className="onboarding-copy">전라도 여행과 일자리를 한 곳에서 찾아요<br />나에게 꼭 맞는 로컬 라이프를 시작해요</p>
         <div className="onboarding-actions">
