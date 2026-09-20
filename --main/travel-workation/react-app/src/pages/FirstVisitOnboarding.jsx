@@ -1,5 +1,4 @@
 import "../styles/welcome-sizing.css";
-import BrandCharacter from "../components/BrandCharacter";
 import { useEffect, useRef, useState } from "react";
 import { animate, createScope, createTimeline, stagger } from "animejs";
 
@@ -71,7 +70,7 @@ export default function FirstVisitOnboarding({ initialChoice, onSelect }) {
       <section ref={root} className={`welcome-content ${showChoice ? "welcome-choice" : "welcome-intro"}`} aria-label="일로와 전라 소개">
         {showChoice ? (
           <>
-          <img className="welcome-choice-logo" src="/mobile-assets/illowa-character-logo-v2.png" alt="일로와 전라" />
+          <img className="welcome-choice-logo" src="/mobile-assets/illowa-official-main-logo.png" alt="일로와 전라" />
             <h1>나에게 꼭 맞는 로컬 라이프를 시작해요</h1>
             <p>전라도 여행과 일자리를 한 곳에서 찾아요</p>
             <div className="welcome-choice-actions">
@@ -84,12 +83,12 @@ export default function FirstVisitOnboarding({ initialChoice, onSelect }) {
           <>
             <div className="welcome-scenes" aria-live="off">
               <div className="welcome-scene welcome-scene-one">
-                <img className="welcome-logo" src="/mobile-assets/illowa-character-logo-v2.png" alt="일로와 전라" />
+                <img className="welcome-logo" src="/mobile-assets/illowa-official-main-logo.png" alt="일로와 전라" />
                 <p className="welcome-line">전라도에서 새로운 일상을 발견하세요</p>
               </div>
               <div className="welcome-scene welcome-scene-two">
                 <div className="welcome-steps">
-                  <span className="welcome-step"><BrandCharacter pose="travel" />여행하고</span><span className="welcome-step"><BrandCharacter pose="empty" />머물고</span><span className="welcome-step"><BrandCharacter pose="work" />일하고</span>
+                  <span className="welcome-step"><img className="welcome-step-character" src="/brand/onboarding-travel-hd.png" alt="" />여행하고</span><span className="welcome-step"><img className="welcome-step-character" src="/brand/onboarding-rest-hd.png" alt="" />머물고</span><span className="welcome-step"><img className="welcome-step-character" src="/brand/onboarding-work-hd.png" alt="" />일하고</span>
                 </div>
                 <p className="welcome-line">전라에서 새로운 기회를 찾아보세요</p>
               </div>
