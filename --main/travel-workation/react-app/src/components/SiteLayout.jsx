@@ -43,7 +43,7 @@ export default function SiteLayout() {
     <div className="app-shell">
       <header className="site-header">
         <Link className="brand" to="/" aria-label="일로와전라 홈">
-          <img className="brand-logo" src="/mobile-assets/illowa-character-logo.png" alt="일로와전라" />
+          <img className="brand-logo" src="/mobile-assets/illowa-full-logo-v2.png" alt="일로와전라" />
         </Link>
         <button className="mobile-menu-button" type="button" onClick={() => setOpen((value) => !value)} aria-label="메뉴 열기" aria-expanded={open}>
           <span aria-hidden="true">{open ? "×" : "☰"}</span>

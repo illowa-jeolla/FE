@@ -71,7 +71,7 @@ export default function FirstVisitOnboarding({ initialChoice, onSelect }) {
       <section ref={root} className={`welcome-content ${showChoice ? "welcome-choice" : "welcome-intro"}`} aria-label="일로와 전라 소개">
         {showChoice ? (
           <>
-            <img className="welcome-choice-logo" src="/mobile-assets/illowa-character-logo.png" alt="일로와 전라" />
+          <img className="welcome-choice-logo" src="/mobile-assets/illowa-character-logo-v2.png" alt="일로와 전라" />
             <h1>나에게 꼭 맞는 로컬 라이프를 시작해요</h1>
             <p>전라도 여행과 일자리를 한 곳에서 찾아요</p>
             <div className="welcome-choice-actions">
@@ -84,7 +84,7 @@ export default function FirstVisitOnboarding({ initialChoice, onSelect }) {
           <>
             <div className="welcome-scenes" aria-live="off">
               <div className="welcome-scene welcome-scene-one">
-                <img className="welcome-logo" src="/mobile-assets/illowa-character-logo.png" alt="일로와 전라" />
+                <img className="welcome-logo" src="/mobile-assets/illowa-character-logo-v2.png" alt="일로와 전라" />
                 <p className="welcome-line">전라도에서 새로운 일상을 발견하세요</p>
               </div>
               <div className="welcome-scene welcome-scene-two">
