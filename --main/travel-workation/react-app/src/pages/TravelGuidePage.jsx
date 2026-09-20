@@ -40,7 +40,7 @@ function recommendationPayload(conditions) {
     endLocation: conditions.endLocation,
     themes: conditions.themes,
     dailyPlaceCounts: conditions.dailyPlaceCounts,
-    transportType: conditions.transportType,
+    transportType: "CAR",
     companionType: conditions.companionType
   };
 }
