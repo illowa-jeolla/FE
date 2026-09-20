@@ -108,7 +108,8 @@ export default function RecommendPage() {
       const data = await getRegions();
       const list = asList(data, "regions").filter((item) => jeonnamRegionName(item.name));
       setRegionRecords(list); setRegionOptions(["전남 전체", ...list.map((item) => item.name)]);
-      if (requestedRegion && list.some((item) => item.name === requestedRegion)) setRegion(requestedRegion);
+      const matchedRegion = list.find((item) => jeonnamRegionName(item.name) === jeonnamRegionName(requestedRegion));
+      if (requestedRegion && matchedRegion) setRegion(matchedRegion.name);
       else if (requestedRegion) setRegion("");
     } catch (error) { setRegionRecords([]); setRegionOptions([]); setRegionError(error.message || "여행 지역을 불러오지 못했습니다."); }
     finally { setRegionSearching(false); }
