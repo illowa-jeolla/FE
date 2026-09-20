@@ -96,7 +96,7 @@ export async function createManualTravelGuide(payload) {
 export async function requestTravelRecommendation(payload) {
   return apiRequest(`${API_BASE}/travel-recommendations`, {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ ...payload, transportType: "CAR" })
   });
 }
 

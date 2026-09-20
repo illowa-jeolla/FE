@@ -60,6 +60,30 @@
 .home-refresh .home-service-visual--map { padding:20px; }
 .home-refresh .home-service-visual--map .region-illustration-map { width:100%; height:100%; min-height:470px; }
 .home-refresh .home-service-visual--map .region-map-toolbar { display:none; }
+.home-refresh .home-service-visual--journey { min-height:510px; overflow:hidden; isolation:isolate; background:linear-gradient(150deg,#e9f8fb 0%,#f7fcf5 48%,#fff4f4 100%); }
+.home-refresh .home-service-visual--journey::before,.home-refresh .home-service-visual--journey::after { content:""; position:absolute; border-radius:50%; filter:blur(2px); z-index:-1; }
+.home-refresh .home-service-visual--journey::before { width:340px; height:340px; right:-110px; top:-100px; background:rgba(255,194,201,.34); }
+.home-refresh .home-service-visual--journey::after { width:270px; height:270px; left:-100px; bottom:-110px; background:rgba(163,225,218,.35); }
+.journey-cloud { position:absolute; width:92px; height:25px; border-radius:999px; background:rgba(255,255,255,.82); animation:journey-cloud-drift 13s ease-in-out infinite alternate; }.journey-cloud::before,.journey-cloud::after { content:""; position:absolute; bottom:7px; border-radius:50%; background:inherit; }.journey-cloud::before { width:38px; height:38px; left:16px; }.journey-cloud::after { width:28px; height:28px; right:14px; }.journey-cloud--one { top:54px; left:11%; }.journey-cloud--two { top:122px; right:10%; transform:scale(.7); animation-delay:-4s; opacity:.7; }
+.journey-sun { position:absolute; top:66px; right:21%; width:58px; height:58px; border-radius:50%; background:#ffd9a4; box-shadow:0 0 0 13px rgba(255,217,164,.2); }.journey-sea { position:absolute; left:-5%; right:-5%; bottom:-7%; height:45%; border-radius:50% 50% 0 0; background:linear-gradient(180deg,#8dd9dc,#73bdc8); transform:rotate(-3deg); }.journey-sea::before,.journey-sea::after { content:""; position:absolute; left:10%; right:12%; height:2px; border-radius:2px; background:rgba(255,255,255,.5); transform:rotate(2deg); }.journey-sea::before{top:35%;}.journey-sea::after{top:58%;left:28%;}
+.journey-island { position:absolute; bottom:27%; width:150px; height:55px; border-radius:50% 50% 12% 12%; background:#78aa85; box-shadow:inset 0 -12px 0 rgba(46,111,103,.23); }.journey-island--one { left:9%; transform:rotate(-7deg); }.journey-island--two { right:5%; bottom:30%; width:105px; height:40px; transform:rotate(7deg); background:#92b98b; }
+.journey-lighthouse { position:absolute; bottom:30%; left:28%; width:15px; height:73px; background:#fff7e9; border-radius:4px 4px 1px 1px; transform:rotate(-3deg); z-index:2; }.journey-lighthouse::before { content:""; position:absolute; top:-13px; left:-8px; width:31px; height:16px; border-radius:50% 50% 4px 4px; background:#ef8fa8; }.journey-lighthouse i { position:absolute; top:-8px; left:5px; width:5px; height:7px; border-radius:50%; background:#ffd36c; }
+.journey-palm { position:absolute; bottom:28%; width:7px; height:68px; border-radius:999px; background:#4c927f; transform-origin:bottom; z-index:3; }.journey-palm::before { content:"✦"; position:absolute; top:-23px; left:-20px; color:#3a917b; font-size:34px; transform:rotate(-18deg); }.journey-palm--one{right:24%;transform:rotate(8deg)}.journey-palm--two{right:17%;height:52px;transform:rotate(-8deg);opacity:.8}
+.journey-glass-card { position:absolute; top:24%; right:8%; width:min(280px,58%); padding:24px; border:1px solid rgba(255,255,255,.75); border-radius:22px; background:rgba(255,255,255,.58); box-shadow:0 18px 45px rgba(70,130,133,.14); backdrop-filter:blur(14px); z-index:5; animation:journey-float 5s ease-in-out infinite; }.journey-glass-card > span { color:#e96d8f; font-size:9px; font-weight:900; letter-spacing:.16em; }.journey-glass-card strong { display:block; margin:13px 0 10px; color:#23494c; font-size:23px; line-height:1.2; letter-spacing:-.06em; }.journey-glass-card strong em { color:#de718d; font-style:normal; }.journey-glass-card p { margin:0; color:#587276; font-size:11px; line-height:1.6; }.journey-glass-card > div { display:flex; gap:7px; margin-top:18px; }.journey-glass-card a { min-height:38px; padding:0 12px; display:inline-flex; align-items:center; gap:7px; border-radius:10px; color:#fff; background:#e9849e; font-size:10px; font-weight:800; text-decoration:none; }.journey-glass-card a.journey-secondary { color:#b94d70; background:rgba(255,255,255,.72); }.journey-bag,.journey-compass { position:absolute; z-index:6; display:grid; place-items:center; border-radius:50%; box-shadow:0 8px 18px rgba(64,107,103,.15); animation:journey-float 4.5s ease-in-out infinite reverse; }.journey-bag { left:12%; top:28%; width:45px; height:45px; color:#fff; background:#ed9b83; transform:rotate(-15deg); }.journey-compass { left:19%; top:16%; width:35px; height:35px; color:#317f83; background:rgba(255,255,255,.82); font-size:10px; font-weight:900; }.journey-route-line { position:absolute; left:24%; right:24%; bottom:39%; height:75px; border:2px dashed rgba(255,255,255,.72); border-bottom:0; border-radius:50% 50% 0 0; transform:rotate(-8deg); }
+.journey-glass-card > span,.journey-glass-card > strong,.journey-glass-card > p { display:none; }
+.journey-glass-card { display:none; }
+.home-refresh .home-service-visual--journey { cursor:default; background:linear-gradient(145deg,#e9f8fb,#f9fff6 54%,#fff2f4); }
+.home-refresh .home-service-visual--journey::after { width:360px; height:190px; left:50%; bottom:7%; transform:translateX(-50%) rotate(-5deg); filter:none; background:#7cc4c0; opacity:.9; box-shadow:0 16px 0 rgba(69,154,153,.12); }
+.journey-island { transition:transform .35s ease,filter .35s ease; cursor:pointer; z-index:4; }
+.journey-island:hover { filter:brightness(1.08) saturate(1.12); transform:translateY(-8px) rotate(-4deg) scale(1.05); }
+.journey-island--two:hover { transform:translateY(-8px) rotate(5deg) scale(1.05); }
+.journey-island::after { content:"여행지"; position:absolute; left:50%; top:-27px; transform:translateX(-50%) translateY(5px); padding:5px 8px; border-radius:999px; color:#38777a; background:rgba(255,255,255,.9); box-shadow:0 6px 14px rgba(55,110,110,.12); font-size:9px; font-weight:800; opacity:0; transition:opacity .25s ease,transform .25s ease; white-space:nowrap; }
+.journey-island:hover::after { opacity:1; transform:translateX(-50%) translateY(0); }
+.journey-lighthouse { transition:transform .35s ease; }.journey-lighthouse:hover { transform:rotate(-3deg) translateY(-8px); }
+.journey-route-line { animation:journey-route-flow 3.2s linear infinite; background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(255,255,255,.75) 8px 14px); border:0; height:3px; bottom:39%; z-index:5; }
+.journey-route-line::before,.journey-route-line::after { content:""; position:absolute; top:-5px; width:13px; height:13px; border:3px solid #fff; border-radius:50%; background:#eb8ba3; box-shadow:0 3px 8px rgba(50,110,112,.16); }.journey-route-line::before{left:0}.journey-route-line::after{right:0;background:#66b9b8}
+@keyframes journey-route-flow { from{background-position:0 0}to{background-position:84px 0} }
+@keyframes journey-float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)} } @keyframes journey-cloud-drift { from{transform:translateX(-8px)}to{transform:translateX(16px)} }
 .home-refresh .home-map-label { position:absolute; z-index:2; top:28px; left:30px; color:#53706e; font-size:11px; letter-spacing:.1em; }
 .home-refresh .home-map-label b { margin-left:12px; color:var(--home-coral); }
 .home-refresh .home-service-visual--photo img { width:100%; height:100%; object-fit:cover; display:block; filter:saturate(.75); }
@@ -89,6 +113,8 @@
 .home-refresh.home-motion-ready .home-reveal.is-visible { opacity:1; transform:none; }
 @keyframes home-hero-breathe { from{transform:scale(1.04)} to{transform:scale(1.1)} }
 @keyframes home-hero-drop { 0%{opacity:0;transform:translateY(-70px)} 70%{opacity:1;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+@media (max-width:900px){.home-refresh .home-service-visual--journey{min-height:470px}.journey-glass-card{right:5%;width:min(270px,70%);padding:20px}.journey-glass-card strong{font-size:20px}.journey-bag{left:8%}.journey-compass{left:13%}}
+@media (prefers-reduced-motion:reduce){.journey-cloud,.journey-glass-card,.journey-bag,.journey-compass{animation:none}}
 @keyframes home-intro-slide { from{transform:translateX(0)} to{transform:translateX(calc(-50% - 8px))} }
 @keyframes home-orb-drift { from{transform:translate3d(0,0,0) scale(1)} to{transform:translate3d(-24px,18px,0) scale(1.08)} }
 
@@ -129,3 +155,227 @@
   .home-refresh .home-final-cta { min-height:560px; }
 }
 @media(prefers-reduced-motion:reduce) { .home-refresh * { animation:none!important; transition:none!important; } .home-refresh.home-motion-ready .home-reveal { opacity:1; transform:none; } }
+
+/* Final artwork override: keep the supplied illustrated map above legacy map CSS. */
+.home-refresh .home-service-visual--journey {
+  background-color:#54c2ed!important;
+  background-image:url("/images/jeonnam-illustrated-map.png")!important;
+  background-repeat:no-repeat!important;
+  background-position:center bottom!important;
+  background-size:auto 115%!important;
+}
+.home-refresh .home-service-visual--journey::before {
+  content:""!important;
+  inset:0!important;
+  z-index:1!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 48%,rgba(43,171,223,.08))!important;
+  filter:none!important;
+  opacity:1!important;
+}
+.home-refresh .home-service-visual--journey::after {
+  content:""!important;
+  z-index:2!important;
+  inset:auto 0 0!important;
+  width:auto!important;
+  height:22%!important;
+  border-radius:0!important;
+  background:linear-gradient(180deg,transparent,rgba(24,154,214,.2))!important;
+  transform:none!important;
+  box-shadow:none!important;
+}
+.home-refresh .home-service-visual--journey .journey-cloud,
+.home-refresh .home-service-visual--journey .journey-sun,
+.home-refresh .home-service-visual--journey .journey-island,
+.home-refresh .home-service-visual--journey .journey-lighthouse,
+.home-refresh .home-service-visual--journey .journey-route-line { display:none!important; }
+.home-refresh .home-service-visual--journey .journey-bag { display:block!important; z-index:4; }
+.home-refresh .home-service-visual--journey .journey-compass { display:block!important; z-index:4; }
+.home-refresh .home-service-visual--journey .journey-palm--one,
+.home-refresh .home-service-visual--journey .journey-palm--two { display:block!important; z-index:4; }
+
+/* Illustrated Jeonnam map artwork with independent CSS motion layers. */
+.home-refresh .home-service-visual--journey {
+  background:#54c2ed url("/images/jeonnam-illustrated-map.png") center bottom / auto 115% no-repeat;
+}
+.home-refresh .home-service-visual--journey::before {
+  inset:0;
+  z-index:1;
+  background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 42%,rgba(43,171,223,.08));
+  filter:none;
+  opacity:1;
+}
+.home-refresh .home-service-visual--journey::after {
+  z-index:2;
+  inset:auto 0 0;
+  height:22%;
+  border-radius:0;
+  background:linear-gradient(180deg,transparent,rgba(24,154,214,.2));
+  transform:none;
+}
+.home-refresh .journey-cloud,.home-refresh .journey-sun,.home-refresh .journey-island,.home-refresh .journey-lighthouse,.home-refresh .journey-route-line { display:none; }
+.home-refresh .journey-bag,.home-refresh .journey-compass,.home-refresh .journey-palm--one,.home-refresh .journey-palm--two {
+  display:block;
+  z-index:4;
+  pointer-events:auto;
+  cursor:pointer;
+}
+.home-refresh .journey-bag {
+  left:8%; top:45%; width:90px; height:36px; border-radius:55% 45% 22% 22%;
+  background:#fff; border:4px solid #1b668c; box-shadow:0 8px 0 rgba(24,107,153,.2);
+  color:transparent; transform:rotate(-3deg); animation:map-boat-sail 9s ease-in-out infinite;
+}
+.home-refresh .journey-bag::before { content:""; position:absolute; left:13px; right:13px; top:-14px; height:14px; border-bottom:3px solid #1b668c; border-radius:50%; }
+.home-refresh .journey-bag::after { content:""; position:absolute; left:15px; bottom:-8px; width:60px; height:5px; border-radius:50%; background:rgba(255,255,255,.55); }
+.home-refresh .journey-compass {
+  left:62%; top:31%; width:58px; height:22px; border-radius:8px 18px 8px 18px;
+  background:linear-gradient(#fff,#cceaf1); border:3px solid #287da6; color:transparent;
+  box-shadow:0 7px 0 rgba(31,123,163,.18); transform:rotate(-8deg); animation:map-train-slide 7s ease-in-out infinite;
+}
+.home-refresh .journey-compass::before { content:""; position:absolute; left:-10px; bottom:-5px; width:10px; height:10px; border-radius:50%; background:#236b8e; box-shadow:58px 0 #236b8e; }
+.home-refresh .journey-compass::after { content:""; position:absolute; left:13px; top:5px; width:7px; height:7px; border-radius:50%; background:#ea7d91; box-shadow:14px 0 #ea7d91; }
+.home-refresh .journey-palm--one,.home-refresh .journey-palm--two {
+  width:40px; height:28px; border:3px solid #276b84; border-radius:50%; background:#f39a62;
+  transform:rotate(-12deg); animation:map-cablecar-sway 3.6s ease-in-out infinite;
+}
+.home-refresh .journey-palm--one { right:16%; top:65%; }
+.home-refresh .journey-palm--two { right:25%; top:64%; width:34px; height:24px; background:#f7bf65; animation-delay:-1.2s; }
+.home-refresh .journey-palm--one::before,.home-refresh .journey-palm--two::before { content:""; position:absolute; width:76px; height:2px; right:18px; top:-8px; background:#214f69; transform:rotate(-8deg); }
+.home-refresh .journey-palm--one:hover,.home-refresh .journey-palm--two:hover,.home-refresh .journey-bag:hover,.home-refresh .journey-compass:hover { animation-play-state:paused; filter:brightness(1.08); transform:scale(1.12) rotate(-4deg); }
+@keyframes map-boat-sail { 0%,100%{transform:translateX(0) rotate(-3deg)} 50%{transform:translateX(52px) translateY(-4px) rotate(2deg)} }
+@keyframes map-train-slide { 0%,100%{transform:translateX(-20px) rotate(-8deg)} 50%{transform:translateX(22px) rotate(-4deg)} }
+@keyframes map-cablecar-sway { 0%,100%{transform:translateY(-4px) rotate(-12deg)} 50%{transform:translateY(8px) rotate(7deg)} }
+@media(max-width:600px) {
+  .home-refresh .home-service-visual--journey { min-height:390px; background-size:auto 115%; }
+  .home-refresh .journey-bag { left:5%; top:48%; transform:scale(.8); }
+  .home-refresh .journey-compass { left:59%; top:29%; transform:scale(.8) rotate(-8deg); }
+  .home-refresh .journey-palm--one { right:11%; top:64%; transform:scale(.8); }
+  .home-refresh .journey-palm--two { right:24%; top:63%; transform:scale(.7); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .home-refresh .journey-bag,.home-refresh .journey-compass,.home-refresh .journey-palm--one,.home-refresh .journey-palm--two { animation:none; }
+}
+
+/* Jeonnam-only illustrated route map */
+.home-refresh .home-service-visual--journey {
+  min-height:510px;
+  overflow:hidden;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 18% 18%,rgba(255,255,255,.85) 0 3px,transparent 4px),
+    radial-gradient(circle at 84% 30%,rgba(255,255,255,.65) 0 2px,transparent 3px),
+    linear-gradient(180deg,#82cce0 0%,#a9deea 58%,#bfe8e7 100%);
+}
+.home-refresh .home-service-visual--journey::before {
+  content:"";
+  position:absolute;
+  z-index:1;
+  inset:58px 12% 30px;
+  background:url("/images/jeonnam-map.svg") center/contain no-repeat;
+  /* The source map has transparent paths with a black default fill. Recolor it
+     as a soft illustrated landmass so it never renders as a black blob. */
+  filter:brightness(0) saturate(100%) invert(73%) sepia(26%) saturate(690%) hue-rotate(126deg) brightness(91%) contrast(86%) drop-shadow(0 13px 0 rgba(28,111,132,.14));
+  opacity:.98;
+}
+.home-refresh .home-service-visual--journey::after {
+  content:"";
+  position:absolute;
+  z-index:0;
+  inset:auto -5% -4%;
+  height:38%;
+  border-radius:50% 50% 0 0;
+  background:repeating-linear-gradient(178deg,transparent 0 28px,rgba(255,255,255,.32) 29px 31px,transparent 32px 62px);
+  transform:rotate(-2deg);
+}
+.home-refresh .journey-cloud { z-index:4; opacity:.9; }
+.home-refresh .journey-cloud--one { top:28px; left:12%; }
+.home-refresh .journey-cloud--two { top:82px; right:12%; }
+.home-refresh .journey-sun { z-index:2; top:30px; right:22%; width:42px; height:42px; background:#ffd483; box-shadow:0 0 0 10px rgba(255,212,131,.24); }
+.home-refresh .journey-sea,.home-refresh .journey-palm,.home-refresh .journey-bag,.home-refresh .journey-compass { display:none; }
+.home-refresh .journey-island {
+  z-index:5;
+  width:48px;
+  height:48px;
+  border:4px solid #fff;
+  border-radius:50% 50% 50% 9px;
+  background:#ed7896;
+  box-shadow:0 8px 16px rgba(31,99,116,.22);
+  transform:rotate(-45deg);
+  transition:transform .3s ease,background .3s ease,box-shadow .3s ease;
+}
+.home-refresh .journey-island::before { content:"✦"; position:absolute; inset:0; display:grid; place-items:center; color:#fff; font-size:17px; transform:rotate(45deg); }
+.home-refresh .journey-island::after { content:"여행지"; top:-29px; left:50%; transform:translateX(-50%) translateY(5px); color:#285f72; background:#fff; opacity:0; transition:opacity .2s ease,transform .2s ease; }
+.home-refresh .journey-island:hover,.home-refresh .journey-island:focus-visible { background:#de5e7f; box-shadow:0 12px 22px rgba(31,99,116,.28); transform:rotate(-45deg) translateY(-8px) scale(1.12); outline:none; }
+.home-refresh .journey-island:hover::after,.home-refresh .journey-island:focus-visible::after { opacity:1; transform:translateX(-50%) translateY(0); }
+.home-refresh .journey-island--one { left:42%; bottom:42%; }
+.home-refresh .journey-island--two { right:26%; bottom:30%; width:44px; height:44px; background:#f0a54e; transform:rotate(-45deg); }
+.home-refresh .journey-island--two:hover,.home-refresh .journey-island--two:focus-visible { transform:rotate(-45deg) translateY(-8px) scale(1.12); }
+.home-refresh .journey-lighthouse { z-index:6; left:33%; bottom:49%; width:18px; height:45px; background:#fff; border:3px solid #34788b; transform:rotate(0); }
+.home-refresh .journey-lighthouse::before { top:-11px; left:-6px; width:24px; height:11px; background:#f28c6e; }
+.home-refresh .journey-lighthouse:hover { transform:translateY(-7px) rotate(-4deg); }
+.home-refresh .journey-route-line { z-index:5; left:35%; right:29%; bottom:37%; height:82px; border:2px dashed rgba(255,255,255,.9); border-bottom:0; background:none; border-radius:50% 50% 0 0; }
+.home-refresh .journey-route-line::before,.home-refresh .journey-route-line::after { width:14px; height:14px; }
+.home-refresh .journey-route-line::before { background:#4caeb4; }
+.home-refresh .journey-route-line::after { background:#f0a54e; }
+.home-refresh .journey-glass-card { display:none; }
+.home-refresh .home-service-visual--journey:focus-within { box-shadow:0 0 0 4px rgba(223,107,131,.18); }
+@media(max-width:600px) {
+  .home-refresh .home-service-visual--journey { min-height:390px; }
+  .home-refresh .home-service-visual--journey::before { inset:55px 5% 22px; }
+  .home-refresh .journey-island--one { left:39%; bottom:39%; }
+  .home-refresh .journey-island--two { right:22%; bottom:27%; }
+  .home-refresh .journey-lighthouse { left:27%; bottom:46%; }
+  .home-refresh .journey-route-line { left:30%; right:23%; bottom:34%; }
+}
+
+/* Last cascade layer: the supplied illustrated map is the visual source. */
+.home-refresh .home-service-visual--journey { background:#54c2ed url("/images/jeonnam-illustrated-map.png") center bottom / auto 115% no-repeat!important; }
+.home-refresh .home-service-visual--journey::before { inset:0!important; z-index:1!important; background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 48%,rgba(43,171,223,.08))!important; filter:none!important; opacity:1!important; }
+.home-refresh .home-service-visual--journey::after { inset:auto 0 0!important; width:auto!important; height:22%!important; border-radius:0!important; background:linear-gradient(180deg,transparent,rgba(24,154,214,.2))!important; transform:none!important; box-shadow:none!important; }
+.home-refresh .home-service-visual--journey .journey-cloud,.home-refresh .home-service-visual--journey .journey-sun,.home-refresh .home-service-visual--journey .journey-island,.home-refresh .home-service-visual--journey .journey-lighthouse,.home-refresh .home-service-visual--journey .journey-route-line { display:none!important; }
+.home-refresh .home-service-visual--journey .journey-bag,.home-refresh .home-service-visual--journey .journey-compass,.home-refresh .home-service-visual--journey .journey-palm--one,.home-refresh .home-service-visual--journey .journey-palm--two { display:block!important; z-index:4; }
+
+/* Static map artwork: no moving overlays or decorative animation. */
+.home-refresh .home-service-visual--journey .journey-bag,
+.home-refresh .home-service-visual--journey .journey-compass,
+.home-refresh .home-service-visual--journey .journey-palm--one,
+.home-refresh .home-service-visual--journey .journey-palm--two { display:none!important; animation:none!important; }
+.home-refresh .home-service-visual--journey,
+.home-refresh .home-service-visual--journey * { animation:none!important; transition:none!important; }
+
+.home-refresh .home-service-visual--photo {
+  overflow:visible!important;
+  margin:10px 0 24px 10px;
+  border:14px solid #fff;
+  border-bottom-width:42px;
+  border-radius:2px 4px 3px 5px;
+  box-shadow:0 20px 36px rgba(39,78,82,.16), 0 3px 8px rgba(39,78,82,.1);
+  transform:rotate(1.05deg);
+  transform-origin:center center;
+}
+.home-refresh .home-service-visual--photo > span { bottom:-29px; left:24px; color:#87918a; font-size:10px; letter-spacing:.18em; }
+@media(max-width:900px) {
+  .home-refresh .home-service-visual--photo { margin:8px 8px 18px; }
+}
+@media(max-width:600px) {
+  .home-refresh .home-service-visual--photo { margin:6px 5px 16px; border-width:9px; border-bottom-width:28px; transform:rotate(.8deg); }
+  .home-refresh .home-service-visual--photo > span { bottom:-20px; left:16px; }
+}
+
+/* Hand-held polaroid treatment for the map artwork. */
+.home-refresh .home-service-visual--journey {
+  overflow:visible!important;
+  margin:14px 10px 22px 0;
+  border:14px solid #fff;
+  border-bottom-width:42px;
+  border-radius:3px 2px 5px 4px;
+  box-shadow:0 20px 36px rgba(39,78,82,.16), 0 3px 8px rgba(39,78,82,.1);
+  transform:rotate(-1.15deg);
+  transform-origin:center center;
+}
+.home-refresh .home-service-visual--journey::after { bottom:0!important; }
+@media(max-width:900px) {
+  .home-refresh .home-service-visual--journey { margin:8px 8px 18px; }
+}
+@media(max-width:600px) {
+  .home-refresh .home-service-visual--journey { margin:6px 5px 16px; border-width:9px; border-bottom-width:28px; transform:rotate(-.8deg); }
+}

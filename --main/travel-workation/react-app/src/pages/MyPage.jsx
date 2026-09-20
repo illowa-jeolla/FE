@@ -1,4 +1,5 @@
 import "../styles/mypage-refresh.css";
+import "../styles/mypage-account.css";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { logoutFromBackend } from "../api/client";
