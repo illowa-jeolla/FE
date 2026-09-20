@@ -22,5 +22,5 @@
 .welcome-main .welcome-intro .welcome-step { padding:12px; }
 .welcome-main .welcome-intro .welcome-step .brand-character { width:80px; height:92px; margin-bottom:8px; }
 }
-/* The resting asset includes wide side margins; crop those margins without stretching. */
-.welcome-main .welcome-intro .welcome-step .brand-character--empty canvas { width:200%; max-width:none; margin-left:-50%; object-fit:contain; object-position:center; }
+/* The resting pose is cropped to its real source bounds in BrandCharacter, so it stays fully visible. */
+.welcome-main .welcome-intro .welcome-step .brand-character--empty canvas { width:100%; height:100%; object-fit:contain; object-position:center; }
