@@ -14,7 +14,7 @@ let communityPageCache = null;
 function PostCard({ post, onOpen }) {
   const images = postImages(post);
   const postId = post.postId || post.id;
-  return <button className="post-card" type="button" onClick={() => onOpen(postId)}><div className="community-post-visual">{images[0] ? <AuthenticatedImage src={images[0]} alt="" /> : <div className="post-image-fallback" aria-hidden="true" />}<time>{(post.createdAt || post.created_at)?.slice?.(0, 10)}</time><span>{post.regionName || post.region?.name || "전라도"}</span></div><div className="post-body"><h3>{post.title || post.concept || "전라도 여행 이야기"}</h3><p>{post.contentPreview || post.content}</p><div className="post-card-footer"><span>@{post.authorNickname || post.authorName || post.nickname || post.username || "여행자"}</span><span>조회 {post.viewCount || 0} · 댓글 {post.commentCount || post.comment_count || 0}</span></div></div></button>;
+  return <button className="post-card is-visible" type="button" onClick={() => onOpen(postId)}><div className="community-post-visual">{images[0] ? <AuthenticatedImage src={images[0]} alt="" /> : <div className="post-image-fallback" aria-hidden="true" />}<time>{(post.createdAt || post.created_at)?.slice?.(0, 10)}</time><span>{post.regionName || post.region?.name || "전라도"}</span></div><div className="post-body"><h3>{post.title || post.concept || "전라도 여행 이야기"}</h3><p>{post.contentPreview || post.content}</p><div className="post-card-footer"><span>@{post.authorNickname || post.authorName || post.nickname || post.username || "여행자"}</span><span>조회 {post.viewCount || 0} · 댓글 {post.commentCount || post.comment_count || 0}</span></div></div></button>;
 }
 
 export default function CommunityPage() {
@@ -77,29 +77,6 @@ export default function CommunityPage() {
     document.documentElement.classList.add("community-scroll-hidden");
     return () => document.documentElement.classList.remove("community-scroll-hidden");
   }, []);
-  useEffect(() => {
-    const cards = postsSectionRef.current?.querySelectorAll(".post-card");
-    if (!cards?.length) return undefined;
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
-      });
-    }, { threshold: 0.01, rootMargin: "0px 0px 12% 0px" });
-    cards.forEach((card, index) => {
-      card.style.setProperty("--community-reveal-delay", `${(index % 6) * 55}ms`);
-      observer.observe(card);
-    });
-    const visibilityFallback = window.setTimeout(() => {
-      cards.forEach((card) => card.classList.add("is-visible"));
-      observer.disconnect();
-    }, 700);
-    return () => {
-      window.clearTimeout(visibilityFallback);
-      observer.disconnect();
-    };
-  }, [displayedPosts.length]);
   useEffect(() => {
     const hero = heroRef.current;
     if (!hero) return undefined;
