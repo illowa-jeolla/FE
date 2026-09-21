@@ -232,6 +232,8 @@
   width:88px;
   height:88px;
   min-width:88px;
+  min-height:88px;
+  max-height:88px;
   aspect-ratio:1;
   overflow:hidden;
   border-radius:50%;
@@ -257,6 +259,8 @@
     width:64px;
     height:64px;
     min-width:64px;
+    min-height:64px;
+    max-height:64px;
   }
   .mypage-refresh .mypage-profile-copy {
     min-width:0;
