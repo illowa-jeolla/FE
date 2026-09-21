@@ -5,6 +5,10 @@ const guideView = document.querySelector("#travel-guide-content");
 const loadingMessage = document.querySelector("#travel-loading-message");
 const loadingSteps = [...document.querySelectorAll(".travel-loading-steps li")];
 const conditions = JSON.parse(sessionStorage.getItem("travelGuideConditions") || "{}");
+const JEONNAM_REGIONS = ["강진", "고흥", "곡성", "광양", "구례", "나주", "담양", "목포", "무안", "보성", "순천", "신안", "여수", "영광", "영암", "완도", "장성", "장흥", "진도", "함평", "해남", "화순"];
+const isJeonnamRegion = (value = "") => JEONNAM_REGIONS.some((region) => String(value).includes(region));
+const toJeonnamRegion = (value = "") => JEONNAM_REGIONS.find((region) => String(value).includes(region)) || "";
+const isJeonnamDestination = (item = {}, fallbackRegion = "") => isJeonnamRegion([item.region, item.regionName, item.address, item.location, fallbackRegion].filter(Boolean).join(" "));
 let guide = null;
 let guides = [];
 let activeDay = 0;
@@ -100,7 +104,7 @@ function unwrapGuideResponse(response) {
 
 function normalizeGuideResponse(response) {
   const data = unwrapGuideResponse(response) || {};
-  const region = data.regionName || data.region || conditions.regionName || conditions.region || "";
+  const region = toJeonnamRegion(data.regionName || data.region || conditions.regionName || conditions.region || "");
   const hotelValue = conditions.hotel;
   const hotel = typeof hotelValue === "object" && hotelValue ? hotelValue : { name: String(hotelValue || data.startLocation?.name || "출발지") };
   const days = (data.days || []).map((day) => {
@@ -111,8 +115,8 @@ function normalizeGuideResponse(response) {
       path: (segment.path || []).map((point) => ({ latitude: Number(point?.latitude), longitude: Number(point?.longitude) }))
         .filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude))
     }));
-    const spots = [...(day.items || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0)).map((item, index) => ({
-      contentId: String(item.contentId || ""), name: item.title || item.name || "관광지", address: item.address || "", category: item.category || "관광지",
+    const spots = [...(day.items || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0)).filter((item) => isJeonnamDestination(item, region)).map((item, index) => ({
+      contentId: String(item.contentId || ""), name: item.title || item.name || "관광지", region: toJeonnamRegion(item.region || item.regionName || item.address || region), address: item.address || "", category: item.category || "관광지",
       description: item.reason || item.description || "추천 관광지입니다.", latitude: Number(item.latitude), longitude: Number(item.longitude),
       imageUrl: item.thumbnailUrl || item.imageUrl || "", time: String(item.recommendedTime || item.time || "").slice(0, 5),
       stayMinutes: Number(item.stayMinutes) || 0, travelMinutes: Number(item.travelMinutes ?? routeSegments[index]?.durationMinutes) || 0,
@@ -121,6 +125,12 @@ function normalizeGuideResponse(response) {
     return { ...data, dayNumber: Number(day.dayNumber) || 1, region, hotel, tip: data.travelTip || data.tip || "", routeSegments, spots };
   });
   return { data, days };
+}
+
+function filterGuideSpots(currentGuide) {
+  if (!currentGuide) return currentGuide;
+  const region = toJeonnamRegion(currentGuide.region || conditions.region);
+  return { ...currentGuide, region, spots: (currentGuide.spots || []).filter((spot) => isJeonnamDestination(spot, region)) };
 }
 
 async function loadKakaoSdk() {
@@ -274,9 +284,12 @@ async function renderKakaoMap() {
 }
 
 function render() {
+  guide = filterGuideSpots(guide);
+  guides[activeDay] = guide;
+  if (!guide?.spots?.length) throw new Error("전라남도 지역의 관광지를 찾지 못했습니다.");
   document.querySelector("#guide-region-label").textContent = guide.region || "전라도";
-  const supportedJobRegions = ["여수", "순천", "목포", "전주", "광주", "군산", "남원", "담양", "해남", "보성", "완도"];
-  const jobRegion = supportedJobRegions.find((region) => String(guide.region || "").includes(region)) || guide.region || "";
+  const supportedJobRegions = JEONNAM_REGIONS;
+  const jobRegion = supportedJobRegions.find((region) => String(guide.region || "").includes(region)) || "";
   const jobsUrl = `map.html?view=search&region=${encodeURIComponent(jobRegion)}`;
   document.querySelector("#nearby-jobs-cta").href = jobsUrl;
   document.querySelector("#nearby-jobs-title").textContent = `${jobRegion || "추천 지역"} 주변에서 일자리도 찾아보세요`;
@@ -346,7 +359,8 @@ async function loadGuide(isRetry = false) {
       dayGuide.totalDistanceKm = Number(dayGuide.spots.reduce((total, spot) => total + Number(spot.distanceFromPreviousKm || 0), 0).toFixed(1));
       dayGuides.push(dayGuide); usedSpots.push(...(dayGuide.spots || []).map((spot) => spot.name));
     }
-    guides = dayGuides; activeDay = 0; guide = guides[0];
+    guides = dayGuides.map(filterGuideSpots).filter((dayGuide) => dayGuide.spots.length); activeDay = 0; guide = guides[0];
+    if (!guide) throw new Error("전라남도 지역의 관광지를 찾지 못했습니다.");
     kakaoRoadRouteSignature = ""; kakaoRoadPoints = []; kakaoDrivingLegs = []; kakaoDrivingSummary = null; returnRouteMode = false; kakaoReturnPoints = [];
     if (!conditions.region) conditions.region = guide.region;
     mapPositions(guide); activeSpot = 0; detailOpen = true;
@@ -403,7 +417,9 @@ placeSearchInput.addEventListener("input", () => {
   placeSearchTimer = setTimeout(async () => {
     try {
       const items = await request(`/api/destinations?region=${encodeURIComponent(guide.region || "")}&q=${encodeURIComponent(query)}`);
-      const available = items.filter((item) => !guide.spots.some((spot) => spot.name === item.name));
+      const available = items
+        .filter((item) => isJeonnamDestination(item, guide.region))
+        .filter((item) => !guide.spots.some((spot) => spot.name === item.name));
       results.innerHTML = available.length ? available.map((item) => `<button type="button" data-add-place="${escapeHtml(item.id)}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.region)} · ${escapeHtml(item.category)}</small></span><strong>추가</strong></button>`).join("") : '<p>추가할 수 있는 관광지가 없어요.</p>';
       results._items = available;
     } catch (error) { results.innerHTML = `<p>${escapeHtml(error.message)}</p>`; }
@@ -412,7 +428,8 @@ placeSearchInput.addEventListener("input", () => {
 document.querySelector("#travel-place-search-results").addEventListener("click", (event) => {
   const button = event.target.closest("[data-add-place]"); if (!button) return;
   const results = document.querySelector("#travel-place-search-results"); const item = (results._items || []).find((entry) => String(entry.id) === button.dataset.addPlace); if (!item) return;
-  guide.spots.push({ name: item.name, address: item.address || item.location || "", category: item.category || "관광", description: item.description || "새로 추가한 관광지입니다.", time: "", stayMinutes: 60, travelMinutes: 0, distanceFromPreviousKm: 0, latitude: Number(item.latitude), longitude: Number(item.longitude), imageUrl: item.imageUrl || "", sourceUrl: "", sourceTitle: "" });
+  if (!isJeonnamDestination(item, guide.region)) return;
+  guide.spots.push({ name: item.name, region: toJeonnamRegion(item.region || item.regionName || item.address || guide.region), address: item.address || item.location || "", category: item.category || "관광", description: item.description || "새로 추가한 관광지입니다.", time: "", stayMinutes: 60, travelMinutes: 0, distanceFromPreviousKm: 0, latitude: Number(item.latitude), longitude: Number(item.longitude), imageUrl: item.imageUrl || "", sourceUrl: "", sourceTitle: "" });
   activeSpot = guide.spots.length - 1; detailOpen = true; placeSearchModal.hidden = true; refreshEditedRoute();
 });
 document.querySelector("#travel-day-tabs").addEventListener("click", (event) => { const button = event.target.closest("[data-day]"); if (button) chooseDay(button.dataset.day, Number(button.dataset.day) > activeDay ? 1 : -1); });
@@ -462,7 +479,11 @@ let savedResult = null;
 try { savedResult = JSON.parse(sessionStorage.getItem("travelGuideResult") || "null"); }
 catch { sessionStorage.removeItem("travelGuideResult"); }
 if (savedResult?.guide) {
-  guides = savedResult.guides || savedResult.guide.days || [savedResult.guide];
+  guides = (savedResult.guides || savedResult.guide.days || [savedResult.guide]).map(filterGuideSpots).filter((dayGuide) => dayGuide.spots.length);
+  if (!guides.length) {
+    sessionStorage.removeItem("travelGuideResult");
+    loadGuide();
+  } else {
   activeDay = 0; guide = guides[0];
   isSavedGuide = isSavedGuide || Boolean(savedResult.saved);
   savedGuideId = savedGuideId || String(savedResult.savedGuideId || "");
@@ -473,6 +494,7 @@ if (savedResult?.guide) {
   loadingView.hidden = true;
   guideView.hidden = false;
   render();
+  }
 } else {
   loadGuide();
 }

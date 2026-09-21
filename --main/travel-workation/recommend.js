@@ -1,11 +1,15 @@
 const { request, setStatus, escapeHtml } = Workation;
 
+const JEONNAM_REGIONS = ["강진", "고흥", "곡성", "광양", "구례", "나주", "담양", "목포", "무안", "보성", "순천", "신안", "여수", "영광", "영암", "완도", "장성", "장흥", "진도", "함평", "해남", "화순"];
+const isJeonnamRegion = (value = "") => JEONNAM_REGIONS.some((region) => String(value).includes(region));
+const toJeonnamRegion = (value = "") => JEONNAM_REGIONS.find((region) => String(value).includes(region)) || "";
+const isJeonnamItem = (item = {}) => isJeonnamRegion([item.region, item.regionName, item.address, item.location].filter(Boolean).join(" "));
+
 const hotelSuggestions = {
   여수: ["여수 베네치아 호텔", "소노캄 여수", "유탑 마리나 호텔", "라마다 프라자 여수"],
-  전주: ["라한호텔 전주", "전주 왕의지밀", "베스트웨스턴 플러스 전주", "엔브릿지 호텔"],
   순천: ["에코그라드 호텔", "호텔 라움 순천", "순천만 스테이", "브라운도트 순천역점"]
 };
-const travelRegions = ["전라도 전체", "전주", "군산", "남원", "목포", "광주", "순천", "여수", "보성", "완도"];
+const travelRegions = ["전남 전체", ...JEONNAM_REGIONS];
 
 const form = document.querySelector("#travel-guide-form");
 const regionInput = document.querySelector("#travel-region");
@@ -132,7 +136,7 @@ document.addEventListener("pointerdown", (event) => {
 
 function renderRegionOptions(regions = travelRegions) {
   document.querySelector("#travel-region-options").innerHTML = regions.length
-    ? regions.map((region) => `<button type="button" data-region="${region === "전라도 전체" ? "" : region}"><span>${region}</span></button>`).join("")
+    ? regions.map((region) => `<button type="button" data-region="${region === "전남 전체" ? "" : region}"><span>${region}</span></button>`).join("")
     : '<p class="travel-region-empty">일치하는 지역이 없어요.</p>';
   syncSelectedRegion();
 }
@@ -190,12 +194,13 @@ function minutesLabel(minutes) {
 
 function fallbackHotels(query) {
   return Object.entries(hotelSuggestions).flatMap(([region, names]) => names.map((name) => ({ region, name, address: `${region} 추천 숙소` })))
+    .filter(isJeonnamItem)
     .filter(({ name, region }) => !query || name.includes(query) || region.includes(query));
 }
 
 function renderHotelResults(hotels, query, notice = "") {
   const custom = query ? `<button type="button" data-hotel="${escapeHtml(query)}" data-region="${escapeHtml(regionInput.value.trim())}"><span>⌕</span><span><b>‘${escapeHtml(query)}’ 직접 입력</b><small>입력한 숙소명으로 여행 코스를 만들어요</small></span><strong>→</strong></button>` : "";
-  const suggestions = hotels.map(({ region = "", name, address = "" }) => `<button type="button" data-hotel="${escapeHtml(name)}" data-region="${escapeHtml(region)}"><span>⌂</span><span><b>${escapeHtml(name)}</b><small>${escapeHtml(address || `${region} 숙소`)}</small></span><strong>→</strong></button>`).join("");
+  const suggestions = hotels.filter(isJeonnamItem).map(({ region = "", name, address = "" }) => `<button type="button" data-hotel="${escapeHtml(name)}" data-region="${escapeHtml(toJeonnamRegion(region || address))}"><span>⌂</span><span><b>${escapeHtml(name)}</b><small>${escapeHtml(address || `${region} 숙소`)}</small></span><strong>→</strong></button>`).join("");
   document.querySelector("#hotel-results-list").innerHTML = `${notice ? `<p class="hotel-search-empty">${escapeHtml(notice)}</p>` : ""}${custom}${suggestions}` || '<p class="hotel-search-empty">검색된 숙소가 없어요.</p>';
 }
 
@@ -212,7 +217,7 @@ function renderHotels() {
       const response = await fetch(`/api/hotels/search?${params}`, { signal: hotelSearchController.signal, headers: { Accept: "application/json" } });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "숙소를 검색하지 못했습니다.");
-      renderHotelResults(data.hotels || [], query);
+      renderHotelResults((data.hotels || []).filter(isJeonnamItem), query);
     } catch (error) {
       if (error.name === "AbortError") return;
       renderHotelResults(fallbackHotels(query), query, "실시간 검색에 연결하지 못해 추천 목록을 보여드려요.");
@@ -262,9 +267,16 @@ function chooseSpot(index) { activeSpot = Number(index); renderGuide(); }
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  const rawRegion = regionInput.value.trim();
+  const selectedRegion = toJeonnamRegion(rawRegion);
+  if (rawRegion && rawRegion !== "전남 전체" && !selectedRegion) {
+    setStatus(guideStatus, "전라남도 22개 시·군만 선택할 수 있어요.", "error");
+    return;
+  }
+  regionInput.value = selectedRegion;
   const themes = [...form.querySelectorAll('input[name="themes"]:checked')].map((input) => input.value);
   sessionStorage.setItem("travelGuideConditions", JSON.stringify({
-    region: regionInput.value.trim(), hotel: currentHotel, start: startInput.value, end: endInput.value, themes,
+    region: selectedRegion, hotel: currentHotel, start: startInput.value, end: endInput.value, themes,
     dailyPlaceCounts,
     transport: form.querySelector('input[name="transport"]:checked')?.value,
     companion: form.querySelector('input[name="companion"]:checked')?.value

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { externalJunnamJobPath } from "../api/jobs";
+import { createJobApplication, externalJunnamJobPath, getMyJobApplications } from "../api/jobs";
 import { hasSession } from "../auth/session";
 import { favoriteKey, useJobFavorites } from "../hooks/useJobFavorites";
 import { useApi } from "../hooks/useApi";
@@ -47,6 +47,10 @@ export default function JunnamJobDetailPage() {
   const favorites = useJobFavorites();
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const [favoriteToast, setFavoriteToast] = useState(null);
+  const [applicationBusy, setApplicationBusy] = useState(false);
+  const [applicationChecking, setApplicationChecking] = useState(false);
+  const [applicationRegistered, setApplicationRegistered] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState("");
   const [pageLeaving, setPageLeaving] = useState(false);
   const title = field(job, "title", "jobTitle", "일자리 상세");
   const category = field(job, "categoryName", "jobCategoryNm", "전남");
@@ -90,6 +94,18 @@ export default function JunnamJobDetailPage() {
   }, [favoriteToast]);
 
   useEffect(() => {
+    if (!valid || !favoriteExternalId || !hasSession()) return undefined;
+    let cancelled = false;
+    setApplicationChecking(true);
+    getMyJobApplications({ page: 0, size: 100 }).then((data) => {
+      const items = Array.isArray(data) ? data : data?.content || data?.applications || data?.items || [];
+      const exists = items.some((item) => String(item.source || "").toUpperCase() === "JUNNAM_PUBLIC_JOB" && String(item.externalId || "") === favoriteExternalId);
+      if (!cancelled) setApplicationRegistered(exists);
+    }).catch(() => {}).finally(() => { if (!cancelled) setApplicationChecking(false); });
+    return () => { cancelled = true; };
+  }, [valid, favoriteExternalId]);
+
+  useEffect(() => {
     const ids = ["working-conditions", "recruitment-conditions", "work-location", "application-guide"];
     let frame = 0;
     function updateActiveSection() {
@@ -122,6 +138,19 @@ export default function JunnamJobDetailPage() {
     } catch (requestError) { setFavoriteMessage(requestError.message); }
   }
 
+  async function registerApplication() {
+    if (!hasSession()) { setApplicationMessage("로그인 후 지원한 공고로 등록할 수 있어요."); return; }
+    if (applicationBusy || applicationRegistered) return;
+    setApplicationBusy(true);
+    setApplicationMessage("");
+    try {
+      await createJobApplication(favoritePayload);
+      setApplicationRegistered(true);
+      setApplicationMessage("지원한 공고로 등록했습니다. 마이페이지에서 확인할 수 있어요.");
+    } catch (requestError) { setApplicationMessage(requestError.message); }
+    finally { setApplicationBusy(false); }
+  }
+
   function returnToJobs(event) {
     event.preventDefault();
     if (pageLeaving) return;
@@ -144,7 +173,7 @@ export default function JunnamJobDetailPage() {
         <article className="job-location-card" id="work-location"><div><p className="eyebrow">근무지역</p><h2>{address || category}</h2><p>{address ? "공고에 안내된 주소를 기준으로 표시합니다." : "정확한 근무지는 담당자에게 확인해 주세요."}</p></div><JobKakaoMap address={address} title={title} /><div className="job-location-meta"><div><span>지역</span><strong>{category}</strong></div><div><span>담당</span><strong>{writer}</strong></div>{tel && <div><span>공고 기재 연락처</span><strong>{tel}</strong></div>}</div></article>
         <article className="job-duties-card" id="application-guide"><h2>지원방법</h2><div className="job-duty-row"><span>•</span><div><strong>공고 내용 확인</strong><p>업무 내용과 근무 조건이 본인에게 맞는지 확인해 주세요.</p></div></div><div className="job-duty-row"><span>•</span><div><strong>접수 일정 확인</strong><p>{deadline}까지 필요한 서류와 접수 방법을 확인해 주세요.</p></div></div>{homepageUrl && <div className="job-duty-row"><span>•</span><div><strong>원문 공고</strong><p><a href={homepageUrl} target="_blank" rel="noreferrer">최신 공고 확인하기 ↗</a></p></div></div>}</article>
         <BackendDataRows job={job} />
-        <section className="job-apply-card job-apply-card-inline job-apply-card-bottom"><div><p>관심 공고</p><h3>이 공고가 마음에 드나요?</h3><span>찜해두면 마이페이지에서 다시 확인할 수 있어요.</span></div><div className="job-apply-actions"><button className={`button job-favorite-button${favorited ? " is-favorite" : ""}`} type="button" disabled={favoriteBusy} aria-pressed={favorited} aria-label={favorited ? "일자리 찜취소" : "일자리 찜하기"} title={favorited ? "찜취소" : "찜하기"} onClick={toggleFavorite}><i aria-hidden="true">{favorited ? "♥" : "♡"}</i><b>{favorited ? "찜취소" : "찜하기"}</b></button></div>{(favoriteMessage || favorites.error) && <span role="status">{favoriteMessage || favorites.error}</span>}</section>
+        <section className="job-apply-card job-apply-card-inline job-apply-card-bottom"><div><p>지원 기록</p><h3>이 공고에 지원하셨나요?</h3><span>지원 여부를 기록하면 마이페이지에서 다시 확인할 수 있어요.</span></div><div className="job-apply-actions"><button className={`button job-application-button${applicationRegistered ? " is-applied" : ""}`} type="button" disabled={applicationBusy || applicationChecking || applicationRegistered} aria-pressed={applicationRegistered} onClick={registerApplication}>{applicationChecking ? "지원 여부 확인 중..." : applicationBusy ? "등록 중..." : applicationRegistered ? "✓ 이미 지원한 공고입니다" : "지원했어요"}</button><button className={`button job-favorite-button${favorited ? " is-favorite" : ""}`} type="button" disabled={favoriteBusy} aria-pressed={favorited} aria-label={favorited ? "일자리 찜취소" : "일자리 찜하기"} title={favorited ? "찜취소" : "찜하기"} onClick={toggleFavorite}><i aria-hidden="true">{favorited ? "♥" : "♡"}</i><b>{favorited ? "찜취소" : "찜하기"}</b></button></div>{(applicationMessage || favoriteMessage || favorites.error) && <span role="status">{applicationMessage || favoriteMessage || favorites.error}</span>}</section>
       </section>
     </div></>}</Status>
   </main>;

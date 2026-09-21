@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { externalTourJobPath } from "../api/jobs";
+import { createJobApplication, externalTourJobPath, getMyJobApplications } from "../api/jobs";
+import { hasSession } from "../auth/session";
 import { Status } from "../components/UI";
 import { useApi } from "../hooks/useApi";
 
@@ -65,6 +66,10 @@ export default function TourJobDetailPage() {
   const workplace = [value(job, "workplaceAddress", ""), value(job, "workplaceDetailAddress", "")].filter(Boolean).join(" ");
   const [activeSection, setActiveSection] = useState("tour-work");
   const [pageLeaving, setPageLeaving] = useState(false);
+  const [applicationBusy, setApplicationBusy] = useState(false);
+  const [applicationChecking, setApplicationChecking] = useState(false);
+  const [applicationRegistered, setApplicationRegistered] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState("");
 
   useEffect(() => {
     const ids = ["tour-work", "tour-recruit", "tour-location", "tour-apply", "tour-company"];
@@ -88,12 +93,38 @@ export default function TourJobDetailPage() {
     return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll", updateActiveSection); window.removeEventListener("resize", updateActiveSection); };
   }, [valid]);
 
+  useEffect(() => {
+    const externalId = String(job?.employmentInfoNo || job?.rawFields?.employmentInfoNo || employmentInfoNo || "");
+    if (!valid || !externalId || !hasSession()) return undefined;
+    let cancelled = false;
+    setApplicationChecking(true);
+    getMyJobApplications({ page: 0, size: 100 }).then((data) => {
+      const items = Array.isArray(data) ? data : data?.content || data?.applications || data?.items || [];
+      const exists = items.some((item) => String(item.source || "").toUpperCase() === "TOUR_JOB" && String(item.externalId || "") === externalId);
+      if (!cancelled) setApplicationRegistered(exists);
+    }).catch(() => {}).finally(() => { if (!cancelled) setApplicationChecking(false); });
+    return () => { cancelled = true; };
+  }, [valid, job?.employmentInfoNo, employmentInfoNo]);
+
   function returnToJobs(event) {
     event.preventDefault();
     if (pageLeaving) return;
     setPageLeaving(true);
     const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
     window.setTimeout(() => navigate(returnPath), delay);
+  }
+
+  async function registerApplication() {
+    if (!hasSession()) { setApplicationMessage("로그인 후 지원한 공고로 등록할 수 있어요."); return; }
+    if (applicationBusy || applicationRegistered) return;
+    setApplicationBusy(true);
+    setApplicationMessage("");
+    try {
+      await createJobApplication({ ...job, source: "TOUR_JOB", sourceUrl: detailUrl });
+      setApplicationRegistered(true);
+      setApplicationMessage("지원한 공고로 등록했습니다. 마이페이지에서 확인할 수 있어요.");
+    } catch (requestError) { setApplicationMessage(requestError.message); }
+    finally { setApplicationBusy(false); }
   }
 
   return <main className={`job-detail-main albamon-job-detail-main${valid ? " is-content-ready" : ""}${pageLeaving ? " is-page-leaving" : ""}`}>
@@ -106,6 +137,7 @@ export default function TourJobDetailPage() {
       <article className="job-detail-section-card" id="tour-apply"><h2>지원방법</h2><DetailRows rows={[["전형 방법", value(job, "selectionMethodContent")], ["접수 방법", value(job, "receptionMethod")], ["접수 안내", value(job, "etcReceptionMethodDescription")], ["제출 서류", value(job, "submissionDocumentContent")], ["외국어", value(job, "foreignLanguageLevel")], ["관련 전공·경력", value(job, "majorName")], ["자격·우대", value(job, "licenseContent")], ["기타 우대", value(job, "etcPreferenceContent")], ["컴퓨터 활용", value(job, "computerAbilityContent")], ["병역", value(job, "militaryServiceExperience")]]} /></article>
       <article className="job-detail-section-card" id="tour-company"><h2>기업정보</h2><p style={{ whiteSpace: "pre-wrap" }}>{value(job, "companyIntroContent", "기업 소개가 제공되지 않았습니다.")}</p><DetailRows rows={[["회사 주소", value(job, "companyAddress")], ["주요 사업", value(job, "primaryBusinessContent")], ["근로자 수", value(job, "workerCountInfo")], ["자본금", value(job, "capitalAmount")], ["연 매출", value(job, "annualSalesAmount")], ["팩스", value(job, "managerFaxNo")]]} /></article>
       <BackendDataRows job={job} />
+      <section className="job-apply-card job-apply-card-inline job-apply-card-bottom"><div><p>지원 기록</p><h3>이 공고에 지원하셨나요?</h3><span>지원 여부를 기록하면 마이페이지에서 다시 확인할 수 있어요.</span></div><div className="job-apply-actions"><button className={`button job-application-button${applicationRegistered ? " is-applied" : ""}`} type="button" disabled={applicationBusy || applicationChecking || applicationRegistered} aria-pressed={applicationRegistered} onClick={registerApplication}>{applicationChecking ? "지원 여부 확인 중..." : applicationBusy ? "등록 중..." : applicationRegistered ? "✓ 이미 지원한 공고입니다" : "지원했어요"}</button></div>{applicationMessage && <span role="status">{applicationMessage}</span>}</section>
     </div></>}</Status>
   </main>;
 }

@@ -39,6 +39,12 @@ export default function SiteLayout() {
     setSession({ status: hasSession() ? "authenticated" : "guest", user: getSessionUser() });
   }, [location.pathname]);
 
+  useEffect(() => {
+    const refreshSessionUser = () => setSession({ status: hasSession() ? "authenticated" : "guest", user: getSessionUser() });
+    window.addEventListener("session-user-changed", refreshSessionUser);
+    return () => window.removeEventListener("session-user-changed", refreshSessionUser);
+  }, []);
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -49,13 +55,20 @@ export default function SiteLayout() {
           <span aria-hidden="true">{open ? "×" : "☰"}</span>
         </button>
         <nav className={`main-nav${open ? " is-open" : ""}`} aria-label="주요 메뉴">
-          <Link to="/" onClick={() => setOpen(false)}>홈</Link>
-          {navigation.map(([label, path]) => <NavLink key={path} to={path} onClick={() => setOpen(false)}>{label}</NavLink>)}
+          <NavLink className="nav-home-link" to="/" onClick={() => setOpen(false)}>홈</NavLink>
+          <span className="nav-separator" aria-hidden="true" />
+          <div className="nav-group" aria-label="지역 탐색">
+            {navigation.slice(0, 3).map(([label, path]) => <NavLink key={path} to={path} onClick={() => setOpen(false)}>{label}</NavLink>)}
+          </div>
+          <span className="nav-separator" aria-hidden="true" />
+          <div className="nav-group" aria-label="커뮤니티">
+            {navigation.slice(3).map(([label, path]) => <NavLink key={path} to={path} onClick={() => setOpen(false)}>{label}</NavLink>)}
+          </div>
         </nav>
         {signedIn ? (
-          <Link className="button button-small button-ghost header-nickname-link" to="/mypage">{accountLabel}</Link>
+          <NavLink className="header-account-link header-nickname-link" to="/mypage"><span className="header-account-avatar" aria-hidden="true"><img src="/brand/empty-character.png" alt="" /></span><span><small>MY PAGE</small><b>{accountLabel}</b></span><i aria-hidden="true">→</i></NavLink>
         ) : (
-          <Link className="button button-small button-ghost" to="/auth">로그인</Link>
+          <NavLink className="header-account-link header-login-link" to="/auth"><span className="header-account-avatar" aria-hidden="true">♡</span><span><small>ACCOUNT</small><b>로그인</b></span><i aria-hidden="true">→</i></NavLink>
         )}
       </header>
       <Outlet />

@@ -88,6 +88,7 @@
 .mypage-main.mypage-refresh { background:#faf9fc; }
 .mypage-refresh .mypage-avatar-initials { background:linear-gradient(135deg,#f9dce6,#e6def8 65%,#dceee9); color:#806079; }
 .mypage-refresh .mypage-avatar { background:#f7eaf2; box-shadow:0 6px 20px #ad88b01a; }
+.mypage-refresh .mypage-avatar .mypage-default-avatar { object-fit:cover; object-position:center; background:#fbeef4; }
 .mypage-refresh .mypage-profile-copy > span,.mypage-refresh .mypage-kicker { color:#97748e; }
 .mypage-main.mypage-refresh .mypage-profile-card { background:linear-gradient(155deg,#fff7fa,#fff 65%); }
 .mypage-refresh .mypage-layout > .mypage-tabs { border-top-color:#f1e7f0; background:#fffdfd; }
@@ -106,6 +107,15 @@
 .mypage-refresh #nickname-form button { background:#f1dce8; border-color:#e8cddd; color:#72536b; }
 .mypage-refresh .mypage-gathering-filters button.is-active { background:#ede3f7; color:#79618c; border-color:#decfeb; }
 .mypage-refresh .job-favorite-button.is-favorite { background:#fae8ee; color:#a46786; border-color:#efd8e4; }
+.mypage-refresh .mypage-application-status { margin:16px 0 4px; padding:14px; display:grid; gap:10px; border:1px solid #eadfe9; border-radius:11px; background:linear-gradient(135deg,#fff9fc,#fff); color:#745d6d; font-size:11px; font-weight:750; }
+.mypage-refresh .mypage-application-status > span { color:#8d687d; font-size:10px; letter-spacing:.08em; }
+.mypage-refresh .mypage-application-status-options { display:flex; flex-wrap:wrap; gap:6px; }
+.mypage-refresh .mypage-application-status-options button { min-height:34px; padding:0 11px; border:1px solid #ead2df; border-radius:18px; color:#80566d; background:#fff; font-size:10px; font-weight:750; transition:.18s ease; }
+.mypage-refresh .mypage-application-status-options button:hover:not(:disabled) { border-color:#dc91b4; color:#9f3969; background:#fff0f7; transform:translateY(-1px); }
+.mypage-refresh .mypage-application-status-options button.is-active { border-color:#df6ea1; color:#fff; background:#df6ea1; box-shadow:0 5px 12px #c95e8e26; }
+.mypage-refresh .mypage-application-status-options button:disabled { cursor:wait; opacity:.65; }
+.mypage-refresh .mypage-application-status-options button.is-active:disabled { opacity:1; }
+.mypage-refresh .mypage-application-status small { color:#9b8793; font-size:9px; font-weight:500; }
 .mypage-refresh :is(button,a,input):focus-visible { outline-color:#a782a3!important; }
 @media(hover:hover) {
   .mypage-refresh .mypage-layout > .mypage-tabs button:hover { background:#f6effa; border-color:#e9dcee; }
@@ -151,4 +161,39 @@
   .mypage-refresh #nickname-form,
   .mypage-refresh .mypage-card-list,
   .mypage-refresh .mypage-card-list > article { min-width:0; max-width:100%; }
+}
+
+/* Desktop side gutters: editorial image on the left, quiet archive card on the right. */
+.mypage-refresh .mypage-side-panel {
+  position:fixed;
+  z-index:1;
+  top:76px;
+  bottom:0;
+  width:max(calc((100vw - 1240px) / 2),0px);
+  padding:24px 18px;
+  pointer-events:none;
+}
+.mypage-refresh .mypage-side-panel-left { left:0; }
+.mypage-refresh .mypage-side-panel-left img {
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position:22% center;
+  border:1px solid #d9dbde;
+  border-radius:22px;
+  filter:saturate(.72) contrast(.96);
+  box-shadow:0 14px 36px #00000016;
+}
+@media(min-width:1500px) {
+  .mypage-main.mypage-refresh {
+    width:calc(100% - ((100vw - 1240px) / 2));
+    max-width:none;
+    margin-left:calc((100vw - 1240px) / 2);
+    margin-right:0;
+    padding-right:48px;
+  }
+}
+@media(max-width:1499px) {
+  .mypage-refresh .mypage-side-panel { display:none; }
 }
