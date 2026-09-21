@@ -149,13 +149,13 @@ body > footer { min-height: 110px; padding: 24px clamp(24px, 6vw, 88px); display
 @media (max-width: 760px) { .header-account-actions { gap: 5px; }.header-mypage-link { min-height: 34px; padding-inline: 9px; font-size: 10px; }.header-nickname-link { min-width: 0; } }
 
 /* Header navigation: clearly separated discovery, community and account areas. */
-.main-nav { gap: 10px; }
-.main-nav .nav-group { min-height: 42px; padding: 4px; display:flex; align-items:center; gap:2px; border:1px solid #f2dfe8; border-radius:13px; background:#fff9fc; }
-.main-nav a { min-height:34px; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; border-radius:9px; transition:color .18s ease,background .18s ease,box-shadow .18s ease; }
+.main-nav { gap:18px; justify-content:center; }
+.main-nav .nav-group { display:contents; }
+.main-nav .nav-separator { display:none; }
+.main-nav a { min-height:42px; padding:0 14px; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; transition:color .18s ease,background .18s ease,box-shadow .18s ease; }
 .main-nav .nav-home-link { border:1px solid transparent; }
-.main-nav a:hover { color:#a83f71; background:#fff0f7; }
-.main-nav a[aria-current="page"] { color:#91335f; background:#f9dbe9; box-shadow:inset 0 0 0 1px #efbfd4; }
-.main-nav .nav-separator { width:1px; height:24px; background:#ead9e2; }
+.main-nav a:hover { color:#a83f71; background:#fff9fc; }
+.main-nav a[aria-current="page"] { color:#a84777; background:#fffafd; box-shadow:inset 0 0 0 1px #f8dce8; }
 .header-account-link { min-width:174px; min-height:52px; padding:6px 10px 6px 7px; justify-self:end; display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:9px; border:1px solid #efbfd4; border-radius:14px; color:#71304f; background:linear-gradient(135deg,#fff,#fff0f7); box-shadow:0 5px 16px rgba(126,52,87,.07); transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
 .header-account-link:hover { transform:translateY(-1px); border-color:#df8eb3; box-shadow:0 9px 20px rgba(126,52,87,.12); }
 .header-account-link.active { border-color:#d978a5; background:linear-gradient(135deg,#fff0f7,#f8dbe9); }
