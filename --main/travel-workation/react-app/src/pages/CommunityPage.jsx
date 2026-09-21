@@ -7,6 +7,7 @@ import AuthenticatedImage from "../components/AuthenticatedImage";
 import CommunityDetailPage from "./CommunityDetailPage";
 import { getRegions } from "../api/regions";
 import { publishTravelPostDraft, saveTravelPostDraft, startTravelPostDraft, uploadTravelPostDraftImage } from "../api/travelPosts";
+import { clearApiCache } from "../api/client";
 
 let communityPageCache = null;
 
@@ -50,7 +51,7 @@ export default function CommunityPage() {
   const [returningToDropzone, setReturningToDropzone] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(() => new URLSearchParams(location.search).get("post") || "");
   const path = "/api/v1/community/travel-posts?page=0&size=12&sort=createdAt,desc";
-  const { data, loading, error, run, setData } = useApi(null, { immediate: false });
+  const { data, loading, error, run } = useApi(null, { immediate: false });
   const posts = Array.isArray(data?.content) ? data.content : asList(data, "posts");
   const sortedPosts = [...posts].sort((left, right) => {
     const rightTime = new Date(right.createdAt || right.created_at || 0).getTime() || 0;
@@ -65,7 +66,8 @@ export default function CommunityPage() {
     setSelectedPostId(new URLSearchParams(location.search).get("post") || "");
   }, [location.search]);
   useEffect(() => {
-    if (communityPageCache?.data) setData(communityPageCache.data);
+    clearApiCache();
+    communityPageCache = null;
     run(path).then((result) => { communityPageCache = { data: result }; }).catch(() => {});
   }, []);
   useEffect(() => {
