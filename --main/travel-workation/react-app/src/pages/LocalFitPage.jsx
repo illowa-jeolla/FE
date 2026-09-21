@@ -497,7 +497,19 @@ export default function LocalFitPage() {
 
         <section className="ai-result-section">
           <header><span>03</span><div><small>주변 관광지</small><h2>{item.places?.length || 0}곳의 생활권 주변 장소</h2></div></header>
-          {item.places?.length ? <div className="ai-result-place-list">{item.places.map((place, index) => <article key={`${place.name}-${index}`}><b>{String(index + 1).padStart(2, "0")}</b><div><h3>{place.name}</h3><p>{place.category || place.region || place.reason || "생활권 주변 추천 장소"}</p></div></article>)}</div> : <p className="ai-result-empty-new">추천 가능한 주변 관광지 정보가 없습니다.</p>}
+          {item.places?.length ? <div className="ai-result-place-list">{item.places.map((place, index) => {
+            const imageUrl = place.imageUrl || place.thumbnailUrl || place.firstImage || place.firstImageThumbnail || place.image;
+            const address = place.address || place.roadAddress || place.addr1 || "주소 정보 없음";
+            return <article key={`${place.name}-${index}`}>
+              {imageUrl && <img src={imageUrl} alt={`${place.name} 관광지`} loading="lazy" />}
+              <div className="ai-result-place-copy">
+                <b>{String(index + 1).padStart(2, "0")}</b>
+                <h3>{place.name}</h3>
+                <address>{address}</address>
+                <p>{place.reason || "이 생활권에서 함께 둘러보기 좋은 추천 관광지입니다."}</p>
+              </div>
+            </article>;
+          })}</div> : <p className="ai-result-empty-new">추천 가능한 주변 관광지 정보가 없습니다.</p>}
         </section>
 
         <section className="ai-result-conditions-new"><div><small>선호 지역</small><strong className="ai-condition-region">{selectedRegion?.name || item.region?.name || "전체"}</strong></div><div><small>선택 직무</small><strong>{jobInterests.join(" · ") || "선택 정보 없음"}</strong></div><div><small>생활 우선순위</small><strong>{priorities.map((value, index) => `${index + 1}. ${priorityOptions.find(([key]) => key === value)?.[1]}`).join("  ·  ") || "선택 정보 없음"}</strong></div></section>
