@@ -225,3 +225,41 @@
 @media(max-width:1499px) {
   .mypage-refresh .mypage-side-panel { display:none; }
 }
+
+/* Social-login avatar guard: external provider images must never change the card layout. */
+.mypage-refresh .mypage-avatar {
+  flex:0 0 88px;
+  width:88px;
+  height:88px;
+  min-width:88px;
+  aspect-ratio:1;
+  overflow:hidden;
+  border-radius:50%;
+  isolation:isolate;
+}
+.mypage-refresh .mypage-avatar > img {
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  object-fit:cover;
+  object-position:center;
+  border-radius:inherit;
+}
+.mypage-refresh .mypage-avatar > .mypage-default-avatar {
+  padding:5px;
+  object-fit:contain;
+  background:#fbeef4;
+}
+@media(max-width:600px) {
+  .mypage-refresh .mypage-avatar {
+    flex-basis:64px;
+    width:64px;
+    height:64px;
+    min-width:64px;
+  }
+  .mypage-refresh .mypage-profile-copy {
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+}

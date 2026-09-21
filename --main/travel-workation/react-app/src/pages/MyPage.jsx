@@ -63,6 +63,35 @@ function gatheringStatus(item) {
   return "참여 중";
 }
 
+function profileImageUrl(user = {}) {
+  const socialProfile = user.socialProfile || user.profile || user.properties || {};
+  const candidates = [
+    user.avatarUrl,
+    user.profileImageUrl,
+    user.profileImage,
+    user.profileImageURL,
+    user.imageUrl,
+    user.picture,
+    socialProfile.avatarUrl,
+    socialProfile.profileImageUrl,
+    socialProfile.profileImage,
+    socialProfile.imageUrl,
+    socialProfile.picture
+  ];
+  return candidates.find((value) => typeof value === "string" && value.trim())?.trim() || "";
+}
+
+function ProfileAvatar({ src, name }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [src]);
+
+  if (!src || failed) {
+    return <img className="mypage-default-avatar" src="/brand/empty-character.png" alt="일로와 전라 강아지 로고" />;
+  }
+
+  return <img src={src} alt={`${name} 프로필`} referrerPolicy="no-referrer" decoding="async" onError={() => setFailed(true)} />;
+}
+
 export default function MyPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -87,7 +116,7 @@ export default function MyPage() {
   const user = profileData || sessionUser;
   const email = user.email || user.username || sessionUser.email || "";
   const displayName = user.nickname || user.name || sessionUser.name || email.split("@")[0] || "여행자";
-  const avatarUrl = user.avatarUrl || "";
+  const avatarUrl = profileImageUrl(user);
   const savedGuides = pageItems(savedGuideData, "guides");
   const applications = pageItems(applicationData, "applications");
   const myPosts = pageItems(myPostData, "posts");
@@ -204,7 +233,7 @@ export default function MyPage() {
   return <main className="mypage-main mypage-refresh">
     <aside className="mypage-side-panel mypage-side-panel-left" aria-hidden="true"><img src="/마이페이지.png" alt="" /></aside>
     {applicationDeleteTarget && <div className="mypage-application-delete-modal"><button className="mypage-application-delete-backdrop" type="button" aria-label="삭제 확인 창 닫기" disabled={Boolean(deletingApplicationId)} onClick={() => setApplicationDeleteTarget(null)} /><section role="dialog" aria-modal="true" aria-labelledby="application-delete-title"><span className="mypage-application-delete-icon" aria-hidden="true">!</span><small>APPLICATION RECORD</small><h2 id="application-delete-title">지원 기록을 삭제할까요?</h2><p><strong>{applicationDeleteTarget.title || applicationDeleteTarget.jobTitle || "선택한 공고"}</strong>의 지원 상태와 기록이 모두 삭제됩니다.</p><em>삭제한 기록은 되돌릴 수 없습니다.</em><div><button type="button" disabled={Boolean(deletingApplicationId)} onClick={() => setApplicationDeleteTarget(null)}>취소</button><button className="is-danger" type="button" disabled={Boolean(deletingApplicationId)} onClick={() => cancelApplication(applicationDeleteTarget, true)}>{deletingApplicationId ? "삭제 중..." : "지원 기록 삭제"}</button></div></section></div>}
-    <section className="mypage-profile-card"><div className="mypage-avatar">{avatarUrl ? <img src={avatarUrl} alt={`${displayName} 프로필`} /> : <img className="mypage-default-avatar" src="/brand/empty-character.png" alt="일로와 전라 강아지 로고" />}</div><div className="mypage-profile-copy"><span>MY LOCAL LIFE</span><h1>{displayName}님의 전라도 이야기</h1><p className="mypage-profile-description">여행의 추억부터 새로운 일까지, 나의 활동을 한곳에서 확인해요.</p><p>{email || "이메일 정보 없음"}</p></div><div className="mypage-profile-actions"><button onClick={logout}>로그아웃</button></div></section>
+    <section className="mypage-profile-card"><div className="mypage-avatar"><ProfileAvatar src={avatarUrl} name={displayName} /></div><div className="mypage-profile-copy"><span>MY LOCAL LIFE</span><h1>{displayName}님의 전라도 이야기</h1><p className="mypage-profile-description">여행의 추억부터 새로운 일까지, 나의 활동을 한곳에서 확인해요.</p><p>{email || "이메일 정보 없음"}</p></div><div className="mypage-profile-actions"><button onClick={logout}>로그아웃</button></div></section>
     <FormMessage message={message} />
     <section className="mypage-layout"><nav className="mypage-tabs" aria-label="나의 활동">{tabs.map(([key, label], index) => <button className={tab === key ? "is-active" : ""} onClick={() => setTab(key)} aria-current={tab === key ? "page" : undefined} key={key}><span className="mypage-tab-character" aria-hidden="true"><span className="mypage-tab-mark">{String(index + 1).padStart(2, "0")}</span></span><span className="mypage-tab-label">{label}</span>{tabCounts[key] != null && <b>{tabCounts[key]}</b>}</button>)}</nav><div className="mypage-panels"><section className="mypage-panel is-active">
       {tab === "profile" && <><span className="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>서비스에서 사용할 닉네임을 변경할 수 있어요.</p>{profileLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>내 정보를 불러오는 중입니다.</div> : profileError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>내 정보를 불러오지 못했습니다.</strong><p>{profileError}</p></div> : <form id="nickname-form" onSubmit={changeNickname}><label>아이디<input value={email || "이메일 정보 없음"} readOnly /></label><label htmlFor="mypage-nickname">닉네임<input id="mypage-nickname" name="nickname" defaultValue={displayName} maxLength="10" autoComplete="nickname" required /></label><button type="submit">닉네임 저장</button></form>}</>}
