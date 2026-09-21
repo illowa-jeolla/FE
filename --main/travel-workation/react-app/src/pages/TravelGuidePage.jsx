@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { hasSession } from "../auth/session";
 import KakaoRouteMap from "../components/KakaoRouteMap";
 import { getSavedTravelGuide, getSavedTravelGuides, getTourPlaceDetail, getTravelGuideDraft, removeSavedTravelGuide, requestTravelGuideAlternative, requestTravelRecommendation, saveTravelGuideDraft, waitForTravelRecommendation } from "../api/travelRecommendations";
+import { isJeonnamTravelItem, jeonnamRegionName } from "../data/jeonnam";
 
 function dayLabel(start, index) { if (!start) return ""; const date = new Date(`${start}T00:00:00`); date.setDate(date.getDate() + index); return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`; }
 function formatDate(value) { if (!value) return "미정"; return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(`${value}T00:00:00`)); }
@@ -23,11 +24,21 @@ function normalizeDraft(detail, conditions) {
   const endLocation = detail.endLocation || conditions.endLocation;
   return days.map((day, dayIndex) => {
     const routeSegments = [...(day.routeSegments || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0)).map((segment) => ({ ...segment, distanceMeters: Number(segment.distanceMeters || 0), durationMinutes: Number(segment.durationMinutes || 0), estimated: Boolean(segment.estimated), path: (segment.path || []).map((point) => ({ latitude: Number(point.latitude), longitude: Number(point.longitude) })) }));
-    const items = [...(day.items || [])].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    const region = jeonnamRegionName(detail.regionName || conditions.regionName || "");
+    const items = [...(day.items || [])]
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .filter((item) => isJeonnamTravelItem(item, region));
     const isLastDay = dayIndex === days.length - 1;
     const destination = isLastDay ? endLocation : hotel;
-    return { region: detail.regionName || conditions.regionName || "전라도", hotel: { name: hotel?.name || "추천 출발지", address: hotel?.address || "", latitude: hotel?.latitude, longitude: hotel?.longitude }, routeStart: dayIndex === 0 ? (startLocation || hotel) : hotel, routeDestination: destination, destinationLabel: isLastDay ? (destination?.name || "마지막 날 도착지") : "숙소로 복귀", isLastDay, tip: detail.travelTip || "여행 전 운영 시간과 이동 방법을 확인해 주세요.", routeSegments, spots: items.map((item, index) => { const segment = routeSegments[index]; return { contentId: String(item.contentId || ""), name: item.title || item.name, address: item.address || "", category: item.category || "관광지", description: item.reason || item.description || "추천 관광지입니다.", latitude: Number(item.latitude), longitude: Number(item.longitude), imageUrl: item.thumbnailUrl || item.firstImage || "", sourceUrl: item.sourceUrl || item.homepageUrl || item.detailUrl || "", sourceTitle: item.sourceTitle || "상세 정보", stayMinutes: Number(item.stayMinutes || 0), travelMinutes: Number(segment?.durationMinutes ?? item.travelMinutes ?? 0), distanceFromPreviousKm: Number(segment ? Number(segment.distanceMeters || 0) / 1000 : item.distanceFromPreviousKm || 0), routeEstimated: Boolean(segment?.estimated) }; }) };
+    return { region: region || "전남", hotel: { name: hotel?.name || "추천 출발지", address: hotel?.address || "", latitude: hotel?.latitude, longitude: hotel?.longitude }, routeStart: dayIndex === 0 ? (startLocation || hotel) : hotel, routeDestination: destination, destinationLabel: isLastDay ? (destination?.name || "마지막 날 도착지") : "숙소로 복귀", isLastDay, tip: detail.travelTip || "여행 전 운영 시간과 이동 방법을 확인해 주세요.", routeSegments, spots: items.map((item, index) => { const segment = routeSegments[index]; return { contentId: String(item.contentId || ""), name: item.title || item.name, region: jeonnamRegionName(item.region || item.regionName || item.address || region), address: item.address || "", category: item.category || "관광지", description: item.reason || item.description || "추천 관광지입니다.", latitude: Number(item.latitude), longitude: Number(item.longitude), imageUrl: item.thumbnailUrl || item.firstImage || "", sourceUrl: item.sourceUrl || item.homepageUrl || item.detailUrl || "", sourceTitle: item.sourceTitle || "상세 정보", stayMinutes: Number(item.stayMinutes || 0), travelMinutes: Number(segment?.durationMinutes ?? item.travelMinutes ?? 0), distanceFromPreviousKm: Number(segment ? Number(segment.distanceMeters || 0) / 1000 : item.distanceFromPreviousKm || 0), routeEstimated: Boolean(segment?.estimated) }; }) };
   });
+}
+
+function filterJeonnamGuides(items, fallbackRegion = "") {
+  return (items || []).map((day) => {
+    const region = jeonnamRegionName(day?.region || fallbackRegion);
+    return { ...day, region: region || "전남", spots: (day?.spots || []).filter((spot) => isJeonnamTravelItem(spot, region)) };
+  }).filter((day) => day.spots.length);
 }
 
 function recommendationPayload(conditions) {
@@ -50,8 +61,9 @@ export default function TravelGuidePage() {
   const location = useLocation();
   const restored = useMemo(() => { try { return JSON.parse(sessionStorage.getItem("travelGuideResult") || "null"); } catch { return null; } }, []);
   const conditions = useMemo(() => location.state || restored?.conditions || JSON.parse(sessionStorage.getItem("travelGuideConditions") || "{}"), [location.state, restored]);
-  const validRestored = Boolean((restored?.guides || restored?.guide?.days || [restored?.guide]).filter(Boolean).some((item) => item?.spots?.length));
-  const [guides, setGuides] = useState(validRestored ? (restored?.guides || restored?.guide?.days || [restored.guide]) : []);
+  const restoredGuides = useMemo(() => filterJeonnamGuides((restored?.guides || restored?.guide?.days || [restored?.guide]).filter(Boolean), conditions.regionName), [restored, conditions.regionName]);
+  const validRestored = Boolean(restoredGuides.length);
+  const [guides, setGuides] = useState(validRestored ? restoredGuides : []);
   const [activeDay, setActiveDay] = useState(0);
   const [active, setActive] = useState(0);
   const [hoveredSpotIndex, setHoveredSpotIndex] = useState(null);
@@ -105,7 +117,7 @@ export default function TravelGuidePage() {
       const nextDraftId = response.draftId || response.travelGuideDraftId || response.guideDraftId || generatedDraftId;
       const detail = response.days?.length ? response : await getTravelGuideDraft(nextDraftId);
       logGuideJson(response.days?.length ? "travel guide detail response" : `GET /api/v1/travel-guides/drafts/${nextDraftId} response`, detail);
-      const next = normalizeDraft(detail, conditions);
+      const next = filterJeonnamGuides(normalizeDraft(detail, conditions), conditions.regionName);
       if (!next.some((day) => day.spots.length)) throw new Error("추천 API에서 관광지 결과를 받지 못했습니다.");
       setGeneratedDraftId(String(nextDraftId)); setRefreshAvailable(Boolean(detail.refreshAvailable)); setGuides(next); setAttempt(nextAttempt); setSaved(false); setSavedId(""); remember(next, { attempt: nextAttempt, saved: false, savedGuideId: "", draftId: String(nextDraftId), refreshAvailable: Boolean(detail.refreshAvailable) });
     } catch (requestError) {
@@ -121,7 +133,7 @@ export default function TravelGuidePage() {
       .then((detail) => {
         if (!active) return;
         logGuideJson(guideId ? `GET /api/v1/travel-guides/${guideId} response` : `GET /api/v1/travel-guides/drafts/${draftId} response`, detail);
-        const backendDays = normalizeDraft(detail, conditions);
+        const backendDays = filterJeonnamGuides(normalizeDraft(detail, conditions), conditions.regionName);
         const loadedSaved = Boolean(guideId || detail.saved || detail.isSaved || detail.savedAt || detail.savedGuideId);
         const loadedSavedId = String(guideId || detail.savedGuideId || (loadedSaved ? detail.guideId : "") || "");
         setGuides(backendDays); setRefreshAvailable(Boolean(detail.refreshAvailable)); setSaved(loadedSaved); setSavedId(loadedSavedId); setMessage(detail.summary || "여행 가이드를 불러왔습니다.");
