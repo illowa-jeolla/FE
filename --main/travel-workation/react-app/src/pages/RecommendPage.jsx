@@ -6,7 +6,7 @@ import { searchAccommodations } from "../api/travelRecommendations";
 import { asList } from "../hooks/useApi";
 import { KAKAO_MAP_JAVASCRIPT_KEY } from "../config";
 import { searchKakaoPlaces } from "../components/kakaoMaps";
-import { jeonnamRegionName } from "../data/jeonnam";
+import { isJeonnamTravelItem, jeonnamRegionName } from "../data/jeonnam";
 
 const themes = [
   { value: "NATURE_HEALING", label: "자연·힐링" },
@@ -167,7 +167,7 @@ export default function RecommendPage() {
         return;
       }
       searchAccommodations({ regionId, query: hotel.trim(), size: 10, signal: controller.signal })
-        .then(setHotelResults)
+        .then((items) => setHotelResults((items || []).filter((item) => isJeonnamTravelItem(item, region))))
         .catch((error) => {
           if (error.name !== "AbortError") {
             setHotelResults([]);
@@ -186,7 +186,7 @@ export default function RecommendPage() {
     const timer = setTimeout(() => {
       if (!KAKAO_MAP_JAVASCRIPT_KEY) { setRouteResults([]); setRouteError("카카오 지도 키가 설정되지 않았습니다."); setRouteSearching(false); return; }
       searchKakaoPlaces(KAKAO_MAP_JAVASCRIPT_KEY, routeQuery.trim(), 10)
-        .then((items) => { if (!controller.signal.aborted) setRouteResults(items); })
+        .then((items) => { if (!controller.signal.aborted) setRouteResults((items || []).filter((item) => isJeonnamTravelItem(item, region))); })
         .catch((error) => { if (!controller.signal.aborted) { setRouteResults([]); setRouteError(error.message || "장소를 검색하지 못했습니다."); } })
         .finally(() => { if (!controller.signal.aborted) setRouteSearching(false); });
     }, 1000);
