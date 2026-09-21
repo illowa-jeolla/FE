@@ -7,7 +7,7 @@ import { cancelJobApplication, externalJobDetailPath, updateJobApplicationStatus
 import { deleteTravelPost } from "../api/travelPosts";
 import { updateMyNickname } from "../api/myPage";
 import { getSavedTravelGuide, removeSavedTravelGuide } from "../api/travelRecommendations";
-import { getAiMatches } from "../api/aiMatches";
+import { deleteAiMatch, getAiMatch } from "../api/aiMatches";
 import { clearSession, getSessionUser, hasSession } from "../auth/session";
 import { useApi } from "../hooks/useApi";
 import { favoriteKey, useJobFavorites } from "../hooks/useJobFavorites";
@@ -16,6 +16,7 @@ import AuthenticatedImage from "../components/AuthenticatedImage";
 import { postImages } from "./communityUtils";
 
 const AI_MATCH_STORAGE_KEYS = ["illowa:ai-match:latest:v1", "illowa:ai-match:history:v1"];
+const AI_MATCH_PAGE_SIZE = 4;
 const APPLICATION_STATUS_OPTIONS = [
   ["APPLIED", "지원 완료"],
   ["DOCUMENT_PASS", "서류 합격"],
@@ -111,6 +112,10 @@ export default function MyPage() {
   const [updatingApplicationId, setUpdatingApplicationId] = useState("");
   const [deletingApplicationId, setDeletingApplicationId] = useState("");
   const [applicationDeleteTarget, setApplicationDeleteTarget] = useState(null);
+  const [openingAiMatchId, setOpeningAiMatchId] = useState("");
+  const [deletingAiMatchId, setDeletingAiMatchId] = useState("");
+  const [aiMatchDeleteTarget, setAiMatchDeleteTarget] = useState(null);
+  const [aiMatchPage, setAiMatchPage] = useState(0);
   const { data: profileData, loading: profileLoading, error: profileError, setData: setProfileData } = useApi(hasSession() ? "/api/v1/users/me" : "", { immediate: hasSession() });
   const { data: summary } = useApi(hasSession() ? "/api/v1/me/summary" : "", { immediate: hasSession() });
   const { data: savedGuideData, loading: guidesLoading, error: guidesError, run: reloadGuides, setData: setSavedGuideData } = useApi(hasSession() ? "/api/v1/travel-guides/saved" : "", { immediate: hasSession() });
@@ -120,7 +125,7 @@ export default function MyPage() {
   const { data: myPostData, loading: postsLoading, error: postsError, run: reloadPosts, setData: setMyPostData } = useApi(hasSession() ? "/api/v1/community/travel-posts/me?page=0&size=20" : "", { immediate: hasSession() });
   const { data: hostedGatheringData, loading: hostedGatheringsLoading, error: hostedGatheringsError } = useApi(hasSession() ? "/api/v1/gatherings/me?type=hosted&page=0&size=20" : "", { immediate: hasSession() });
   const { data: joinedGatheringData, loading: joinedGatheringsLoading, error: joinedGatheringsError } = useApi(hasSession() ? "/api/v1/gatherings/me?type=joined&page=0&size=20" : "", { immediate: hasSession() });
-  const { data: aiMatchData, loading: aiMatchesLoading, error: aiMatchesError } = useApi(hasSession() ? "/api/v1/ai-matches?page=0&size=20" : "", { immediate: hasSession() });
+  const { data: aiMatchData, loading: aiMatchesLoading, error: aiMatchesError, run: reloadAiMatches } = useApi(hasSession() ? `/api/v1/ai-matches?page=${aiMatchPage}&size=${AI_MATCH_PAGE_SIZE}` : "", { immediate: hasSession() });
 
   const sessionUser = getSessionUser();
   const user = profileData || sessionUser;
@@ -136,6 +141,11 @@ export default function MyPage() {
   const gatheringsLoading = hostedGatheringsLoading || joinedGatheringsLoading;
   const gatheringsError = hostedGatheringsError && joinedGatheringsError ? hostedGatheringsError : "";
   const aiMatches = pageItems(aiMatchData, "matches");
+  const aiMatchPageMeta = aiMatchData?.page || {};
+  const aiMatchTotalPages = Math.max(1, Number(aiMatchData?.totalPages ?? aiMatchPageMeta.totalPages ?? 1));
+  const aiMatchTotalElements = Number(aiMatchData?.totalElements ?? aiMatchPageMeta.totalElements ?? aiMatches.length);
+  const aiMatchPageStart = Math.max(0, Math.min(aiMatchPage - 2, aiMatchTotalPages - 5));
+  const aiMatchPageNumbers = Array.from({ length: Math.min(5, aiMatchTotalPages) }, (_, index) => aiMatchPageStart + index);
   const filteredGatherings = (gatheringFilter === "hosted" ? hostedGatherings : gatheringFilter === "joined" ? gatherings.filter((item) => !isPastGathering(item)) : gatherings)
     .sort((left, right) => Number(isPastGathering(left)) - Number(isPastGathering(right)) || new Date(left.startsAt || left.eventTime || left.event_time || 0) - new Date(right.startsAt || right.eventTime || right.event_time || 0));
 
@@ -239,17 +249,82 @@ export default function MyPage() {
     } catch (requestError) { setMessage(requestError.message); }
   }
 
-  const tabCounts = { guides: summary?.savedGuideCount, aiMatches: aiMatches.length || undefined, posts: summary?.travelPostCount, applications: summary?.jobApplicationCount, favoriteJobs: favorites.ready ? favoriteJobs.length : summary?.favoriteJobCount, gatherings: summary?.gatheringCount };
+  async function openAiMatchDetail(match) {
+    const requestId = match.requestId || match.id;
+    const openingKey = String(requestId || "ai-match");
+    if (openingAiMatchId) return;
+    setOpeningAiMatchId(openingKey);
+    setMessage("");
+    try {
+      const detail = requestId ? await getAiMatch(requestId) : match;
+      const results = aiMatchResults(detail);
+      if (!results.length) throw new Error("아직 확인할 수 있는 AI 매칭 상세 결과가 없습니다.");
+      const conditions = detail.conditions || detail.request || detail.criteria || match.conditions || {};
+      sessionStorage.setItem("illowa:ai-match:latest:v1", JSON.stringify({
+        requestId,
+        results,
+        selectedRank: results[0]?.rank,
+        status: detail.status || match.status || "COMPLETED",
+        conditions: {
+          preferredRegionId: conditions.preferredRegionId || conditions.regionId || "",
+          desiredJobs: conditions.desiredJobs || conditions.jobs || [],
+          priorities: conditions.priorities || [],
+          thought: conditions.thought || ""
+        },
+        showResult: true,
+        scrollY: 0
+      }));
+      navigate("/local-fit");
+    } catch (requestError) {
+      setMessage(requestError.message || "AI 매칭 상세 결과를 불러오지 못했습니다.");
+      setOpeningAiMatchId("");
+    }
+  }
+
+  function moveAiMatchPage(page) {
+    const nextPage = Math.min(aiMatchTotalPages - 1, Math.max(0, page));
+    if (nextPage === aiMatchPage || aiMatchesLoading) return;
+    setOpeningAiMatchId("");
+    setAiMatchPage(nextPage);
+  }
+
+  async function removeAiMatch(match) {
+    const requestId = match.requestId || match.id;
+    if (!requestId || deletingAiMatchId) return;
+    setDeletingAiMatchId(String(requestId));
+    setMessage("");
+    try {
+      await deleteAiMatch(requestId);
+      try {
+        const cached = JSON.parse(sessionStorage.getItem("illowa:ai-match:latest:v1") || "null");
+        if (String(cached?.requestId || "") === String(requestId)) sessionStorage.removeItem("illowa:ai-match:latest:v1");
+        const history = JSON.parse(sessionStorage.getItem("illowa:ai-match:history:v1") || "[]");
+        if (Array.isArray(history)) sessionStorage.setItem("illowa:ai-match:history:v1", JSON.stringify(history.filter((item) => String(item?.requestId || "") !== String(requestId))));
+      } catch { /* 저장된 화면 캐시 정리에 실패해도 서버 삭제 결과는 유지합니다. */ }
+      setMessage("AI 매칭 결과를 삭제했습니다.");
+      setAiMatchDeleteTarget(null);
+      if (aiMatches.length === 1 && aiMatchPage > 0) setAiMatchPage((page) => page - 1);
+      else await reloadAiMatches();
+    } catch (requestError) {
+      setMessage(requestError.message || "AI 매칭 결과를 삭제하지 못했습니다.");
+      setAiMatchDeleteTarget(null);
+    } finally {
+      setDeletingAiMatchId("");
+    }
+  }
+
+  const tabCounts = { guides: summary?.savedGuideCount, aiMatches: aiMatchTotalElements || undefined, posts: summary?.travelPostCount, applications: summary?.jobApplicationCount, favoriteJobs: favorites.ready ? favoriteJobs.length : summary?.favoriteJobCount, gatherings: summary?.gatheringCount };
 
   return <main className="mypage-main mypage-refresh">
     <aside className="mypage-side-panel mypage-side-panel-left" aria-hidden="true"><img src="/마이페이지.png" alt="" /></aside>
     {applicationDeleteTarget && <div className="mypage-application-delete-modal"><button className="mypage-application-delete-backdrop" type="button" aria-label="삭제 확인 창 닫기" disabled={Boolean(deletingApplicationId)} onClick={() => setApplicationDeleteTarget(null)} /><section role="dialog" aria-modal="true" aria-labelledby="application-delete-title"><span className="mypage-application-delete-icon" aria-hidden="true">!</span><small>APPLICATION RECORD</small><h2 id="application-delete-title">지원 기록을 삭제할까요?</h2><p><strong>{applicationDeleteTarget.title || applicationDeleteTarget.jobTitle || "선택한 공고"}</strong>의 지원 상태와 기록이 모두 삭제됩니다.</p><em>삭제한 기록은 되돌릴 수 없습니다.</em><div><button type="button" disabled={Boolean(deletingApplicationId)} onClick={() => setApplicationDeleteTarget(null)}>취소</button><button className="is-danger" type="button" disabled={Boolean(deletingApplicationId)} onClick={() => cancelApplication(applicationDeleteTarget, true)}>{deletingApplicationId ? "삭제 중..." : "지원 기록 삭제"}</button></div></section></div>}
+    {aiMatchDeleteTarget && <div className="mypage-application-delete-modal mypage-ai-delete-modal"><button className="mypage-application-delete-backdrop" type="button" aria-label="AI 매칭 삭제 확인 창 닫기" disabled={Boolean(deletingAiMatchId)} onClick={() => setAiMatchDeleteTarget(null)} /><section role="dialog" aria-modal="true" aria-labelledby="ai-match-delete-title"><span className="mypage-application-delete-icon" aria-hidden="true">!</span><small>AI MATCH RESULT</small><h2 id="ai-match-delete-title">AI 매칭 결과를 삭제할까요?</h2><p><strong>{aiMatchResults(aiMatchDeleteTarget)[0]?.region?.name || "선택한 AI 매칭 결과"}</strong>의 지역·일자리·관광지 추천 결과가 삭제됩니다.</p><em>삭제한 결과는 다시 복구할 수 없습니다.</em><div><button type="button" disabled={Boolean(deletingAiMatchId)} onClick={() => setAiMatchDeleteTarget(null)}>취소</button><button className="is-danger" type="button" disabled={Boolean(deletingAiMatchId)} onClick={() => removeAiMatch(aiMatchDeleteTarget)}>{deletingAiMatchId ? "삭제 중..." : "결과 삭제"}</button></div></section></div>}
     <section className="mypage-profile-card"><div className="mypage-avatar"><ProfileAvatar src={avatarUrl} name={displayName} /></div><div className="mypage-profile-copy"><span>MY LOCAL LIFE</span><h1>{displayName}님의 전라도 이야기</h1><p className="mypage-profile-description">여행의 추억부터 새로운 일까지, 나의 활동을 한곳에서 확인해요.</p><p>{email || "이메일 정보 없음"}</p></div><div className="mypage-profile-actions"><button onClick={logout}>로그아웃</button></div></section>
     <FormMessage message={message} />
     <section className="mypage-layout"><nav className="mypage-tabs" aria-label="나의 활동">{tabs.map(([key, label], index) => <button className={tab === key ? "is-active" : ""} onClick={() => setTab(key)} aria-current={tab === key ? "page" : undefined} key={key}><span className="mypage-tab-character" aria-hidden="true"><span className="mypage-tab-mark">{String(index + 1).padStart(2, "0")}</span></span><span className="mypage-tab-label">{label}</span>{tabCounts[key] != null && <b>{tabCounts[key]}</b>}</button>)}</nav><div className="mypage-panels"><section className="mypage-panel is-active">
       {tab === "profile" && <><span className="mypage-kicker">PROFILE</span><h2>내 정보</h2><p>서비스에서 사용할 닉네임을 변경할 수 있어요.</p>{profileLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>내 정보를 불러오는 중입니다.</div> : profileError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>내 정보를 불러오지 못했습니다.</strong><p>{profileError}</p></div> : <form id="nickname-form" onSubmit={changeNickname}><label>아이디<input value={email || "이메일 정보 없음"} readOnly /></label><label htmlFor="mypage-nickname">닉네임<input id="mypage-nickname" name="nickname" defaultValue={displayName} maxLength="10" autoComplete="nickname" required /></label><button type="submit">닉네임 저장</button></form>}</>}
       {tab === "guides" && <><span className="mypage-kicker">SAVED GUIDES</span><h2>내가 저장한 여행 가이드</h2><p>저장한 코스와 여행 일정을 확인할 수 있어요.</p>{guidesLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>저장한 가이드를 불러오는 중입니다.</div> : guidesError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>가이드를 불러오지 못했습니다.</strong><p>{guidesError}</p></div> : savedGuides.length ? <div className="mypage-card-list mypage-saved-guides">{savedGuides.map((guide) => { const guideId = guide.guideId || guide.id; const detail = guideDetails[guideId] || {}; const places = guidePlaces(detail); const lodging = detail.accommodation?.name || guide.summary || "저장한 여행 일정"; return <article className="mypage-guide-card" key={guideId}><Link className="mypage-guide-copy" to={`/travel-guide/${guideId}`}><span>SAVED GUIDE · {guide.regionName || detail.regionName || "전라도"}</span><h3>{guide.title}</h3><p>{lodging}</p><div className="mypage-guide-summary"><b>{places.length ? `${places.length}곳 코스` : "저장한 코스"}</b><b>{guide.endsOn ? `${guide.endsOn}까지` : guide.startsOn || "날짜 확인"}</b></div><div className="mypage-guide-spots">{places.length ? places.map((place, index) => <div key={`${place}-${index}`}><span>{index + 1}</span><b>{place}</b></div>) : <div className="is-empty"><b>{guide.summary || "가이드에서 상세 코스를 확인해 주세요."}</b></div>}</div><small>{guide.savedAt ? `${new Date(guide.savedAt).toLocaleDateString("ko-KR")} 저장` : "저장한 여행 가이드"}</small></Link><div className="mypage-guide-actions"><Link to={`/travel-guide/${guideId}`}>가이드 보기</Link><button className="guide-delete-button" type="button" onClick={() => removeGuide(guide)}>삭제</button></div></article>; })}</div> : <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>저장한 여행 가이드가 없어요</strong><p>여행 가이드를 저장하면 이곳에서 확인할 수 있어요.</p></div>}</>}
-      {tab === "aiMatches" && <><span className="mypage-kicker">AI MATCH HISTORY</span><h2>AI 매칭 결과</h2><p>AI가 분석한 지역·일자리·관광지 추천 결과를 다시 확인할 수 있어요.</p>{aiMatchesLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>AI 매칭 결과를 불러오는 중입니다.</div> : aiMatchesError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>AI 매칭 결과를 불러오지 못했습니다.</strong><p>{aiMatchesError}</p></div> : aiMatches.length ? <div className="mypage-card-list mypage-ai-match-list" id="ai-match-list">{aiMatches.map((match, index) => { const results = aiMatchResults(match); const topResult = results[0] || {}; const scores = topResult.scores || {}; const jobs = results.flatMap((result) => Array.isArray(result.jobs) ? result.jobs : []); const places = results.flatMap((result) => Array.isArray(result.places) ? result.places : []); const status = String(match.status || "").toUpperCase(); return <article className={`mypage-ai-match-card is-${status.toLowerCase() || "unknown"}`} key={match.requestId || index}><div className="mypage-ai-match-header"><span>{aiMatchStatusLabel(match.status)}</span></div><h3>{topResult.region?.name || "추천 지역을 확인하는 중이에요"}</h3>{topResult.summary && <p>{topResult.summary}</p>}{results.length ? <div className="mypage-ai-match-stats"><b><strong>{scores.overall ?? "-"}</strong><small>종합 점수</small></b><b><strong>{jobs.length}</strong><small>추천 일자리</small></b><b><strong>{places.length}</strong><small>추천 관광지</small></b></div> : <div className="mypage-ai-match-state">{status === "PROCESSING" ? "조건을 분석해 맞춤 추천을 만들고 있어요." : status === "FAILED" ? "추천을 생성하지 못했어요. 잠시 후 다시 시도해 주세요." : "아직 표시할 추천 결과가 없어요."}</div>}{topResult.regionStatus?.message && <small className="mypage-ai-match-note">{topResult.regionStatus.message}</small>}</article>; })}</div> : <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>AI 매칭 결과가 없어요</strong><p>관광지 추천에서 AI 매칭을 시작하면 결과가 이곳에 저장됩니다.</p><Link className="mypage-empty-action" to="/recommend">AI 매칭 시작하기 →</Link></div>}</>}
+      {tab === "aiMatches" && <><span className="mypage-kicker">AI MATCH HISTORY</span><h2>AI 매칭 결과</h2><p>AI가 분석한 지역·일자리·관광지 추천 결과를 다시 확인할 수 있어요.</p>{aiMatchesLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>AI 매칭 결과를 불러오는 중입니다.</div> : aiMatchesError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>AI 매칭 결과를 불러오지 못했습니다.</strong><p>{aiMatchesError}</p></div> : aiMatches.length ? <><div className="mypage-card-list mypage-ai-match-list" id="ai-match-list">{aiMatches.map((match, index) => { const results = aiMatchResults(match); const topResult = results[0] || {}; const scores = topResult.scores || {}; const jobs = results.flatMap((result) => Array.isArray(result.jobs) ? result.jobs : []); const places = results.flatMap((result) => Array.isArray(result.places) ? result.places : []); const status = String(match.status || "").toUpperCase(); const canOpen = results.length > 0 && ["COMPLETED", "REPLACED"].includes(status); const matchKey = String(match.requestId || match.id || index); const isOpening = openingAiMatchId === matchKey; const isDeleting = deletingAiMatchId === matchKey; const openDetail = () => { if (canOpen && !isDeleting) openAiMatchDetail(match); }; return <article className={`mypage-ai-match-card is-${status.toLowerCase() || "unknown"}${canOpen ? " is-clickable" : ""}${isOpening ? " is-opening" : ""}${isDeleting ? " is-deleting" : ""}`} role={canOpen ? "link" : undefined} tabIndex={canOpen ? 0 : undefined} aria-label={canOpen ? `${topResult.region?.name || "AI 매칭"} 상세 결과 보기` : undefined} key={match.requestId || index} onClick={openDetail} onKeyDown={(event) => { if (canOpen && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openDetail(); } }}><div className="mypage-ai-match-header"><span>{aiMatchStatusLabel(match.status)}</span><div>{canOpen && <small>{isOpening ? "불러오는 중…" : "상세 보기 →"}</small>}{["COMPLETED", "REPLACED"].includes(status) && <button className="mypage-ai-match-delete" type="button" disabled={Boolean(deletingAiMatchId || openingAiMatchId)} onClick={(event) => { event.stopPropagation(); setAiMatchDeleteTarget(match); }}>{isDeleting ? "삭제 중…" : "삭제"}</button>}</div></div><h3>{topResult.region?.name || "추천 지역을 확인하는 중이에요"}</h3>{topResult.summary && <p>{topResult.summary}</p>}{results.length ? <div className="mypage-ai-match-stats"><b><strong>{scores.overall ?? "-"}</strong><small>종합 점수</small></b><b><strong>{jobs.length}</strong><small>추천 일자리</small></b><b><strong>{places.length}</strong><small>추천 관광지</small></b></div> : <div className="mypage-ai-match-state">{status === "PROCESSING" ? "조건을 분석해 맞춤 추천을 만들고 있어요." : status === "FAILED" ? "추천을 생성하지 못했어요. 잠시 후 다시 시도해 주세요." : "아직 표시할 추천 결과가 없어요."}</div>}{topResult.regionStatus?.message && <small className="mypage-ai-match-note">{topResult.regionStatus.message}</small>}</article>; })}</div>{aiMatchTotalPages > 1 && <nav className="mypage-ai-pagination" aria-label="AI 매칭 결과 페이지"><button type="button" disabled={aiMatchPage === 0} onClick={() => moveAiMatchPage(aiMatchPage - 1)}>이전</button><div>{aiMatchPageNumbers.map((page) => <button className={page === aiMatchPage ? "is-active" : ""} type="button" aria-current={page === aiMatchPage ? "page" : undefined} key={page} onClick={() => moveAiMatchPage(page)}>{page + 1}</button>)}</div><button type="button" disabled={aiMatchPage >= aiMatchTotalPages - 1} onClick={() => moveAiMatchPage(aiMatchPage + 1)}>다음</button></nav>}</> : <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>AI 매칭 결과가 없어요</strong><p>관광지 추천에서 AI 매칭을 시작하면 결과가 이곳에 저장됩니다.</p><Link className="mypage-empty-action" to="/recommend">AI 매칭 시작하기 →</Link></div>}</>}
       {tab === "posts" && <><span className="mypage-kicker">MY STORIES</span><h2>내 여행 공유</h2><p>직접 작성한 여행 후기를 모아보는 화면이에요.</p>{postsLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>여행 글을 불러오는 중입니다.</div> : postsError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>여행 글을 불러오지 못했습니다.</strong><p>{postsError}</p></div> : myPosts.length ? <div className="mypage-card-list" id="post-list">{myPosts.map((post) => { const postId = post.id || post.postId; const thumbnailUrl = postImages(post)[0]; return <article className="mypage-story-card" key={postId}><div className="mypage-story-body"><span>{post.regionName || post.region?.name || "전라도"}</span><h3>{post.title || post.concept}</h3><p>{post.contentPreview || post.content || "작성한 여행 이야기"}</p><footer><small>{post.createdAt?.slice?.(0, 10) || "작성일 정보 없음"} · 조회 {post.viewCount || 0} · 댓글 {post.commentCount || 0}</small><strong><Link to={`/community/${postId}`}>글 보기 →</Link></strong></footer></div>{thumbnailUrl ? <AuthenticatedImage src={thumbnailUrl} alt={`${post.title || "여행 게시물"} 대표 사진`} /> : <div className="mypage-story-placeholder"><b>旅</b><span>TRAVEL STORY</span></div>}</article>; })}</div> : <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>작성한 여행 글이 없어요</strong><p>여행의 순간을 공유하면 이곳에서 관리할 수 있어요.</p></div>}</>}
       {tab === "applications" && <><span className="mypage-kicker">APPLICATIONS</span><h2>내가 지원한 공고</h2><p>지원한 공고의 핵심 조건과 현재 진행 상태를 관리할 수 있어요.</p>{applicationsLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>지원 내역을 불러오는 중입니다.</div> : applicationsError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>지원 내역을 불러오지 못했습니다.</strong><p>{applicationsError}</p></div> : applications.length ? <div className="mypage-card-list" id="application-list">{applications.map((application) => { const job = application.job || application; const applicationId = application.id || application.applicationId; const source = String(job.source || ""); const detailPath = externalJobDetailPath({ externalSource: source.includes("JUNNAM") ? "junnam" : "tour", externalId: job.externalId }); const currentStatus = application.status || "APPLIED"; const statusLabel = APPLICATION_STATUS_LABELS[currentStatus] || currentStatus; const isUpdating = updatingApplicationId === String(applicationId); const isDeleting = deletingApplicationId === String(applicationId); return <article className="mypage-favorite-job" key={applicationId}><div className="mypage-favorite-job-body"><span>{statusLabel} · {job.address || "근무지 정보 없음"}</span><h3>{job.title || application.jobTitle}</h3><p>{job.companyName || application.companyName || "기업 정보 없음"}</p><div className="mypage-favorite-job-meta"><b>{job.deadline ? `${job.deadline} 마감` : "마감일 확인"}</b></div><div className="mypage-application-status"><span>지원 상태</span><div className="mypage-application-status-options" role="group" aria-label={`${job.title || application.jobTitle} 지원 상태`}>{APPLICATION_STATUS_OPTIONS.map(([value, label]) => <button className={currentStatus === value ? "is-active" : ""} type="button" disabled={Boolean(updatingApplicationId || deletingApplicationId)} aria-pressed={currentStatus === value} key={value} onClick={() => changeApplicationStatus(application, value)}>{label}</button>)}</div><small>{isUpdating ? "변경 중..." : "단계를 누르면 즉시 저장됩니다."}</small></div><footer><small>{application.appliedAt?.slice?.(0, 10) || "지원일 정보 없음"}</small><strong><Link to={detailPath}>공고 보기 →</Link></strong><button className="mypage-application-delete" type="button" disabled={Boolean(updatingApplicationId || deletingApplicationId)} onClick={() => cancelApplication(application)}>{isDeleting ? "삭제 중..." : "지원 기록 삭제"}</button></footer></div></article>; })}</div> : <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>지원한 공고가 없어요</strong><p>관광 일자리에 지원하면 이곳에서 확인할 수 있어요.</p></div>}</>}
       {tab === "favoriteJobs" && <><span className="mypage-kicker">FAVORITE JOBS</span><h2>내가 찜한 일자리</h2><p>관심 있는 공고를 모아두고 상세 조건을 다시 확인할 수 있어요.</p>{favoritesLoading ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span>찜 목록을 불러오는 중입니다.</div> : favoritesError ? <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>찜 목록을 불러오지 못했습니다.</strong><p>{favoritesError}</p></div> : favoriteJobs.length ? <div className="mypage-card-list" id="favorite-list">{favoriteJobs.map((favorite) => { const job = favorite.job || favorite; const source = String(job.source || ""); const detailPath = externalJobDetailPath({ externalSource: source.includes("JUNNAM") ? "junnam" : "tour", externalId: job.externalId }); return <article className="mypage-favorite-job" key={favoriteKey(favorite)}><div className="mypage-favorite-job-body"><span>{job.address || "근무지 정보 없음"}</span><h3>{job.title}</h3><p>{job.companyName || "기업 정보 없음"}</p><div className="mypage-favorite-job-meta"><b>{job.deadline ? `${job.deadline} 마감` : "마감일 확인"}</b></div><footer><small>{favorite.favoritedAt?.slice?.(0, 10) || "저장일 정보 없음"}</small><strong><Link to={detailPath}>공고 보기 →</Link></strong><button type="button" className="button job-favorite-button is-favorite" disabled={favorites.pending.has(favoriteKey(favorite))} onClick={() => removeFavorite(favorite)} aria-label={`${job.title} 찜취소`}>♥ 찜취소</button></footer></div></article>; })}</div> : <div className="mypage-empty"><span className="mypage-status-mark" aria-hidden="true">•</span><strong>찜한 일자리가 없어요</strong><p>관심 있는 관광 일자리를 찜하면 이곳에서 확인할 수 있어요.</p></div>}</>}

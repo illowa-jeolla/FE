@@ -125,7 +125,7 @@ export default function LocalFitPage() {
   const [loading, setLoading] = useState(false);
   // `/local-fit`에 다시 진입할 때는 저장된 결과 상세가 아니라 매칭 화면을 먼저 보여준다.
   // 결과는 매칭 결과 화면에서 확인한다.
-  const [editingMatch, setEditingMatch] = useState(true);
+  const [editingMatch, setEditingMatch] = useState(() => !(restoredMatch?.showResult && restoredMatch?.results?.length));
   const [resolvingJob, setResolvingJob] = useState("");
   const [analysisStep, setAnalysisStep] = useState(0);
   const [priorities, setPriorities] = useState(restoredMatch?.conditions?.priorities || []);
