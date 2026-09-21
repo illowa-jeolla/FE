@@ -2,7 +2,7 @@ const { request, setStatus, escapeHtml } = Workation;
 const statusElement = document.querySelector("#mypage-status");
 let dashboard;
 let gatheringFilter = "";
-const mypageJobPhotos = ["assets/J6aHjc.jpeg", "assets/JvLTt.jpeg", "assets/lX3GW.jpeg", "assets/OZ3bs.jpeg", "assets/s6jB4w.jpeg", "assets/u3OD9c.jpeg", "assets/wt960.jpeg", "assets/y0SxMq.jpeg"];
+const mypageJobPhotos = ["assets/J6aHjc.jpeg", "assets/JvLTt.jpeg", "assets/lX3GW.jpeg", "assets/OZ3bs.jpeg", "assets/s6jB4w.jpeg", "assets/u3OD9c.jpeg", "assets/wt960.jpeg"];
 const mypageGuidePhotos = ["assets/JvLTt.jpeg", "assets/lX3GW.jpeg", "assets/J6aHjc.jpeg", "assets/u3OD9c.jpeg", "assets/bI7WI.jpeg"];
 
 function empty(message) { return `<div class="mypage-empty"><span>♡</span><p>${message}</p></div>`; }
