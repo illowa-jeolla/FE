@@ -69,6 +69,9 @@ export default function CommunityPage() {
     run(path).then((result) => { communityPageCache = { data: result }; }).catch(() => {});
   }, []);
   useEffect(() => {
+    if (!new URLSearchParams(location.search).get("post")) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+  useEffect(() => {
     document.documentElement.classList.add("community-scroll-hidden");
     return () => document.documentElement.classList.remove("community-scroll-hidden");
   }, []);
@@ -86,7 +89,14 @@ export default function CommunityPage() {
       card.style.setProperty("--community-reveal-delay", `${(index % 6) * 55}ms`);
       observer.observe(card);
     });
-    return () => observer.disconnect();
+    const visibilityFallback = window.setTimeout(() => {
+      cards.forEach((card) => card.classList.add("is-visible"));
+      observer.disconnect();
+    }, 700);
+    return () => {
+      window.clearTimeout(visibilityFallback);
+      observer.disconnect();
+    };
   }, [displayedPosts.length]);
   useEffect(() => {
     const hero = heroRef.current;
