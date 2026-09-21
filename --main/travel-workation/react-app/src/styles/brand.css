@@ -203,6 +203,10 @@ body.job-detail-page { color: #111; background: #fff; }
 .job-apply-card-bottom .job-apply-actions .job-favorite-button:hover { border-color: #df679c; color: #b92f6c; background: #ffedf5; }
 .job-apply-card-bottom .job-apply-actions .job-favorite-button i { color: #df5f98; }
 .job-apply-card-bottom .job-apply-actions .job-favorite-button.is-favorite { border-color: #df5f98; color: #fff; background: #df5f98; }
+.job-apply-card-bottom .job-apply-actions .job-application-button { min-width:142px; border:1px solid #d84e8d; color:#fff; background:#df5f98; font-weight:800; }
+.job-apply-card-bottom .job-apply-actions .job-application-button:hover:not(:disabled) { border-color:#bd356f; background:#c94380; }
+.job-apply-card-bottom .job-apply-actions .job-application-button.is-applied { border-color:#7b8f83; color:#fff; background:#7b8f83; cursor:default; }
+.job-apply-card-bottom .job-apply-actions .job-application-button:disabled:not(.is-applied) { opacity:.65; cursor:wait; }
 .job-apply-card-bottom > span[role="status"] { width: 100%; flex: 0 0 100%; margin: 2px 0 0; padding: 9px 0 0; border-top: 1px solid #ededed; color: #666; font-size: 9px; line-height: 1.4; }
 .job-backend-data dl.is-long { grid-column: 1 / -1; }
 .job-backend-data a { color: #1769e0; font-weight: 750; }

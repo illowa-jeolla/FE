@@ -233,15 +233,55 @@ export function getAllExternalJobs({ region = "" } = {}) {
   return promise;
 }
 
-export function applyToJob(jobId, message) {
-  return apiRequest(`${API_BASE}/jobs/${encodeURIComponent(jobId)}/applications`, {
+export function createJobApplication(job = {}) {
+  const sourceValue = String(firstValue(job, ["source", "externalSource"]) || "").toUpperCase();
+  const source = sourceValue.includes("JUNNAM") || firstValue(job, ["jobKey"])
+    ? "JUNNAM_PUBLIC_JOB"
+    : "TOUR_JOB";
+  const externalId = String(firstValue(job, ["externalId", "jobKey", "employmentInfoNo"]) || "").trim();
+  const title = String(firstValue(job, ["title", "jobTitle"]) || "").trim();
+
+  if (!externalId) throw new Error("지원할 공고의 식별자가 없습니다.");
+  if (!title) throw new Error("지원할 공고의 제목이 없습니다.");
+
+  const optionalText = (keys) => {
+    const value = firstValue(job, keys);
+    return value === undefined || value === null || String(value).trim() === "" ? undefined : String(value).trim();
+  };
+  const payload = {
+    source,
+    externalId,
+    title,
+    companyName: optionalText(["companyName", "employerName", "enterpriseTypeName", "writer", "jobWriter"]),
+    address: optionalText(["address", "workplaceAddress", "location", "regionName", "jobCategoryNm"]),
+    deadline: optionalText(["deadline", "receiptDeadlineDate", "jobEndDt", "jobCloseDt", "applyEndDate", "endDate", "closeDate"]),
+    sourceUrl: optionalText(["sourceUrl", "detailUrl", "homepageUrl", "url"])
+  };
+
+  return apiRequest(`${API_BASE}/jobs/applications`, {
     method: "POST",
-    body: JSON.stringify({ message })
+    body: JSON.stringify(payload)
   });
+}
+
+export function applyToJob(job) {
+  return createJobApplication(job);
 }
 
 export function getMyJobApplications(params = {}) {
   return apiRequest(`${API_BASE}/jobs/applications${queryString(params)}`);
+}
+
+export function updateJobApplicationStatus(applicationId, status) {
+  const id = String(applicationId ?? "").trim();
+  const normalizedStatus = String(status || "").trim().toUpperCase();
+  const allowedStatuses = ["APPLIED", "DOCUMENT_PASS", "INTERVIEW", "ACCEPTED", "REJECTED"];
+  if (!id) throw new Error("상태를 변경할 지원 기록 ID가 없습니다.");
+  if (!allowedStatuses.includes(normalizedStatus)) throw new Error("지원하지 않는 지원 상태입니다.");
+  return apiRequest(`${API_BASE}/jobs/applications/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: normalizedStatus })
+  });
 }
 
 export function cancelJobApplication(applicationId) {
