@@ -14,6 +14,15 @@ import { EmptyCard, FormMessage } from "../components/UI";
 import AuthenticatedImage from "../components/AuthenticatedImage";
 import { postImages } from "./communityUtils";
 
+const AI_MATCH_STORAGE_KEYS = ["illowa:ai-match:latest:v1", "illowa:ai-match:history:v1"];
+
+function clearAiMatchStorage() {
+  AI_MATCH_STORAGE_KEYS.forEach((key) => {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+  });
+}
+
 const tabs = [["profile", "내 정보"], ["guides", "저장한 여행 가이드"], ["posts", "내 여행 공유"], ["applications", "내가 지원한 공고"], ["favoriteJobs", "찜한 일자리"], ["gatherings", "내 게더링"]];
 
 function pageItems(data, key) {
@@ -129,7 +138,7 @@ export default function MyPage() {
   }
 
   async function logout() {
-    try { setMessage("로그아웃 중입니다."); await logoutFromBackend(); clearSession(); navigate("/"); }
+    try { setMessage("로그아웃 중입니다."); await logoutFromBackend(); clearAiMatchStorage(); clearSession(); navigate("/"); }
     catch (requestError) { setMessage(requestError.message); }
   }
 
