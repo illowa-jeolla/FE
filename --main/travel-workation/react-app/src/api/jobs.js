@@ -285,7 +285,7 @@ export function updateJobApplicationStatus(applicationId, status) {
 }
 
 export function cancelJobApplication(applicationId) {
-  return apiRequest(`${API_BASE}/job-applications/${encodeURIComponent(applicationId)}`, { method: "DELETE" });
+  return apiRequest(`${API_BASE}/jobs/applications/${encodeURIComponent(applicationId)}`, { method: "DELETE" });
 }
 
 export function favoriteJob(job) {
