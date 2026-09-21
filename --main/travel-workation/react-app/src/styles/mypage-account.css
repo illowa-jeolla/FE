@@ -70,6 +70,25 @@
   .mypage-refresh #nickname-form button:hover { background:#474d55; color:#fff; box-shadow:0 4px 12px #00000012; }
   .mypage-refresh .mypage-card-list > article:hover { border-color:#cbd0d6; box-shadow:0 10px 24px #0000000c; }
 }
+
+/* AI match history cards */
+.mypage-refresh .mypage-ai-match-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.mypage-refresh .mypage-ai-match-card { min-width:0; padding:20px; border:1px solid #eadfe9; border-radius:14px; background:linear-gradient(145deg,#fffafd,#fff 70%); box-shadow:0 3px 12px #a1819a08; }
+.mypage-refresh .mypage-ai-match-card:hover { border-color:#d9bfd7; box-shadow:0 10px 24px #9b769615; transform:translateY(-2px); transition:.22s ease; }
+.mypage-refresh .mypage-ai-match-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.mypage-refresh .mypage-ai-match-header span { padding:6px 10px; border-radius:999px; color:#80566d; background:#fae8ee; font-size:10px; font-weight:800; }
+.mypage-refresh .mypage-ai-match-header small,.mypage-refresh .mypage-ai-match-note { color:#a18d9b; font-size:10px; }
+.mypage-refresh .mypage-ai-match-card h3 { margin:0 0 7px; color:#352c35; font-size:19px; }
+.mypage-refresh .mypage-ai-match-card p { margin:0; color:#79717a; font-size:12px; line-height:1.65; }
+.mypage-refresh .mypage-ai-match-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:18px 0 13px; }
+.mypage-refresh .mypage-ai-match-stats b { display:grid; gap:3px; padding:10px 8px; border-radius:10px; text-align:center; background:#f8f2f7; color:#795b76; }
+.mypage-refresh .mypage-ai-match-stats strong { font-size:20px; line-height:1; }
+.mypage-refresh .mypage-ai-match-stats small { color:#9b8793; font-size:9px; font-weight:600; }
+.mypage-refresh .mypage-ai-match-state { margin-top:18px; padding:16px 12px; border-radius:10px; color:#8a7c87; background:#faf7fb; font-size:12px; line-height:1.6; }
+.mypage-refresh .mypage-ai-match-card.is-processing .mypage-ai-match-header span { color:#79618c; background:#ede3f7; }
+.mypage-refresh .mypage-ai-match-card.is-failed .mypage-ai-match-header span { color:#9a6377; background:#f9e9ee; }
+.mypage-refresh .mypage-empty-action { display:inline-flex; margin-top:16px; color:#8d6683; font-size:12px; font-weight:750; }
+@media(max-width:700px) { .mypage-refresh .mypage-ai-match-list { grid-template-columns:1fr; } }
 @media(max-width:900px) {
   .mypage-main.mypage-refresh { display:flex; flex-direction:column; padding:28px 20px 64px; gap:0; }
   .mypage-refresh .mypage-profile-card,.mypage-refresh .mypage-layout > .mypage-tabs,.mypage-refresh .mypage-layout > .mypage-panels { width:100%; }

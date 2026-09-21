@@ -124,7 +124,7 @@ export default function LocalFitPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   // `/local-fit`에 다시 진입할 때는 저장된 결과 상세가 아니라 매칭 화면을 먼저 보여준다.
-  // 결과는 입력 화면 우측 하단의 최근 매칭 카드에서 다시 열 수 있다.
+  // 결과는 매칭 결과 화면에서 확인한다.
   const [editingMatch, setEditingMatch] = useState(true);
   const [resolvingJob, setResolvingJob] = useState("");
   const [analysisStep, setAnalysisStep] = useState(0);
@@ -520,7 +520,6 @@ export default function LocalFitPage() {
   }
 
   return <main className={`ai-match-main${results.length && !editingMatch ? " ai-result-ready" : " ai-no-result"}`}>
-    {savedResultNotice && <div className="ai-saved-result-notice" role="status">{savedResultCards.map((cached, index) => { const cachedItem = cached.results?.find((result) => result.rank === cached.selectedRank) || cached.results?.[0] || {}; return <button className="ai-saved-result-card" type="button" key={cached.cacheKey || index} onClick={() => reopenSavedMatch(cached)}><small>{index === 0 ? "최근 매칭" : "이전 매칭"}</small><div className="ai-saved-result-card-main"><strong>{cachedItem.region?.name || "지역 선택"}</strong><em>{cachedItem.scores?.overall ?? "-"}점</em></div><i>열어보기 <span>→</span></i></button>; })}</div>}
     {isDailyLimitMessage && <div className="ai-limit-toast" role="alert" aria-live="assertive"><span aria-hidden="true">!</span><p><strong>오늘의 AI 매칭을 모두 사용했어요</strong><small>{message}</small></p></div>}
     <section className="ai-match-marquee">
       <div className="ai-marquee-row ai-marquee-top">{[
